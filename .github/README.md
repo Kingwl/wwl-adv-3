@@ -1,3 +1,4 @@
-# GitHub Configuration
+# GitHub 配置
 
-Workflow files can be added once the GitHub token has `workflow` scope.
+CI workflow lives in `.github/workflows/ci.yml` and delegates checks to
+`game/tools/check-all.sh`.
