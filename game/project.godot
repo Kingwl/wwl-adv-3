@@ -1,0 +1,22 @@
+; Engine configuration file.
+; Edit in the Godot editor when project settings become non-trivial.
+
+config_version=5
+
+[application]
+
+config/name="WWL Advanced 3"
+config/description="Minimal Godot scaffold for a 2D tower defense merge game."
+run/main_scene="res://scenes/start.tscn"
+config/features=PackedStringArray("4.6")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"

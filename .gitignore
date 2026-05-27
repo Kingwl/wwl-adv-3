@@ -1,0 +1,15 @@
+# Godot
+.godot/
+*.translation
+
+# Generated output
+build/
+ci-artifacts/
+game/tools/out/
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
