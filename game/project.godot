@@ -6,7 +6,7 @@ config_version=5
 [application]
 
 config/name="wwl大冒险3"
-config/description="2D roguelite deck-crawler prototype."
+config/description="2D roguelite 卡牌地牢原型。"
 run/main_scene="res://scenes/start.tscn"
 config/features=PackedStringArray("4.6")
 

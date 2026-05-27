@@ -1,3 +1,5 @@
 # wwl大冒险3
 
-Minimal Godot scaffold for a 2D roguelite deck-crawler.
+这是一个 Godot 2D roguelite 卡牌地牢游戏脚手架。
+
+当前原型聚焦核心卡牌战斗、确定性地牢探索、地图遭遇、经验升级和局内构筑成长。

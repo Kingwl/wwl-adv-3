@@ -1,3 +1,3 @@
-# Tech Debt
+# 技术债
 
-Track engineering risks and cleanup work here.
+这里追踪工程风险和清理工作。

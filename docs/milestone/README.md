@@ -1,6 +1,7 @@
-# Milestones
+# 里程碑
 
-Milestone scope and delivery notes belong here.
+这里放交付范围和路线图说明。
 
-When a milestone is completed, run the relevant verification commands, then
-commit the finished state before moving on.
+- `core-playable-roadmap.md`：第一个可玩 2-3 关地牢/卡牌战斗循环的分阶段计划。
+
+完成里程碑时，先运行相关验证命令，再提交完成状态，然后继续下一阶段。

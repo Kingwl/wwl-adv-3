@@ -1,3 +1,3 @@
-# Tech Debt Register
+# 技术债登记
 
-No known tech debt yet.
+暂无已知技术债。

@@ -1,3 +1,3 @@
 # UI
 
-UI surface notes, scene boundaries, and visual validation plans belong here.
+这里放 UI 界面范围、场景边界和视觉验证计划。

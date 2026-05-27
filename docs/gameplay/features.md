@@ -1,28 +1,30 @@
-# Gameplay Features
+# 玩法功能
 
-## Direction
+## 方向
 
-`wwl大冒险3` is a 2D roguelite deck-crawler. The first prototype focuses on
-grid dungeon exploration, card-driven combat, combo scaling, run rewards, and
-lightweight long-term progression.
+`wwl大冒险3` 是 2D roguelite 卡牌地牢游戏。第一个原型聚焦网格地牢探索、卡牌驱动战斗、combo 缩放、run 内奖励，以及轻量长期成长。
 
-## Implemented
+## 已实现
 
-- Card definitions with id, display name, mana cost, damage, block, draw count,
-  and target mode.
-- Seeded deck setup, shuffle, draw, hand, and discard piles.
-- Combo state where non-decreasing mana costs extend the chain; lower-cost cards
-  reset it.
-- Integer combo multipliers in basis points, starting at 100 and adding 25 per
-  extra chain step.
-- Combatant state with health, block, incoming damage absorption, and defeat.
-- Combat state for player turn setup, card play validation, card effects, enemy
-  turn damage, victory, and defeat.
-- Starter deck catalog with Strike, Bolt, Guard, and Focus.
+- 卡牌定义：id、显示名称、mana 费用、伤害、block、抽牌数和目标模式。
+- 带 seed 的 deck 初始化、洗牌、抽牌、手牌和弃牌堆。
+- Combo 状态：费用不下降会延续连击，低费用卡会重置连击。
+- 使用 basis points 表达的整数 combo 倍率：从 100 开始，每多一层连击增加 25。
+- 战斗者状态：生命、block、伤害吸收和失败判断。
+- 战斗状态：玩家回合初始化、出牌校验、卡牌效果、敌人回合伤害、胜利和失败。
+- Starter deck 卡牌目录：Strike、Bolt、Guard 和 Focus。
 
-## Planned
+## 计划
 
-- 2D dungeon grid, rooms, encounters, treasure, and boss nodes.
-- Card rewards and card upgrade rules.
-- Relics or passive modifiers.
-- Scene adapter for playable hand, enemies, and dungeon movement.
+- 2D 地牢网格、房间、遭遇、宝藏和 boss 节点。
+- 2-3 关原型 run，每关 10-15 个敌人遭遇。
+- 玩家地图漫游，包括敌人交互、拾取物、出口和关卡清理。
+- 敌人经验掉落，以及确定性的升级奖励选择。
+- 影响战斗、地图生存或奖励流程的被动物品。
+- 卡牌奖励和卡牌升级规则。
+- 遗物或被动 modifier。
+- 可玩的手牌、敌人和地牢移动场景适配层。
+- 参考 Vampire Crawlers 的滚雪球机制：费用灵活卡、卡牌 modifier、进化配方和确定性级联触发。
+- 敌人职责：群怪、肉盾、玻璃炮、护盾怪、吸取怪、精英和 boss。
+- 地图拾取物和特殊格子：食物、XP 宝石、宝箱、锻造、祭坛、陷阱、钥匙和出口。
+- 构筑流派：combo 终结者、长链、护甲引擎、XP 经济和溅射清场。

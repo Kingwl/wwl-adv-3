@@ -1,3 +1,3 @@
-# Project Skills
+# 项目技能
 
-Project-specific Codex skills can be added here as the repository grows.
+随着仓库成长，可以在这里添加项目专用 Codex skills。

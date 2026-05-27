@@ -1,3 +1,3 @@
-# Testing
+# 测试
 
-Persistent testing strategy and gate documentation belong here.
+这里放长期测试策略和门禁说明。

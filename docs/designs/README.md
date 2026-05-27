@@ -1,3 +1,3 @@
-# Designs
+# 设计
 
-Place active design notes here. Use short, current documents and archive stale proposals later.
+这里放当前有效的架构和玩法设计说明。文档应保持短小、及时；过期方案后续再归档。

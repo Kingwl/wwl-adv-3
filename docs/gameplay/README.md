@@ -1,6 +1,6 @@
-# Gameplay
+# 玩法
 
-Core gameplay feature notes and test plans belong here.
+这里放核心玩法功能说明和测试计划。
 
-- `features.md` records implemented and planned gameplay features.
-- `test-plan.md` records rule and scene validation coverage.
+- `features.md`：记录已实现和计划中的玩法功能。
+- `test-plan.md`：记录规则和场景验证覆盖。

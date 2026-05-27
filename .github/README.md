@@ -1,4 +1,3 @@
 # GitHub 配置
 
-CI workflow lives in `.github/workflows/ci.yml` and delegates checks to
-`game/tools/check-all.sh`.
+CI 工作流位于 `.github/workflows/ci.yml`，并委托 `game/tools/check-all.sh` 执行项目检查。
