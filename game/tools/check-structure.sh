@@ -5,12 +5,15 @@ GAME_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 required_dirs=(
   "${GAME_DIR}/scenes"
+  "${GAME_DIR}/scripts/core/cards"
+  "${GAME_DIR}/scripts/core/combat"
   "${GAME_DIR}/scripts/core"
   "${GAME_DIR}/scripts/board"
   "${GAME_DIR}/scripts/ui"
   "${GAME_DIR}/data"
   "${GAME_DIR}/assets"
   "${GAME_DIR}/test"
+  "${GAME_DIR}/test/godot"
   "${GAME_DIR}/tools"
 )
 

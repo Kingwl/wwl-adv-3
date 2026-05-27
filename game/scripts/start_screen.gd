@@ -4,4 +4,4 @@ extends Control
 
 
 func _ready() -> void:
-	title_label.text = "WWL 大冒险 3"
+	title_label.text = "wwl大冒险3"

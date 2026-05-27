@@ -5,8 +5,8 @@ config_version=5
 
 [application]
 
-config/name="WWL Advanced 3"
-config/description="Minimal Godot scaffold for a 2D tower defense merge game."
+config/name="wwl大冒险3"
+config/description="2D roguelite deck-crawler prototype."
 run/main_scene="res://scenes/start.tscn"
 config/features=PackedStringArray("4.6")
 
