@@ -31,7 +31,7 @@ func _test_victory_grants_xp_and_level_events() -> bool:
 	var first_step := controller.move_player(Vector2i.RIGHT)
 	var second_step := controller.move_player(Vector2i.RIGHT)
 	var encounter_result := controller.move_player(Vector2i.RIGHT)
-	controller.active_combat.enemies[0].health = 0
+	_defeat_all_active_enemies(controller)
 	var victory_result := controller.finish_active_combat_victory()
 	var level_events: Array = victory_result["level_events"]
 
@@ -252,6 +252,11 @@ func _apply_first_pending_reward(controller: RunController) -> bool:
 		push_error("自动选择升级奖励失败：%s" % result["reason"])
 		return false
 	return true
+
+
+func _defeat_all_active_enemies(controller: RunController) -> void:
+	for enemy in controller.active_combat.enemies:
+		enemy.health = 0
 
 
 func _choose_next_card(combat: CombatState) -> int:

@@ -39,6 +39,7 @@ var run_state: RunState = RunState.new()
 var mode: String = MODE_EXPLORATION
 var active_combat: CombatState
 var active_encounter_id: String = ""
+var active_encounter_display_name: String = ""
 var active_encounter_position: Vector2i = Vector2i.ZERO
 var pending_reward_level_events: Array = []
 var active_reward_level_event: Dictionary = {}
@@ -105,13 +106,14 @@ func start_encounter_at(position: Vector2i) -> Dictionary:
 func _start_encounter_for_tile(position: Vector2i, tile: DungeonTile) -> Dictionary:
 	mode = MODE_COMBAT
 	active_encounter_id = tile.occupant_id
+	active_encounter_display_name = _encounter_display_name_for_tile(tile)
 	active_encounter_position = position
 	active_combat = _create_combat_for_tile(tile)
 
 	var result := _event(EVENT_COMBAT_STARTED)
 	result["encounter_id"] = active_encounter_id
 	result["position"] = active_encounter_position
-	result["enemy_name"] = _active_enemy_display_name()
+	result["enemy_name"] = active_encounter_display_name
 	return result
 
 
@@ -122,7 +124,7 @@ func play_card(hand_index: int) -> Dictionary:
 	var card: CardDefinition = null
 	if hand_index >= 0 and hand_index < active_combat.deck.hand.size():
 		card = active_combat.deck.hand[hand_index]
-	var target_index := 0 if card != null and card.needs_enemy_target() else -1
+	var target_index := active_combat.primary_target_index() if card != null and card.needs_enemy_target() else -1
 	var play_result: CardPlayResult = active_combat.play_card(hand_index, target_index)
 	if not play_result.ok:
 		var rejected := _event(EVENT_COMMAND_REJECTED, play_result.reason)
@@ -162,7 +164,7 @@ func finish_active_combat_victory() -> Dictionary:
 		return _event(EVENT_COMMAND_REJECTED, "combat_not_won")
 
 	run_state.health = active_combat.player.health
-	var defeated_name := _active_enemy_display_name()
+	var defeated_name := active_encounter_display_name
 	var defeated_position := active_encounter_position
 	var xp_reward := _xp_reward_for_active_encounter()
 	var level_events := run_state.gain_xp(xp_reward)
@@ -251,14 +253,44 @@ func xp_reward_for_tile_type(tile_type: int) -> int:
 
 func create_enemy_for_tile(tile: DungeonTile) -> CombatantState:
 	if tile.tile_type == DungeonTile.TileType.ELITE:
-		return CombatantState.new(tile.occupant_id, "精英", 28, 6)
+		return CombatantState.new("%s_front" % tile.occupant_id, "精英", 24, 5)
 	if tile.tile_type == DungeonTile.TileType.BOSS:
-		return CombatantState.new(tile.occupant_id, "首领", 42, 8)
-	return CombatantState.new(tile.occupant_id, "敌人", 16, 4)
+		return CombatantState.new("%s_guard" % tile.occupant_id, "首领护卫", 18, 4)
+	return CombatantState.new("%s_front" % tile.occupant_id, "敌人", 12, 4)
+
+
+func create_enemy_rows_for_tile(tile: DungeonTile) -> Array:
+	if tile.tile_type == DungeonTile.TileType.ELITE:
+		return [
+			[
+				CombatantState.new("%s_front_a" % tile.occupant_id, "精英", 24, 5),
+				CombatantState.new("%s_front_b" % tile.occupant_id, "护卫", 14, 3),
+			],
+			[
+				CombatantState.new("%s_rear" % tile.occupant_id, "后援", 16, 4),
+			],
+		]
+	if tile.tile_type == DungeonTile.TileType.BOSS:
+		return [
+			[
+				CombatantState.new("%s_guard_a" % tile.occupant_id, "首领护卫", 18, 4),
+				CombatantState.new("%s_guard_b" % tile.occupant_id, "首领护卫", 18, 4),
+			],
+			[
+				CombatantState.new("%s_boss" % tile.occupant_id, "首领", 42, 8),
+			],
+		]
+	return [
+		[
+			CombatantState.new("%s_front" % tile.occupant_id, "敌人", 12, 4),
+		],
+		[
+			CombatantState.new("%s_rear" % tile.occupant_id, "后援", 10, 3),
+		],
+	]
 
 
 func _create_combat_for_tile(tile: DungeonTile) -> CombatState:
-	var enemy := create_enemy_for_tile(tile)
 	var player := CombatantState.new("hero", "英雄", run_state.max_health, 0, run_state.health)
 	var combat := CombatState.new()
 	var deck_cards := run_state.create_deck_cards()
@@ -270,7 +302,7 @@ func _create_combat_for_tile(tile: DungeonTile) -> CombatState:
 	combat.setup(
 		player,
 		deck_cards,
-		[enemy],
+		create_enemy_rows_for_tile(tile),
 		run_state.seed + run_state.stage_index + defeated_count,
 		run_state.max_mana,
 		5
@@ -279,9 +311,25 @@ func _create_combat_for_tile(tile: DungeonTile) -> CombatState:
 
 
 func _active_enemy_display_name() -> String:
-	if active_combat != null and not active_combat.enemies.is_empty():
-		var enemy: CombatantState = active_combat.enemies[0]
-		return enemy.display_name
+	if active_combat != null:
+		var front_enemies := active_combat.front_row_enemies()
+		if not front_enemies.is_empty():
+			var front_enemy: CombatantState = front_enemies[0]
+			return front_enemy.display_name
+		var living := active_combat.living_enemies()
+		if not living.is_empty():
+			var enemy: CombatantState = living[0]
+			return enemy.display_name
+	if active_encounter_display_name != "":
+		return active_encounter_display_name
+	return "敌人"
+
+
+func _encounter_display_name_for_tile(tile: DungeonTile) -> String:
+	if tile.tile_type == DungeonTile.TileType.ELITE:
+		return "精英"
+	if tile.tile_type == DungeonTile.TileType.BOSS:
+		return "首领"
 	return "敌人"
 
 
@@ -298,6 +346,7 @@ func _clear_active_encounter() -> void:
 	mode = MODE_EXPLORATION
 	active_combat = null
 	active_encounter_id = ""
+	active_encounter_display_name = ""
 	active_encounter_position = Vector2i.ZERO
 
 
@@ -428,6 +477,7 @@ func _start_run_end(reason: String, title: String, summary: String) -> void:
 	active_run_end_summary = summary
 	active_combat = null
 	active_encounter_id = ""
+	active_encounter_display_name = ""
 	active_encounter_position = Vector2i.ZERO
 	_clear_reward_state()
 	mode = MODE_RUN_END

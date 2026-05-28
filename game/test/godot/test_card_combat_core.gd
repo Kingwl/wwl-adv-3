@@ -13,6 +13,8 @@ func _init() -> void:
 	failed = not _test_combo_resets_when_cost_drops() or failed
 	failed = not _test_deck_shuffle_is_seeded() or failed
 	failed = not _test_combat_applies_combo_damage_and_block() or failed
+	failed = not _test_enemy_rows_only_front_attacks_and_rear_waits_after_advancing() or failed
+	failed = not _test_enemy_rows_are_capped_at_five_enemies() or failed
 	failed = not _test_stage_1_reward_pool_is_stable_and_chinese() or failed
 	failed = not _test_reward_cards_are_simple_categories() or failed
 	quit(1 if failed else 0)
@@ -65,6 +67,57 @@ func _test_combat_applies_combo_damage_and_block() -> bool:
 	ok = _assert_eq(strike_result.damage_requested, 12, "second combo card scales strike") and ok
 	ok = _assert_eq(bolt_result.damage_requested, 27, "third combo card scales bolt") and ok
 	ok = _assert_eq(combat.enemies[0].health, 0, "enemy loses scaled damage") and ok
+	return ok
+
+
+func _test_enemy_rows_only_front_attacks_and_rear_waits_after_advancing() -> bool:
+	var combat := CombatState.new()
+	combat.setup(
+		CombatantState.new("hero", "英雄", 30, 0),
+		[],
+		[
+			[CombatantState.new("front", "前排", 3, 4)],
+			[CombatantState.new("rear", "后排", 8, 7)],
+		],
+		12,
+		3,
+		0
+	)
+	combat.deck.hand = [StarterCardCatalog.create_strike()]
+
+	var play_result := combat.play_card(0, combat.primary_target_index())
+	var front_after_kill: Array = combat.front_row_enemies()
+	var can_advanced_enemy_attack_now := false
+	if front_after_kill.size() > 0:
+		can_advanced_enemy_attack_now = combat.can_enemy_attack(front_after_kill[0])
+	var damage_on_advance_turn := combat.end_player_turn()
+	var damage_next_turn := combat.end_player_turn()
+
+	var ok := true
+	ok = _assert_eq(play_result.defeated_enemy_ids, ["front"], "front enemy is defeated first") and ok
+	ok = _assert_eq(front_after_kill.size(), 1, "rear advances into front row") and ok
+	if front_after_kill.size() > 0:
+		ok = _assert_eq(front_after_kill[0].id, "rear", "rear is now the front target") and ok
+		ok = _assert_eq(can_advanced_enemy_attack_now, false, "newly advanced enemy waits this turn") and ok
+	ok = _assert_eq(damage_on_advance_turn, 0, "newly advanced enemy does not attack immediately") and ok
+	ok = _assert_eq(damage_next_turn, 7, "advanced enemy attacks on the next enemy turn") and ok
+	return ok
+
+
+func _test_enemy_rows_are_capped_at_five_enemies() -> bool:
+	var row: Array = []
+	for i in range(6):
+		row.append(CombatantState.new("enemy_%s" % i, "敌人", 5, 1))
+
+	var combat := CombatState.new()
+	combat.setup(CombatantState.new("hero", "英雄", 30, 0), [], [row], 13, 3, 0)
+	var rows := combat.living_enemy_rows()
+
+	var ok := true
+	ok = _assert_eq(rows.size(), 2, "oversized enemy row splits into two rows") and ok
+	if rows.size() == 2:
+		ok = _assert_eq(rows[0].size(), CombatState.MAX_ENEMIES_PER_ROW, "front row is capped at five") and ok
+		ok = _assert_eq(rows[1].size(), 1, "overflow enemy moves to next row") and ok
 	return ok
 
 

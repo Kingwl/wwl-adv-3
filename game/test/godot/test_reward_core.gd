@@ -98,7 +98,7 @@ func _test_run_combat_uses_current_run_deck() -> bool:
 
 func _test_level_up_enters_reward_mode_until_choice_applied() -> bool:
 	var controller := _start_first_enemy_combat_with_xp(7)
-	controller.active_combat.enemies[0].health = 0
+	_defeat_all_active_enemies(controller)
 	var victory_result := controller.finish_active_combat_victory()
 	var move_result := controller.move_player(Vector2i.RIGHT)
 	var reward_choices: Array = controller.pending_reward_choices.duplicate(true)
@@ -121,7 +121,7 @@ func _test_level_up_enters_reward_mode_until_choice_applied() -> bool:
 
 func _test_multiple_level_ups_queue_multiple_rewards() -> bool:
 	var controller := _start_first_enemy_combat_with_xp(27)
-	controller.active_combat.enemies[0].health = 0
+	_defeat_all_active_enemies(controller)
 	var victory_result := controller.finish_active_combat_victory()
 	var first_choices: Array = controller.pending_reward_choices.duplicate(true)
 	var first_reward := controller.apply_reward_choice_index(0)
@@ -241,6 +241,11 @@ func _start_first_enemy_combat_with_xp(xp: int) -> RunController:
 	controller.move_player(Vector2i.RIGHT)
 	controller.move_player(Vector2i.RIGHT)
 	return controller
+
+
+func _defeat_all_active_enemies(controller: RunController) -> void:
+	for enemy in controller.active_combat.enemies:
+		enemy.health = 0
 
 
 func _assert_eq(actual, expected, label: String) -> bool:

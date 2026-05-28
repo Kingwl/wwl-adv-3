@@ -2,11 +2,11 @@
 
 ## 当前覆盖
 
-- `game/test/godot/test_card_combat_core.gd` 覆盖 combo 重置、带 seed 的 deck 确定性、卡牌战斗中的伤害/block 结果，以及第 1 关奖励卡池的数量、唯一 id、中文显示名和攻击/防御/抽卡三类纯效果约束。
+- `game/test/godot/test_card_combat_core.gd` 覆盖 combo 重置、带 seed 的 deck 确定性、卡牌战斗中的伤害/block 结果、敌人多排队列、每排最多 5 个敌人、后排补位后延迟到下一轮攻击，以及第 1 关奖励卡池的数量、唯一 id、中文显示名和攻击/防御/抽卡三类纯效果约束。
 - `game/test/godot/test_reward_core.gd` 覆盖 card id 到卡牌定义的解析、确定性的 3 选 1 卡牌奖励、奖励不重复且类型分布稳定、升级和宝箱进入 reward 模式、治疗恢复生命、经验宝石获得 XP 并可触发升级奖励、奖励队列、选择奖励加入 run deck，以及下一场战斗使用当前 run deck。
 - `game/test/godot/test_dungeon_core.gd` 覆盖地图 fixture 确定性、移动阻挡、遭遇触发、拾取物收集、经验宝石 tile、首领击败出口解锁、非首领击败数不解锁第 1 关出口、run 初始化、XP 阈值曲线，以及固定第 1-2 关内容预算。
 - `game/test/godot/test_core_gameplay_flow.gd` 覆盖核心玩法验收流程：启动第 1 关、用寻路移动到敌人格自动开始遭遇和卡牌战斗、击败首领、获得 XP 和升级奖励、收集一个可达物品并结算可能出现的奖励、解锁出口进入第 2 关；同时覆盖战斗失败进入 run end，以及第 2 关出口结束原型 run。
-- `game/test/godot/test_run_scene_smoke.gd` 覆盖 run 场景能加载第 1 关地图、创建 160 个地图格、绑定基础 UI 节点、远处点击只选中不移动、触摸地图格移动并进入战斗、第 1 关出口切换到 18x10 的第 2 关、战斗手牌键盘选择和确认出牌、鼠标 hover 同步选择、进入战斗 UI、升级/宝箱/经验宝石奖励 3 选 1 UI、治疗拾取物反馈、失败 run end UI，以及胜利后回到地图清除敌人并显示 XP。
+- `game/test/godot/test_run_scene_smoke.gd` 覆盖 run 场景能加载第 1 关地图、创建 160 个地图格、绑定基础 UI 节点、远处点击只选中不移动、触摸地图格移动并进入战斗、第 1 关出口切换到 18x10 的第 2 关、战斗手牌键盘选择和确认出牌、鼠标 hover 同步选择、进入战斗 UI 和敌方队列显示、升级/宝箱/经验宝石奖励 3 选 1 UI、治疗拾取物反馈、失败 run end UI，以及胜利后回到地图清除敌人并显示 XP。
 - `game/tools/check-core-rules.sh` 在脚手架仍然轻量时，验证核心规则文件和 Godot 测试入口存在。
 
 ## 后续覆盖

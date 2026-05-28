@@ -165,7 +165,7 @@ func _test_run_scene_shows_level_reward_choices(run_scene) -> bool:
 	run_scene._try_move(Vector2i.RIGHT)
 	await process_frame
 
-	run_scene.active_combat.enemies[0].health = 0
+	_defeat_all_active_enemies(run_scene)
 	run_scene._finish_combat_victory()
 	await process_frame
 
@@ -413,6 +413,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var combat_hand_row: HBoxContainer = run_scene.find_child("CombatHandRow", true, false)
 	var combat_hand_title_label: Label = run_scene.find_child("CombatHandTitleLabel", true, false)
 	var combat_title_label: Label = run_scene.find_child("CombatTitleLabel", true, false)
+	var combat_enemy_label: RichTextLabel = run_scene.find_child("EnemyState", true, false)
 	var player_state_panel: PanelContainer = run_scene.find_child("PlayerStatePanel", true, false)
 	var stats_label: Label = run_scene.find_child("StatsLabel", true, false)
 
@@ -425,6 +426,9 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）  已选：%s  生命 40/40 | 护甲 0 | 法力 3/3 | 连击 0" % selected_card_summary, "combat hand title") and ok
 	ok = _assert_eq(combat_hand_row.get_child_count(), 5, "combat hand buttons") and ok
 	ok = _assert_eq(combat_title_label.text, "遭遇：敌人", "combat title") and ok
+	ok = _assert_eq(combat_enemy_label.text.contains("前排"), true, "combat enemy panel shows front row") and ok
+	ok = _assert_eq(combat_enemy_label.text.contains("第2排"), true, "combat enemy panel shows rear row") and ok
+	ok = _assert_eq(combat_enemy_label.text.contains("待命"), true, "combat enemy panel shows waiting row") and ok
 	ok = _assert_eq(player_state_panel, null, "combat has no player state panel") and ok
 	ok = _assert_eq(_visible_text_has_english(combat_hand_row), false, "combat hand text uses Chinese") and ok
 	ok = _assert_eq(_visible_text_has_english(run_scene), false, "combat visible text uses Chinese") and ok
@@ -435,7 +439,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(run_scene.active_combat.mana, 2, "playing first card spends mana") and ok
 	ok = _assert_eq(run_scene.active_combat.deck.hand.size(), 4, "playing first card removes hand card") and ok
 
-	run_scene.active_combat.enemies[0].health = 0
+	_defeat_all_active_enemies(run_scene)
 	run_scene._finish_combat_victory()
 	await process_frame
 
@@ -467,6 +471,11 @@ func _first_attack_card_index(cards: Array) -> int:
 		if cards[i].base_damage > 0:
 			return i
 	return -1
+
+
+func _defeat_all_active_enemies(run_scene) -> void:
+	for enemy in run_scene.active_combat.enemies:
+		enemy.health = 0
 
 
 func _map_cell_button(run_scene, position: Vector2i) -> Button:

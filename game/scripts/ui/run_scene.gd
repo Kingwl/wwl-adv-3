@@ -494,17 +494,10 @@ func _refresh_combat() -> void:
 		return
 
 	_clamp_selected_hand_index()
-	var enemy: CombatantState = active_combat.enemies[0]
 	var selected_card_summary := _selected_card_summary()
-	combat_title_label.text = "遭遇：%s" % enemy.display_name
-	combat_enemy_label.text = "[b]敌方目标[/b]\n%s\n生命 %s / %s  %s\n护甲 %s    下回合攻击 %s" % [
-		enemy.display_name,
-		enemy.health,
-		enemy.max_health,
-		_health_bar(enemy.health, enemy.max_health),
-		enemy.block,
-		enemy.attack_damage,
-	]
+	var target_enemy := _current_target_enemy()
+	combat_title_label.text = "遭遇：%s" % (target_enemy.display_name if target_enemy != null else "敌人")
+	combat_enemy_label.text = "[b]敌方队列[/b]\n%s" % _enemy_queue_text()
 	combat_hand_title_label.text = "手牌（%s）  已选：%s  生命 %s/%s | 护甲 %s | 法力 %s/%s | 连击 %s" % [
 		active_combat.deck.hand.size(),
 		selected_card_summary,
@@ -837,6 +830,46 @@ func _pickup_summary(result: Dictionary) -> String:
 			parts.append("选择升级奖励。")
 		return "".join(parts)
 	return "收集了%s。" % _tile_type_description(tile_type)
+
+
+func _current_target_enemy() -> CombatantState:
+	if active_combat == null:
+		return null
+	var target_index := active_combat.primary_target_index()
+	if target_index < 0 or target_index >= active_combat.enemies.size():
+		return null
+	return active_combat.enemies[target_index]
+
+
+func _enemy_queue_text() -> String:
+	if active_combat == null:
+		return "无"
+	var rows := active_combat.living_enemy_rows()
+	if rows.is_empty():
+		return "无"
+
+	var lines: Array = []
+	for row_index in range(rows.size()):
+		var row: Array = rows[row_index]
+		var row_label := "前排" if row_index == 0 else "第%s排" % [row_index + 1]
+		var parts: Array = []
+		for enemy in row:
+			parts.append(_enemy_queue_entry(enemy))
+		lines.append("%s：%s" % [row_label, "  /  ".join(parts)])
+	return "\n".join(lines)
+
+
+func _enemy_queue_entry(enemy: CombatantState) -> String:
+	var state := "可攻击" if active_combat.can_enemy_attack(enemy) else "待命"
+	return "%s %s/%s %s 护甲%s 攻%s %s" % [
+		enemy.display_name,
+		enemy.health,
+		enemy.max_health,
+		_health_bar(enemy.health, enemy.max_health),
+		enemy.block,
+		enemy.attack_damage,
+		state,
+	]
 
 
 func _on_end_turn_pressed() -> void:
