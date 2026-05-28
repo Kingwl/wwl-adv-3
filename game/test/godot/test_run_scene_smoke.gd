@@ -37,6 +37,7 @@ func _test_run_scene_loads_stage_1(run_scene) -> bool:
 	ok = _assert_ne(stage_label, null, "stage label exists") and ok
 	ok = _assert_ne(stats_label, null, "stats label exists") and ok
 	ok = _assert_ne(action_button, null, "action button exists") and ok
+	ok = _assert_ne(run_scene.theme.default_font, null, "run scene has bundled UI font") and ok
 	ok = _assert_eq(run_scene.run_state.current_stage.id, "stage_1", "run scene starts stage 1") and ok
 	ok = _assert_eq(stage_label.text, "第一关：旧井入口  种子：1001", "stage label uses Chinese") and ok
 	ok = _assert_eq(stats_label.text.contains("经验"), true, "stats label uses Chinese xp text") and ok
@@ -88,7 +89,6 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	run_scene._try_move(Vector2i.RIGHT)
 	run_scene._try_move(Vector2i.RIGHT)
 	run_scene._try_move(Vector2i.RIGHT)
-	run_scene._on_action_pressed()
 	await process_frame
 
 	var combat_hand_row: HBoxContainer = run_scene.find_child("CombatHandRow", true, false)
@@ -138,7 +138,6 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	run_scene._try_move(Vector2i.RIGHT)
 	run_scene._try_move(Vector2i.RIGHT)
 	var status_label: Label = run_scene.find_child("StatusLabel", true, false)
-	run_scene._on_action_pressed()
 	await process_frame
 
 	var combat_panel: VBoxContainer = run_scene.find_child("CombatPanel", true, false)
@@ -150,7 +149,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var ok := true
 	ok = _assert_eq(run_scene.mode, "combat", "run scene enters combat") and ok
 	ok = _assert_eq(run_scene.active_encounter_id, "enemy_01", "active encounter id") and ok
-	ok = _assert_eq(status_label.text, "相邻敌人可开始遭遇。", "encounter status hides internal id") and ok
+	ok = _assert_eq(status_label.text, "遭遇已开始。", "combat start does not leak internal id") and ok
 	ok = _assert_eq(combat_panel.visible, true, "combat panel visible") and ok
 	var selected_card_name: String = run_scene.active_combat.deck.hand[0].display_name
 	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）  已选：%s  生命 40/40 | 护甲 0 | 法力 3/3 | 连击 0" % selected_card_name, "combat hand title") and ok

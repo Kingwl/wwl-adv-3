@@ -73,10 +73,9 @@ func _defeat_required_enemies(controller: RunController) -> bool:
 		var enemy_position: Vector2i = target["enemy_position"]
 		var encounter_direction: Vector2i = enemy_position - map.player_position
 		var encounter_result := controller.move_player(encounter_direction)
-		var start_result := controller.start_encounter_at(enemy_position)
 
-		ok = _assert_eq(encounter_result["type"], DungeonMapState.EVENT_ENCOUNTER_STARTED, "靠近敌人后能触发遭遇") and ok
-		ok = _assert_eq(start_result["type"], RunController.EVENT_COMBAT_STARTED, "玩家命令能开始遭遇") and ok
+		ok = _assert_eq(encounter_result["type"], RunController.EVENT_COMBAT_STARTED, "移动到敌人格会直接开始遭遇") and ok
+		ok = _assert_eq(controller.mode, RunController.MODE_COMBAT, "移动触发后进入战斗模式") and ok
 		ok = _resolve_encounter(controller) and ok
 		defeated_count += 1
 

@@ -45,8 +45,10 @@ func move_player(direction: Vector2i) -> Dictionary:
 
 	var result: Dictionary = run_state.dungeon_map.move_player(direction)
 	if str(result["type"]) == DungeonMapState.EVENT_ENCOUNTER_STARTED:
-		active_encounter_id = str(result["occupant_id"])
-		active_encounter_position = result["to"]
+		var tile: DungeonTile = run_state.dungeon_map.get_tile(result["to"])
+		if tile == null:
+			return _event(EVENT_COMMAND_REJECTED, "missing_tile")
+		return _start_encounter_for_tile(result["to"], tile)
 	return result
 
 
@@ -64,6 +66,10 @@ func start_encounter_at(position: Vector2i) -> Dictionary:
 	if not _is_adjacent(position, run_state.dungeon_map.player_position):
 		return _event(EVENT_COMMAND_REJECTED, "not_adjacent")
 
+	return _start_encounter_for_tile(position, tile)
+
+
+func _start_encounter_for_tile(position: Vector2i, tile: DungeonTile) -> Dictionary:
 	mode = MODE_COMBAT
 	active_encounter_id = tile.occupant_id
 	active_encounter_position = position

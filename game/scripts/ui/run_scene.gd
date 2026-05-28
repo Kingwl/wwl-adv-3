@@ -21,6 +21,7 @@ const COLOR_EXIT_OPEN := Color(0.80, 0.66, 0.24)
 const COLOR_SELECTED := Color(0.92, 0.82, 0.38)
 const COLOR_ENEMY_PANEL := Color(0.24, 0.07, 0.07)
 const COLOR_ENEMY_BORDER := Color(0.76, 0.20, 0.18)
+const UI_FONT_PATH := "res://assets/fonts/NotoSansCJKsc-Regular.otf"
 
 var controller: RunController = RunController.new()
 var run_state: RunState = RunState.new()
@@ -52,12 +53,36 @@ var cell_buttons: Dictionary = {}
 
 
 func _ready() -> void:
+	_apply_ui_font()
 	controller.setup(1001)
 	controller.start_stage_1()
 	_sync_from_controller()
 	selected_position = run_state.dungeon_map.player_position
 	_build_layout()
 	_refresh()
+
+
+func _apply_ui_font() -> void:
+	var font := _load_ui_font()
+	if font == null:
+		push_warning("Could not load UI font: %s" % UI_FONT_PATH)
+		return
+
+	var ui_theme := Theme.new()
+	ui_theme.default_font = font
+	ui_theme.default_font_size = 16
+	theme = ui_theme
+
+
+func _load_ui_font() -> FontFile:
+	var imported_font := load(UI_FONT_PATH) as FontFile
+	if imported_font != null:
+		return imported_font
+
+	var dynamic_font := FontFile.new()
+	if dynamic_font.load_dynamic_font(UI_FONT_PATH) == OK:
+		return dynamic_font
+	return null
 
 
 func _sync_from_controller() -> void:
@@ -156,7 +181,7 @@ func _build_layout() -> void:
 
 	action_button = Button.new()
 	action_button.name = "ActionButton"
-	action_button.text = "开始遭遇"
+	action_button.text = "自动遭遇"
 	action_button.disabled = true
 	action_button.focus_mode = Control.FOCUS_NONE
 	action_button.pressed.connect(_on_action_pressed)
@@ -406,12 +431,12 @@ func _refresh_selected() -> void:
 
 	var adjacent_enemy := tile.is_enemy_tile() and _is_adjacent(selected_position, map.player_position)
 	if adjacent_enemy:
-		status_label.text = "相邻敌人可开始遭遇。"
-		action_button.text = "开始遭遇"
-		action_button.disabled = false
+		status_label.text = "移动到敌人格会自动遭遇。"
+		action_button.text = "自动遭遇"
+		action_button.disabled = true
 	else:
 		status_label.text = "探索中。"
-		action_button.text = "开始遭遇"
+		action_button.text = "自动遭遇"
 		action_button.disabled = true
 
 
@@ -420,8 +445,13 @@ func _try_move(direction: Vector2i) -> void:
 	_sync_from_controller()
 	if result.has("to"):
 		selected_position = result["to"]
-	if result["type"] == DungeonMapState.EVENT_ENCOUNTER_STARTED:
-		status_label.text = "前方有%s。点击开始遭遇。" % _tile_type_description(int(result["tile_type"]))
+	elif result.has("position"):
+		selected_position = result["position"]
+
+	if result["type"] == RunController.EVENT_COMBAT_STARTED:
+		selected_hand_index = 0
+		status_label.text = "遭遇已开始。"
+		combat_log = "遭遇开始。"
 	elif result["type"] == DungeonMapState.EVENT_STAGE_EXIT_REQUESTED:
 		status_label.text = "出口已可用。下一步会接入关卡切换。"
 	elif result["type"] == DungeonMapState.EVENT_BLOCKED:
@@ -443,9 +473,6 @@ func _on_cell_activated(position: Vector2i) -> void:
 		return
 
 	if _is_adjacent(position, map.player_position):
-		if tile.is_enemy_tile():
-			_on_action_pressed()
-			return
 		if tile.tile_type != DungeonTile.TileType.WALL:
 			_try_move(position - map.player_position)
 			return
