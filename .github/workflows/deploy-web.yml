@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - site/**
+      - game/**
       - .github/workflows/deploy-web.yml
   workflow_dispatch:
 
@@ -17,6 +17,12 @@ permissions:
 concurrency:
   group: pages
   cancel-in-progress: false
+
+env:
+  GODOT_RELEASE: 4.6.3-stable
+  GODOT_TEMPLATES_VERSION: 4.6.3.stable
+  EXPORT_PRESET: Web
+  EXPORT_OUTPUT: ../build/web/index.html
 
 jobs:
   deploy:
@@ -30,13 +36,73 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.2
 
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/godot-ci
+            ~/.local/share/godot/export_templates/${{ env.GODOT_TEMPLATES_VERSION }}
+          key: godot-web-${{ runner.os }}-${{ env.GODOT_RELEASE }}
+
+      - name: Install Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          godot_dir="${HOME}/.cache/godot-ci/${GODOT_RELEASE}"
+          godot_bin="${godot_dir}/Godot_v${GODOT_RELEASE}_linux.x86_64"
+
+          if [[ ! -x "${godot_bin}" ]]; then
+            mkdir -p "${godot_dir}"
+            curl -L \
+              "https://github.com/godotengine/godot-builds/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip" \
+              -o "${RUNNER_TEMP}/godot.zip"
+            unzip -q "${RUNNER_TEMP}/godot.zip" -d "${godot_dir}"
+            chmod +x "${godot_bin}"
+          fi
+
+          echo "GODOT_BIN=${godot_bin}" >> "${GITHUB_ENV}"
+          "${godot_bin}" --version
+
+      - name: Install Godot export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          template_dir="${HOME}/.local/share/godot/export_templates/${GODOT_TEMPLATES_VERSION}"
+          if [[ ! -f "${template_dir}/web_nothreads_release.zip" ]]; then
+            mkdir -p "${template_dir}"
+            curl -L \
+              "https://github.com/godotengine/godot-builds/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz" \
+              -o "${RUNNER_TEMP}/export_templates.tpz"
+            unzip -q "${RUNNER_TEMP}/export_templates.tpz" -d "${RUNNER_TEMP}/export_templates"
+            cp "${RUNNER_TEMP}/export_templates/templates/"* "${template_dir}/"
+          fi
+
+          test -f "${template_dir}/web_nothreads_release.zip"
+
+      - name: Export Godot Web build
+        working-directory: game
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p ../build/web
+          "${GODOT_BIN}" --headless --path . --import
+          "${GODOT_BIN}" --headless --path . --export-release "${EXPORT_PRESET}" "${EXPORT_OUTPUT}"
+          touch ../build/web/.nojekyll
+
+          test -f ../build/web/index.html
+          test -f ../build/web/index.wasm
+          test -f ../build/web/index.pck
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload site artifact
+      - name: Upload web artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: build/web
 
       - name: Deploy to GitHub Pages
         id: deployment
