@@ -11,7 +11,16 @@ required_files=(
   "${GAME_DIR}/scripts/core/combat/combatant_state.gd"
   "${GAME_DIR}/scripts/core/combat/card_play_result.gd"
   "${GAME_DIR}/scripts/core/combat/combat_state.gd"
+  "${GAME_DIR}/scripts/core/dungeon/dungeon_tile.gd"
+  "${GAME_DIR}/scripts/core/dungeon/stage_config.gd"
+  "${GAME_DIR}/scripts/core/dungeon/stage_fixture_catalog.gd"
+  "${GAME_DIR}/scripts/core/dungeon/dungeon_map_state.gd"
+  "${GAME_DIR}/scripts/core/run/run_state.gd"
+  "${GAME_DIR}/scripts/core/run/run_controller.gd"
   "${GAME_DIR}/test/godot/test_card_combat_core.gd"
+  "${GAME_DIR}/test/godot/test_dungeon_core.gd"
+  "${GAME_DIR}/test/godot/test_core_gameplay_flow.gd"
+  "${GAME_DIR}/test/godot/test_run_scene_smoke.gd"
 )
 
 for path in "${required_files[@]}"; do

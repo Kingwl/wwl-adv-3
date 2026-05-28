@@ -7,7 +7,7 @@ config_version=5
 
 config/name="wwl大冒险3"
 config/description="2D roguelite 卡牌地牢原型。"
-run/main_scene="res://scenes/start.tscn"
+run/main_scene="res://scenes/run.tscn"
 config/features=PackedStringArray("4.6")
 
 [display]
@@ -16,6 +16,10 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
 
 [rendering]
 

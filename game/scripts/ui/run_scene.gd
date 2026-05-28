@@ -1,0 +1,796 @@
+class_name RunScene
+extends Control
+
+const DungeonMapState = preload("res://scripts/core/dungeon/dungeon_map_state.gd")
+const DungeonTile = preload("res://scripts/core/dungeon/dungeon_tile.gd")
+const RunController = preload("res://scripts/core/run/run_controller.gd")
+const RunState = preload("res://scripts/core/run/run_state.gd")
+const CombatState = preload("res://scripts/core/combat/combat_state.gd")
+const CombatantState = preload("res://scripts/core/combat/combatant_state.gd")
+
+const CELL_SIZE := Vector2(48, 48)
+const COLOR_WALL := Color(0.12, 0.13, 0.15)
+const COLOR_FLOOR := Color(0.24, 0.25, 0.27)
+const COLOR_PLAYER := Color(0.18, 0.48, 0.82)
+const COLOR_ENEMY := Color(0.63, 0.22, 0.20)
+const COLOR_ELITE := Color(0.78, 0.38, 0.14)
+const COLOR_BOSS := Color(0.50, 0.18, 0.55)
+const COLOR_PICKUP := Color(0.18, 0.50, 0.32)
+const COLOR_EXIT_LOCKED := Color(0.42, 0.40, 0.33)
+const COLOR_EXIT_OPEN := Color(0.80, 0.66, 0.24)
+const COLOR_SELECTED := Color(0.92, 0.82, 0.38)
+const COLOR_ENEMY_PANEL := Color(0.24, 0.07, 0.07)
+const COLOR_ENEMY_BORDER := Color(0.76, 0.20, 0.18)
+
+var controller: RunController = RunController.new()
+var run_state: RunState = RunState.new()
+var selected_position: Vector2i = Vector2i.ZERO
+var mode: String = "exploration"
+var active_encounter_id: String = ""
+var active_encounter_position: Vector2i = Vector2i.ZERO
+var active_combat: CombatState
+var combat_log: String = ""
+var selected_hand_index: int = -1
+
+var map_panel: VBoxContainer
+var side_panel: VBoxContainer
+var combat_panel: VBoxContainer
+var map_grid: GridContainer
+var stage_label: Label
+var stats_label: Label
+var selected_label: Label
+var status_label: Label
+var action_button: Button
+var combat_title_label: Label
+var combat_enemy_panel: PanelContainer
+var combat_enemy_label: RichTextLabel
+var combat_hand_title_label: Label
+var combat_hand_row: HBoxContainer
+var combat_log_label: Label
+var end_turn_button: Button
+var cell_buttons: Dictionary = {}
+
+
+func _ready() -> void:
+	controller.setup(1001)
+	controller.start_stage_1()
+	_sync_from_controller()
+	selected_position = run_state.dungeon_map.player_position
+	_build_layout()
+	_refresh()
+
+
+func _sync_from_controller() -> void:
+	run_state = controller.run_state
+	mode = controller.mode
+	active_encounter_id = controller.active_encounter_id
+	active_encounter_position = controller.active_encounter_position
+	active_combat = controller.active_combat
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not (event is InputEventKey):
+		return
+	var key_event: InputEventKey = event
+	if not key_event.is_pressed() or key_event.is_echo():
+		return
+
+	if mode == "combat":
+		_handle_combat_key(key_event.keycode)
+	elif mode == "exploration":
+		_handle_exploration_key(key_event.keycode)
+
+
+func _handle_exploration_key(keycode: int) -> void:
+	if keycode == KEY_UP or keycode == KEY_W:
+		_try_move(Vector2i.UP)
+	elif keycode == KEY_DOWN or keycode == KEY_S:
+		_try_move(Vector2i.DOWN)
+	elif keycode == KEY_LEFT or keycode == KEY_A:
+		_try_move(Vector2i.LEFT)
+	elif keycode == KEY_RIGHT or keycode == KEY_D:
+		_try_move(Vector2i.RIGHT)
+
+
+func _handle_combat_key(keycode: int) -> void:
+	if keycode == KEY_LEFT or keycode == KEY_A:
+		_move_card_selection(-1)
+	elif keycode == KEY_RIGHT or keycode == KEY_D:
+		_move_card_selection(1)
+	elif keycode == KEY_SPACE or keycode == KEY_ENTER or keycode == KEY_KP_ENTER:
+		_play_selected_card()
+
+
+func _build_layout() -> void:
+	var root := MarginContainer.new()
+	root.name = "RunRoot"
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_theme_constant_override("margin_left", 28)
+	root.add_theme_constant_override("margin_top", 24)
+	root.add_theme_constant_override("margin_right", 28)
+	root.add_theme_constant_override("margin_bottom", 24)
+	add_child(root)
+
+	var main_row := HBoxContainer.new()
+	main_row.name = "MainRow"
+	main_row.add_theme_constant_override("separation", 24)
+	root.add_child(main_row)
+
+	map_panel = VBoxContainer.new()
+	map_panel.name = "MapPanel"
+	map_panel.add_theme_constant_override("separation", 12)
+	main_row.add_child(map_panel)
+
+	stage_label = Label.new()
+	stage_label.name = "StageLabel"
+	stage_label.add_theme_font_size_override("font_size", 24)
+	map_panel.add_child(stage_label)
+
+	map_grid = GridContainer.new()
+	map_grid.name = "MapGrid"
+	map_grid.columns = run_state.dungeon_map.width
+	map_grid.add_theme_constant_override("h_separation", 3)
+	map_grid.add_theme_constant_override("v_separation", 3)
+	map_panel.add_child(map_grid)
+
+	side_panel = VBoxContainer.new()
+	side_panel.name = "SidePanel"
+	side_panel.custom_minimum_size = Vector2(330, 0)
+	side_panel.add_theme_constant_override("separation", 14)
+	main_row.add_child(side_panel)
+
+	stats_label = Label.new()
+	stats_label.name = "StatsLabel"
+	stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	side_panel.add_child(stats_label)
+
+	selected_label = Label.new()
+	selected_label.name = "SelectedLabel"
+	selected_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	side_panel.add_child(selected_label)
+
+	status_label = Label.new()
+	status_label.name = "StatusLabel"
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	side_panel.add_child(status_label)
+
+	action_button = Button.new()
+	action_button.name = "ActionButton"
+	action_button.text = "开始遭遇"
+	action_button.disabled = true
+	action_button.focus_mode = Control.FOCUS_NONE
+	action_button.pressed.connect(_on_action_pressed)
+	side_panel.add_child(action_button)
+
+	var movement_row := HBoxContainer.new()
+	movement_row.name = "MovementRow"
+	movement_row.add_theme_constant_override("separation", 8)
+	side_panel.add_child(movement_row)
+	_add_move_button(movement_row, "上", Vector2i.UP)
+	_add_move_button(movement_row, "下", Vector2i.DOWN)
+	_add_move_button(movement_row, "左", Vector2i.LEFT)
+	_add_move_button(movement_row, "右", Vector2i.RIGHT)
+
+	var debug_label := Label.new()
+	debug_label.name = "DebugLabel"
+	debug_label.text = "图例：我 玩家 / 敌 敌人 / 精 精英 / 首 首领 / 宝 宝箱 / 疗 治疗 / 锻 锻造 / 出 出口"
+	debug_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	side_panel.add_child(debug_label)
+
+	_build_combat_panel(main_row)
+	_create_cells()
+
+
+func _build_combat_panel(parent: Control) -> void:
+	combat_panel = VBoxContainer.new()
+	combat_panel.name = "CombatPanel"
+	combat_panel.custom_minimum_size = Vector2(1120, 0)
+	combat_panel.add_theme_constant_override("separation", 18)
+	combat_panel.visible = false
+	parent.add_child(combat_panel)
+
+	combat_title_label = Label.new()
+	combat_title_label.name = "CombatTitleLabel"
+	combat_title_label.add_theme_font_size_override("font_size", 28)
+	combat_panel.add_child(combat_title_label)
+
+	combat_enemy_panel = _create_combat_state_panel("EnemyStatePanel", COLOR_ENEMY_PANEL, COLOR_ENEMY_BORDER)
+	combat_enemy_label = _create_combat_state_label("EnemyState")
+	combat_enemy_panel.add_child(combat_enemy_label)
+	combat_panel.add_child(combat_enemy_panel)
+
+	combat_hand_title_label = Label.new()
+	combat_hand_title_label.name = "CombatHandTitleLabel"
+	combat_hand_title_label.text = "手牌"
+	combat_hand_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	combat_hand_title_label.add_theme_font_size_override("font_size", 22)
+	combat_panel.add_child(combat_hand_title_label)
+
+	combat_hand_row = HBoxContainer.new()
+	combat_hand_row.name = "CombatHandRow"
+	combat_hand_row.add_theme_constant_override("separation", 12)
+	combat_panel.add_child(combat_hand_row)
+
+	end_turn_button = Button.new()
+	end_turn_button.name = "EndTurnButton"
+	end_turn_button.text = "结束回合"
+	end_turn_button.custom_minimum_size = Vector2(180, 42)
+	end_turn_button.focus_mode = Control.FOCUS_NONE
+	end_turn_button.pressed.connect(_on_end_turn_pressed)
+	combat_panel.add_child(end_turn_button)
+
+	combat_log_label = Label.new()
+	combat_log_label.name = "CombatLogLabel"
+	combat_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	combat_panel.add_child(combat_log_label)
+
+
+func _create_combat_state_panel(panel_name: String, fill_color: Color, border_color: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = panel_name
+	panel.custom_minimum_size = Vector2(620, 132)
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill_color
+	style.border_color = border_color
+	style.border_width_left = 4
+	style.border_width_top = 4
+	style.border_width_right = 4
+	style.border_width_bottom = 4
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = 16
+	style.content_margin_right = 16
+	style.content_margin_top = 12
+	style.content_margin_bottom = 12
+	panel.add_theme_stylebox_override("panel", style)
+	return panel
+
+
+func _create_combat_state_label(label_name: String) -> RichTextLabel:
+	var label := RichTextLabel.new()
+	label.name = label_name
+	label.bbcode_enabled = true
+	label.fit_content = true
+	label.scroll_active = false
+	label.custom_minimum_size = Vector2(580, 104)
+	label.add_theme_font_size_override("normal_font_size", 18)
+	return label
+
+
+func _add_move_button(parent: Control, label: String, direction: Vector2i) -> void:
+	var button := Button.new()
+	button.text = label
+	button.custom_minimum_size = Vector2(56, 36)
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(func() -> void: _try_move(direction))
+	parent.add_child(button)
+
+
+func _create_cells() -> void:
+	cell_buttons.clear()
+	for y in range(run_state.dungeon_map.height):
+		for x in range(run_state.dungeon_map.width):
+			var position := Vector2i(x, y)
+			var button := Button.new()
+			button.name = "Cell_%02d_%02d" % [x, y]
+			button.custom_minimum_size = CELL_SIZE
+			button.focus_mode = Control.FOCUS_NONE
+			button.pressed.connect(_on_cell_activated.bind(position))
+			cell_buttons[position] = button
+			map_grid.add_child(button)
+
+
+func _refresh() -> void:
+	var map: DungeonMapState = run_state.dungeon_map
+	var in_combat := mode == "combat"
+	map_panel.visible = not in_combat
+	side_panel.visible = not in_combat
+	combat_panel.visible = in_combat
+
+	stage_label.text = "%s  种子：%s" % [run_state.current_stage.display_name, str(run_state.current_stage.seed)]
+	stats_label.text = "生命 %s/%s\n等级 %s  经验 %s/%s\n敌人 %s/%s  拾取物 %s/%s\n出口 %s" % [
+		run_state.health,
+		run_state.max_health,
+		run_state.level,
+		run_state.xp,
+		run_state.next_level_xp,
+		map.active_enemy_count(),
+		run_state.current_stage.enemy_budget,
+		map.active_pickup_count(),
+		run_state.current_stage.pickup_budget,
+		"已解锁" if map.is_exit_unlocked() else "锁定",
+	]
+
+	for position in cell_buttons.keys():
+		_refresh_cell(position)
+
+	if in_combat:
+		_refresh_combat()
+	else:
+		_refresh_selected()
+
+
+func _refresh_combat() -> void:
+	_clear_combat_hand()
+	if active_combat == null:
+		selected_hand_index = -1
+		combat_title_label.text = "战斗"
+		combat_enemy_label.text = "[b]敌方目标[/b]\n无"
+		combat_hand_title_label.text = "手牌"
+		end_turn_button.disabled = true
+		return
+
+	_clamp_selected_hand_index()
+	var enemy: CombatantState = active_combat.enemies[0]
+	var selected_card_name := _selected_card_display_name()
+	combat_title_label.text = "遭遇：%s" % enemy.display_name
+	combat_enemy_label.text = "[b]敌方目标[/b]\n%s\n生命 %s / %s  %s\n护甲 %s    下回合攻击 %s" % [
+		enemy.display_name,
+		enemy.health,
+		enemy.max_health,
+		_health_bar(enemy.health, enemy.max_health),
+		enemy.block,
+		enemy.attack_damage,
+	]
+	combat_hand_title_label.text = "手牌（%s）  已选：%s  生命 %s/%s | 护甲 %s | 法力 %s/%s | 连击 %s" % [
+		active_combat.deck.hand.size(),
+		selected_card_name,
+		active_combat.player.health,
+		active_combat.player.max_health,
+		active_combat.player.block,
+		active_combat.mana,
+		active_combat.max_mana,
+		active_combat.combo.chain,
+	]
+	combat_log_label.text = combat_log
+	end_turn_button.disabled = active_combat.is_victory() or active_combat.is_defeat()
+
+	for i in range(active_combat.deck.hand.size()):
+		var card = active_combat.deck.hand[i]
+		var is_selected := i == selected_hand_index
+		var button := Button.new()
+		button.name = "Card_%02d_%s" % [i, card.id]
+		button.custom_minimum_size = Vector2(150, 170)
+		button.text = _card_button_text(card)
+		button.add_theme_font_size_override("font_size", 16)
+		button.focus_mode = Control.FOCUS_NONE
+		button.disabled = card.cost > active_combat.mana or active_combat.is_victory() or active_combat.is_defeat()
+		button.mouse_entered.connect(_on_card_hovered.bind(i))
+		button.pressed.connect(_on_card_pressed.bind(i))
+		_style_card_button(button, card, is_selected)
+		combat_hand_row.add_child(button)
+
+
+func _refresh_cell(position: Vector2i) -> void:
+	var button: Button = cell_buttons[position]
+	var map: DungeonMapState = run_state.dungeon_map
+	var tile: DungeonTile = map.get_tile(position)
+	button.text = _cell_text(position, tile)
+	button.tooltip_text = _tile_description(tile)
+	button.disabled = tile.tile_type == DungeonTile.TileType.WALL
+
+	var color := _tile_color(tile)
+	if position == map.player_position:
+		color = COLOR_PLAYER
+	if position == selected_position:
+		color = COLOR_SELECTED
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color(0.55, 0.56, 0.58))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	_set_button_color(button, color)
+
+
+func _refresh_selected() -> void:
+	var map: DungeonMapState = run_state.dungeon_map
+	var tile: DungeonTile = map.get_tile(selected_position)
+	if tile == null:
+		selected_label.text = "未选择格子"
+		action_button.disabled = true
+		return
+
+	selected_label.text = "选中 %s,%s\n%s\n对象：%s" % [
+		selected_position.x,
+		selected_position.y,
+		_tile_description(tile),
+		_tile_object_label(tile),
+	]
+
+	if mode == "combat":
+		status_label.text = "遭遇已开始。"
+		action_button.text = "返回探索"
+		action_button.disabled = false
+		return
+
+	var adjacent_enemy := tile.is_enemy_tile() and _is_adjacent(selected_position, map.player_position)
+	if adjacent_enemy:
+		status_label.text = "相邻敌人可开始遭遇。"
+		action_button.text = "开始遭遇"
+		action_button.disabled = false
+	else:
+		status_label.text = "探索中。"
+		action_button.text = "开始遭遇"
+		action_button.disabled = true
+
+
+func _try_move(direction: Vector2i) -> void:
+	var result := controller.move_player(direction)
+	_sync_from_controller()
+	if result.has("to"):
+		selected_position = result["to"]
+	if result["type"] == DungeonMapState.EVENT_ENCOUNTER_STARTED:
+		status_label.text = "前方有%s。点击开始遭遇。" % _tile_type_description(int(result["tile_type"]))
+	elif result["type"] == DungeonMapState.EVENT_STAGE_EXIT_REQUESTED:
+		status_label.text = "出口已可用。下一步会接入关卡切换。"
+	elif result["type"] == DungeonMapState.EVENT_BLOCKED:
+		selected_position = run_state.dungeon_map.player_position
+		status_label.text = "无法移动：%s" % _movement_block_reason(result["reason"])
+	_refresh()
+
+
+func _on_cell_activated(position: Vector2i) -> void:
+	selected_position = position
+	if mode != "exploration":
+		_refresh()
+		return
+
+	var map: DungeonMapState = run_state.dungeon_map
+	var tile: DungeonTile = map.get_tile(position)
+	if tile == null:
+		_refresh()
+		return
+
+	if _is_adjacent(position, map.player_position):
+		if tile.is_enemy_tile():
+			_on_action_pressed()
+			return
+		if tile.tile_type != DungeonTile.TileType.WALL:
+			_try_move(position - map.player_position)
+			return
+
+	_refresh()
+
+
+func _tile_object_label(tile: DungeonTile) -> String:
+	if tile == null or tile.occupant_id == "":
+		return "无"
+	return _tile_description(tile)
+
+
+func _tile_type_description(tile_type: int) -> String:
+	if tile_type == DungeonTile.TileType.ENEMY:
+		return "敌人"
+	if tile_type == DungeonTile.TileType.ELITE:
+		return "精英"
+	if tile_type == DungeonTile.TileType.BOSS:
+		return "首领"
+	if tile_type == DungeonTile.TileType.TREASURE:
+		return "宝箱"
+	if tile_type == DungeonTile.TileType.HEALING:
+		return "治疗"
+	if tile_type == DungeonTile.TileType.FORGE:
+		return "锻造"
+	if tile_type == DungeonTile.TileType.SHRINE:
+		return "祭坛"
+	if tile_type == DungeonTile.TileType.HAZARD:
+		return "陷阱"
+	if tile_type == DungeonTile.TileType.EXIT:
+		return "出口"
+	return "目标"
+
+
+func _movement_block_reason(reason: String) -> String:
+	if reason == "wall":
+		return "墙挡住了路"
+	if reason == "out_of_bounds":
+		return "地图边界"
+	if reason == "non_cardinal_direction":
+		return "只能四方向移动"
+	if reason == "locked_exit":
+		return "出口尚未解锁"
+	if reason == "zero_direction":
+		return "未选择方向"
+	return "未知阻挡"
+
+
+func _on_action_pressed() -> void:
+	if mode == "combat":
+		_refresh()
+		return
+
+	var result := controller.start_encounter_at(selected_position)
+	_sync_from_controller()
+	if result["type"] != RunController.EVENT_COMBAT_STARTED:
+		return
+	selected_hand_index = 0
+	combat_log = "遭遇开始。"
+	_refresh()
+
+
+func _on_card_pressed(hand_index: int) -> void:
+	if active_combat == null:
+		return
+	if hand_index < 0 or hand_index >= active_combat.deck.hand.size():
+		return
+
+	selected_hand_index = hand_index
+	var result := controller.play_card(hand_index)
+	_sync_from_controller()
+	_clamp_selected_hand_index()
+	if result["type"] == RunController.EVENT_COMMAND_REJECTED:
+		combat_log = "无法出牌：%s" % _card_play_failure_reason(result["reason"])
+		_refresh()
+		return
+
+	combat_log = "%s：造成 %s，获得护甲 %s，抽牌 %s。" % [
+		result["card_display_name"],
+		result["damage_dealt"],
+		result["block_gained"],
+		result["cards_drawn"],
+	]
+	if result["type"] == RunController.EVENT_COMBAT_WON:
+		selected_position = result["position"]
+		selected_hand_index = -1
+		status_label.text = "击败%s。" % result["defeated_name"]
+		combat_log = ""
+		_refresh()
+		return
+	_refresh()
+
+
+func _card_play_failure_reason(reason: String) -> String:
+	if reason == "missing_player":
+		return "战斗状态缺少玩家"
+	if reason == "invalid_hand_index":
+		return "手牌无效"
+	if reason == "not_enough_mana":
+		return "法力不足"
+	if reason == "invalid_target":
+		return "目标无效"
+	return "未知原因"
+
+
+func _on_end_turn_pressed() -> void:
+	if active_combat == null:
+		return
+	var result := controller.end_turn()
+	_sync_from_controller()
+	_clamp_selected_hand_index()
+	combat_log = "敌人回合：受到 %s 点伤害。" % result["damage_taken"]
+	if result["type"] == RunController.EVENT_COMBAT_LOST:
+		combat_log = "玩家倒下。"
+		end_turn_button.disabled = true
+	_refresh()
+
+
+func _finish_combat_victory() -> void:
+	var result := controller.finish_active_combat_victory()
+	_sync_from_controller()
+	combat_log = ""
+	if result["type"] == RunController.EVENT_COMBAT_WON:
+		status_label.text = "击败%s。" % result["defeated_name"]
+		selected_position = result["position"]
+		selected_hand_index = -1
+	_refresh()
+
+
+func _move_card_selection(delta: int) -> void:
+	if active_combat == null or active_combat.deck.hand.is_empty():
+		selected_hand_index = -1
+		return
+
+	var count := active_combat.deck.hand.size()
+	if selected_hand_index < 0:
+		selected_hand_index = 0
+	else:
+		selected_hand_index = (selected_hand_index + delta) % count
+		if selected_hand_index < 0:
+			selected_hand_index += count
+	_refresh()
+
+
+func _play_selected_card() -> void:
+	_clamp_selected_hand_index()
+	if selected_hand_index < 0:
+		return
+	_on_card_pressed(selected_hand_index)
+
+
+func _on_card_hovered(hand_index: int) -> void:
+	if active_combat == null:
+		return
+	if hand_index < 0 or hand_index >= active_combat.deck.hand.size():
+		return
+	if selected_hand_index == hand_index:
+		return
+	selected_hand_index = hand_index
+	_refresh()
+
+
+func _clamp_selected_hand_index() -> void:
+	if active_combat == null or active_combat.deck.hand.is_empty():
+		selected_hand_index = -1
+		return
+	selected_hand_index = clampi(selected_hand_index, 0, active_combat.deck.hand.size() - 1)
+
+
+func _selected_card_display_name() -> String:
+	if active_combat == null:
+		return "无"
+	if selected_hand_index < 0 or selected_hand_index >= active_combat.deck.hand.size():
+		return "无"
+	return active_combat.deck.hand[selected_hand_index].display_name
+
+
+func _clear_combat_hand() -> void:
+	for child in combat_hand_row.get_children():
+		combat_hand_row.remove_child(child)
+		child.queue_free()
+
+
+func _card_button_text(card) -> String:
+	var parts := [
+		card.display_name,
+		"",
+		"费用：%s" % card.cost,
+	]
+	if card.base_damage > 0:
+		parts.append("攻击：%s" % card.base_damage)
+	if card.block > 0:
+		parts.append("防御：%s" % card.block)
+	if card.draw_count > 0:
+		parts.append("抽牌：%s" % card.draw_count)
+	if active_combat != null:
+		parts.append("")
+		parts.append("连击 → %s" % active_combat.combo.preview_chain_for(card))
+	return "\n".join(parts)
+
+
+func _style_card_button(button: Button, card, is_selected: bool = false) -> void:
+	var color := Color(0.18, 0.20, 0.24)
+	if card.base_damage > 0:
+		color = Color(0.42, 0.16, 0.14)
+	elif card.block > 0:
+		color = Color(0.15, 0.28, 0.44)
+	elif card.draw_count > 0:
+		color = Color(0.20, 0.36, 0.26)
+
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = color.lightened(0.08) if is_selected else color
+	normal.border_color = Color(0.92, 0.78, 0.22) if is_selected else Color(0.08, 0.09, 0.10)
+	normal.border_width_left = 4
+	normal.border_width_top = 4
+	normal.border_width_right = 4
+	normal.border_width_bottom = 4
+	normal.corner_radius_top_left = 6
+	normal.corner_radius_top_right = 6
+	normal.corner_radius_bottom_left = 6
+	normal.corner_radius_bottom_right = 6
+	normal.content_margin_left = 12
+	normal.content_margin_right = 12
+	normal.content_margin_top = 12
+	normal.content_margin_bottom = 12
+	var hover: StyleBoxFlat = normal.duplicate()
+	hover.bg_color = color.lightened(0.12)
+	var pressed: StyleBoxFlat = normal.duplicate()
+	pressed.bg_color = color.darkened(0.12)
+	var disabled: StyleBoxFlat = normal.duplicate()
+	disabled.bg_color = Color(0.18, 0.18, 0.18)
+	if is_selected:
+		disabled.border_color = Color(0.70, 0.63, 0.34)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
+	button.add_theme_stylebox_override("focus", normal)
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color(0.58, 0.58, 0.58))
+
+
+func _health_bar(health: int, max_health: int) -> String:
+	var segment_count: int = 10
+	var safe_max: int = max_health
+	if safe_max < 1:
+		safe_max = 1
+	var current_health: int = health
+	if current_health < 0:
+		current_health = 0
+	var filled: int = int(ceil(float(current_health) / float(safe_max) * float(segment_count)))
+	filled = clampi(filled, 0, segment_count)
+	return "%s%s" % ["█".repeat(filled), "░".repeat(segment_count - filled)]
+
+
+func _cell_text(position: Vector2i, tile: DungeonTile) -> String:
+	if position == run_state.dungeon_map.player_position:
+		return "我"
+	if tile.tile_type == DungeonTile.TileType.WALL:
+		return ""
+	if tile.tile_type == DungeonTile.TileType.EXIT:
+		return "出"
+	if tile.tile_type == DungeonTile.TileType.ENEMY:
+		return "敌"
+	if tile.tile_type == DungeonTile.TileType.ELITE:
+		return "精"
+	if tile.tile_type == DungeonTile.TileType.BOSS:
+		return "首"
+	if tile.tile_type == DungeonTile.TileType.TREASURE:
+		return "宝"
+	if tile.tile_type == DungeonTile.TileType.HEALING:
+		return "疗"
+	if tile.tile_type == DungeonTile.TileType.FORGE:
+		return "锻"
+	if tile.tile_type == DungeonTile.TileType.SHRINE:
+		return "祭"
+	if tile.tile_type == DungeonTile.TileType.HAZARD:
+		return "陷"
+	return "."
+
+
+func _tile_description(tile: DungeonTile) -> String:
+	if tile.tile_type == DungeonTile.TileType.WALL:
+		return "墙"
+	if tile.tile_type == DungeonTile.TileType.FLOOR:
+		return "地面"
+	if tile.tile_type == DungeonTile.TileType.ENTRANCE:
+		return "入口"
+	if tile.tile_type == DungeonTile.TileType.EXIT:
+		return "出口"
+	if tile.tile_type == DungeonTile.TileType.TREASURE:
+		return "宝箱"
+	if tile.tile_type == DungeonTile.TileType.HEALING:
+		return "治疗"
+	if tile.tile_type == DungeonTile.TileType.SHRINE:
+		return "祭坛"
+	if tile.tile_type == DungeonTile.TileType.FORGE:
+		return "锻造"
+	if tile.tile_type == DungeonTile.TileType.HAZARD:
+		return "陷阱"
+	if tile.tile_type == DungeonTile.TileType.ENEMY:
+		return "敌人"
+	if tile.tile_type == DungeonTile.TileType.ELITE:
+		return "精英"
+	if tile.tile_type == DungeonTile.TileType.BOSS:
+		return "首领"
+	return "未知"
+
+
+func _tile_color(tile: DungeonTile) -> Color:
+	if tile.tile_type == DungeonTile.TileType.WALL:
+		return COLOR_WALL
+	if tile.tile_type == DungeonTile.TileType.EXIT:
+		return COLOR_EXIT_OPEN if run_state.dungeon_map.is_exit_unlocked() else COLOR_EXIT_LOCKED
+	if tile.tile_type == DungeonTile.TileType.ENEMY:
+		return COLOR_ENEMY
+	if tile.tile_type == DungeonTile.TileType.ELITE:
+		return COLOR_ELITE
+	if tile.tile_type == DungeonTile.TileType.BOSS:
+		return COLOR_BOSS
+	if tile.is_pickup_tile():
+		return COLOR_PICKUP
+	return COLOR_FLOOR
+
+
+func _set_button_color(button: Button, color: Color) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = color
+	normal.corner_radius_top_left = 4
+	normal.corner_radius_top_right = 4
+	normal.corner_radius_bottom_left = 4
+	normal.corner_radius_bottom_right = 4
+	var hover := normal.duplicate()
+	hover.bg_color = color.lightened(0.12)
+	var pressed := normal.duplicate()
+	pressed.bg_color = color.darkened(0.12)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", normal)
+
+
+func _is_adjacent(a: Vector2i, b: Vector2i) -> bool:
+	var delta := a - b
+	return abs(delta.x) + abs(delta.y) == 1

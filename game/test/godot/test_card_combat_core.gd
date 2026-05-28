@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CardDeck = preload("res://scripts/core/cards/card_deck.gd")
+const CardDefinition = preload("res://scripts/core/cards/card_definition.gd")
 const StarterCardCatalog = preload("res://scripts/core/cards/starter_card_catalog.gd")
 const CombatState = preload("res://scripts/core/combat/combat_state.gd")
 const CombatantState = preload("res://scripts/core/combat/combatant_state.gd")
@@ -12,6 +13,8 @@ func _init() -> void:
 	failed = not _test_combo_resets_when_cost_drops() or failed
 	failed = not _test_deck_shuffle_is_seeded() or failed
 	failed = not _test_combat_applies_combo_damage_and_block() or failed
+	failed = not _test_stage_1_reward_pool_is_stable_and_chinese() or failed
+	failed = not _test_reward_cards_are_simple_categories() or failed
 	quit(1 if failed else 0)
 
 
@@ -65,6 +68,76 @@ func _test_combat_applies_combo_damage_and_block() -> bool:
 	return ok
 
 
+func _test_stage_1_reward_pool_is_stable_and_chinese() -> bool:
+	var cards := StarterCardCatalog.create_stage_1_reward_pool()
+	var ids := {}
+
+	var ok := true
+	ok = _assert_eq(cards.size(), 7, "stage 1 reward pool size") and ok
+	for card in cards:
+		ok = _assert_eq(ids.has(card.id), false, "reward card id is unique") and ok
+		ok = _assert_eq(_string_has_english(card.display_name), false, "reward card display name uses Chinese") and ok
+		ids[card.id] = true
+	return ok
+
+
+func _test_reward_cards_are_simple_categories() -> bool:
+	var cards := StarterCardCatalog.create_stage_1_reward_pool()
+
+	var attack_count := 0
+	var defense_count := 0
+	var draw_count := 0
+	var ok := true
+	for card in cards:
+		var has_damage: bool = card.base_damage > 0
+		var has_block: bool = card.block > 0
+		var has_draw: bool = card.draw_count > 0
+		var effect_count := int(has_damage) + int(has_block) + int(has_draw)
+		ok = _assert_eq(effect_count, 1, "reward card has exactly one simple effect") and ok
+		if has_damage:
+			attack_count += 1
+			ok = _assert_eq(card.target_mode, CardDefinition.TargetMode.SINGLE_ENEMY, "attack card is single target") and ok
+		if has_block:
+			defense_count += 1
+			ok = _assert_eq(card.target_mode, CardDefinition.TargetMode.SELF, "defense card targets self") and ok
+		if has_draw:
+			draw_count += 1
+			ok = _assert_eq(card.target_mode, CardDefinition.TargetMode.SELF, "draw card targets self") and ok
+
+	ok = _assert_eq(attack_count, 4, "reward pool attack count") and ok
+	ok = _assert_eq(defense_count, 2, "reward pool defense count") and ok
+	ok = _assert_eq(draw_count, 1, "reward pool draw count") and ok
+	ok = _test_simple_reward_cards_resolve() and ok
+	return ok
+
+
+func _test_simple_reward_cards_resolve() -> bool:
+	var combat := CombatState.new()
+	combat.player = CombatantState.new("hero", "英雄", 30, 0)
+	combat.enemies = [CombatantState.new("enemy_a", "敌人甲", 100, 0)]
+	combat.mana = 6
+	combat.max_mana = 6
+	combat.deck.hand = [
+		StarterCardCatalog.create_insight(),
+		StarterCardCatalog.create_block(),
+		StarterCardCatalog.create_slash(),
+		StarterCardCatalog.create_heavy_hammer(),
+	]
+	combat.deck.draw_pile = [StarterCardCatalog.create_charged_slash(), StarterCardCatalog.create_iron_wall()]
+
+	var insight_result = combat.play_card(0)
+	var block_result = combat.play_card(0)
+	var slash_result = combat.play_card(0, 0)
+	var hammer_result = combat.play_card(0, 0)
+
+	var ok := true
+	ok = _assert_eq(insight_result.cards_drawn, 2, "insight draws") and ok
+	ok = _assert_eq(block_result.block_gained, 8, "block grants block") and ok
+	ok = _assert_eq(slash_result.damage_dealt, 12, "slash deals combo damage") and ok
+	ok = _assert_eq(hammer_result.damage_dealt, 31, "hammer deals combo damage") and ok
+	return ok
+
+
 func _card_ids(cards: Array) -> Array:
 	var ids: Array = []
 	for card in cards:
@@ -77,3 +150,11 @@ func _assert_eq(actual, expected, label: String) -> bool:
 		push_error("%s: expected %s, got %s" % [label, str(expected), str(actual)])
 		return false
 	return true
+
+
+func _string_has_english(value: String) -> bool:
+	for i in range(value.length()):
+		var code := value.unicode_at(i)
+		if (code >= 65 and code <= 90) or (code >= 97 and code <= 122):
+			return true
+	return false

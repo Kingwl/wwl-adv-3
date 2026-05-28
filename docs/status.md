@@ -12,7 +12,16 @@
 - 本地 scaffold 检查脚本。
 - GitHub Actions scaffold 检查。
 - 核心卡牌战斗第一版：卡牌定义、带 seed 的牌库抽牌、按费用递增的 combo 倍率、战斗者生命/护甲、打牌结算和胜负状态。
+- 第 1 关奖励卡池第一版：7 张纯攻击、防御和抽卡卡牌，均使用中文显示名。
+- 核心地牢地图第一版：地图 tile、关卡配置、run 状态、fixture 加载、移动阻挡、遭遇触发、拾取物收集和出口解锁。
+- 核心 run 控制层第一版：`RunController` 统一玩家命令，供 UI 和流程测试共用移动、遭遇、出牌、结束回合、胜利清场和出口请求。
+- 固定第 1 关 fixture：16x10 地图、12 个敌人、3 个拾取物、1 个出口，以及 8 个击败数解锁出口的清关条件。
+- 最小 run 场景：启动游戏直接加载第 1 关地图网格，显示玩家、敌人、拾取物、出口、选中格子详情，并支持键盘、鼠标和触摸操作。
+- 最小战斗 UI：相邻敌人可创建 `CombatState`，界面聚焦敌方状态和手牌区，并在手牌标题中显示玩家生命、护甲、法力、连击和当前选中手牌；支持键盘选择/出牌、鼠标点击出牌，胜利后回到地图并清除敌人格子。
 - Godot headless 规则测试草案：`game/test/godot/test_card_combat_core.gd`。
+- Godot headless 地牢规则测试草案：`game/test/godot/test_dungeon_core.gd`。
+- Godot headless 核心流程验收测试：`game/test/godot/test_core_gameplay_flow.gd`。
+- Godot headless run 场景 smoke test：`game/test/godot/test_run_scene_smoke.gd`。
 
 ## 已验证命令
 
@@ -22,10 +31,13 @@ Godot: 4.6.3 stable.
 cd game
 ./tools/check-all.sh
 godot --headless --path . -s res://test/godot/test_card_combat_core.gd
+godot --headless --path . -s res://test/godot/test_dungeon_core.gd
+godot --headless --path . -s res://test/godot/test_core_gameplay_flow.gd
+godot --headless --path . -s res://test/godot/test_run_scene_smoke.gd
 ```
 
 ## 下一步
 
 1. 将 Godot headless 测试接入 CI 门禁。
-2. 增加 2D 地牢地图和遭遇节点核心规则。
-3. 引入最小可玩场景，把核心战斗状态接到 UI。
+2. 给敌人补 XP 掉落和升级阈值结算。
+3. 增加升级/宝箱奖励的 3 选 1 UI。
