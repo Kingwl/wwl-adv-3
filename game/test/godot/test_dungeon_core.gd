@@ -134,7 +134,7 @@ func _test_defeats_unlock_exit() -> bool:
 
 func _test_boss_defeat_unlocks_stage_1_exit() -> bool:
 	var map := StageFixtureCatalog.create_stage_1_map(404)
-	var marked := map.mark_enemy_defeated("boss_11")
+	var marked := map.mark_enemy_defeated(_stage_1_boss_id(map))
 	map.player_position = Vector2i(13, 1)
 	var exit_result := map.move_player(Vector2i.RIGHT)
 
@@ -167,25 +167,25 @@ func _test_run_state_starts_stage() -> bool:
 
 
 func _test_run_state_xp_curve_keeps_stage_1_balanced() -> bool:
-	var required_path_xp := RunController.XP_REWARD_NORMAL * 7 + RunController.XP_REWARD_ELITE
+	var boss_route_xp := RunController.XP_REWARD_NORMAL * 2 + RunController.XP_REWARD_BOSS
 	var full_stage_xp := (
 		RunController.XP_REWARD_NORMAL * 10
 		+ RunController.XP_REWARD_ELITE
 		+ RunController.XP_REWARD_BOSS
 	)
-	var unlock_run := RunState.new()
-	unlock_run.setup(7)
-	var unlock_events := unlock_run.gain_xp(required_path_xp)
+	var boss_route_run := RunState.new()
+	boss_route_run.setup(7)
+	var boss_route_events := boss_route_run.gain_xp(boss_route_xp)
 	var full_clear_run := RunState.new()
 	full_clear_run.setup(7)
 	var full_clear_events := full_clear_run.gain_xp(full_stage_xp)
 
 	var ok := true
-	ok = _assert_eq(required_path_xp, 29, "stage 1 required path xp budget") and ok
-	ok = _assert_eq(unlock_events.size(), 1, "required path gives one level up") and ok
-	ok = _assert_eq(unlock_run.level, 2, "required path reaches level 2") and ok
-	ok = _assert_eq(unlock_run.xp, 19, "required path stays just short of level 3") and ok
-	ok = _assert_eq(unlock_run.next_level_xp, 20, "level 2 threshold") and ok
+	ok = _assert_eq(boss_route_xp, 20, "stage 1 boss route xp budget") and ok
+	ok = _assert_eq(boss_route_events.size(), 1, "boss route gives one level up") and ok
+	ok = _assert_eq(boss_route_run.level, 2, "boss route reaches level 2") and ok
+	ok = _assert_eq(boss_route_run.xp, 10, "boss route keeps room before level 3") and ok
+	ok = _assert_eq(boss_route_run.next_level_xp, 20, "level 2 threshold") and ok
 	ok = _assert_eq(full_stage_xp, 52, "stage 1 full clear xp budget") and ok
 	ok = _assert_eq(full_clear_events.size(), 2, "full clear gives two level ups") and ok
 	ok = _assert_eq(full_clear_run.level, 3, "full clear reaches level 3") and ok
@@ -210,8 +210,10 @@ func _test_stage_1_fixture_matches_budget() -> bool:
 	ok = _assert_eq(map.exit_position, Vector2i(14, 1), "stage 1 exit position") and ok
 	ok = _assert_eq(map.player_position, Vector2i(1, 1), "stage 1 player position") and ok
 	ok = _assert_eq(map.is_exit_unlocked(), false, "stage 1 starts locked") and ok
-	ok = _assert_eq(_defeat_stage_1_required_enemies(map), true, "stage 1 required defeats can be marked") and ok
-	ok = _assert_eq(map.is_exit_unlocked(), true, "stage 1 unlocks after required defeats") and ok
+	ok = _assert_eq(_defeat_stage_1_non_boss_sample(map), true, "stage 1 non-boss defeats can be marked") and ok
+	ok = _assert_eq(map.is_exit_unlocked(), false, "stage 1 stays locked after non-boss defeats") and ok
+	ok = _assert_eq(map.mark_enemy_defeated(_stage_1_boss_id(map)), true, "stage 1 boss can be marked") and ok
+	ok = _assert_eq(map.is_exit_unlocked(), true, "stage 1 unlocks after boss defeat") and ok
 	return ok
 
 
@@ -244,7 +246,7 @@ func _stage_config(required_defeats: int) -> StageConfig:
 	)
 
 
-func _defeat_stage_1_required_enemies(map: DungeonMapState) -> bool:
+func _defeat_stage_1_non_boss_sample(map: DungeonMapState) -> bool:
 	var enemy_ids := [
 		"enemy_01",
 		"enemy_02",
@@ -252,13 +254,22 @@ func _defeat_stage_1_required_enemies(map: DungeonMapState) -> bool:
 		"enemy_04",
 		"enemy_05",
 		"enemy_06",
-		"elite_07",
-		"enemy_08",
+		"enemy_07",
+		"elite_08",
 	]
 	for enemy_id in enemy_ids:
 		if not map.mark_enemy_defeated(enemy_id):
 			return false
 	return true
+
+
+func _stage_1_boss_id(map: DungeonMapState) -> String:
+	for enemy_id in map.enemy_positions.keys():
+		var enemy_position: Vector2i = map.enemy_positions[enemy_id]
+		var tile: DungeonTile = map.get_tile(enemy_position)
+		if tile != null and tile.tile_type == DungeonTile.TileType.BOSS:
+			return enemy_id
+	return ""
 
 
 func _assert_eq(actual, expected, label: String) -> bool:

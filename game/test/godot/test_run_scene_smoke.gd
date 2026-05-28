@@ -1,5 +1,7 @@
 extends SceneTree
 
+const DungeonTile = preload("res://scripts/core/dungeon/dungeon_tile.gd")
+
 
 func _init() -> void:
 	call_deferred("_run_tests")
@@ -86,7 +88,7 @@ func _test_run_scene_non_adjacent_click_only_selects(run_scene) -> bool:
 func _test_run_scene_exit_responds_after_boss_defeat(run_scene) -> bool:
 	var status_label: Label = run_scene.find_child("StatusLabel", true, false)
 	var map = run_scene.run_state.dungeon_map
-	map.mark_enemy_defeated("boss_11")
+	map.mark_enemy_defeated(_stage_1_boss_id(map))
 	map.player_position = Vector2i(13, 1)
 	run_scene.selected_position = map.player_position
 	run_scene._refresh()
@@ -315,6 +317,15 @@ func _first_attack_card_index(cards: Array) -> int:
 func _map_cell_button(run_scene, position: Vector2i) -> Button:
 	var map_grid: GridContainer = run_scene.find_child("MapGrid", true, false)
 	return map_grid.get_child(position.y * map_grid.columns + position.x) as Button
+
+
+func _stage_1_boss_id(map) -> String:
+	for enemy_id in map.enemy_positions.keys():
+		var enemy_position: Vector2i = map.enemy_positions[enemy_id]
+		var tile = map.get_tile(enemy_position)
+		if tile != null and tile.tile_type == DungeonTile.TileType.BOSS:
+			return enemy_id
+	return ""
 
 
 func _assert_eq(actual, expected, label: String) -> bool:

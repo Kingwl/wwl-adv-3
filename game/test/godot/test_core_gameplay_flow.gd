@@ -59,9 +59,9 @@ func _test_stage_1_player_flow_reaches_exit() -> bool:
 
 	var ok := true
 	ok = _assert_eq(map.is_exit_unlocked(), false, "流程开始时出口锁定") and ok
-	ok = _defeat_required_enemies(controller) and ok
+	ok = _defeat_boss(controller) and ok
 	ok = _collect_first_reachable_pickup(controller) and ok
-	ok = _assert_eq(map.is_exit_unlocked(), true, "击败足够敌人后出口解锁") and ok
+	ok = _assert_eq(map.is_exit_unlocked(), true, "击败首领后出口解锁") and ok
 	ok = _request_stage_exit(controller) and ok
 	ok = _assert_eq(controller.run_state.health > 0, true, "流程结束时玩家仍存活") and ok
 	return ok
@@ -88,32 +88,50 @@ func _collect_first_reachable_pickup(controller: RunController) -> bool:
 	return ok
 
 
-func _defeat_required_enemies(controller: RunController) -> bool:
+func _defeat_boss(controller: RunController) -> bool:
 	var map: DungeonMapState = controller.run_state.dungeon_map
-	var required_defeats := map.stage_config.required_defeats
-	var defeated_count := 0
-	var ok := true
-	while defeated_count < required_defeats:
+	for _step in range(map.active_enemy_count()):
+		var boss_position := _find_boss_position(map)
+		if boss_position == INVALID_POSITION:
+			return _assert_eq(not map.defeated_boss_ids.is_empty(), true, "首领已被击败")
+
+		var boss_route := _find_path_to_adjacent_position(map, boss_position)
+		if bool(boss_route["found"]):
+			var boss_walk_result := _walk_path(controller, boss_route["path"])
+			if str(boss_walk_result["type"]) == DungeonMapState.EVENT_BLOCKED:
+				return _assert_eq(boss_walk_result["type"], "not_blocked", "靠近首领的路径不应被阻挡")
+
+			var boss_direction: Vector2i = boss_position - map.player_position
+			var boss_encounter_result := controller.move_player(boss_direction)
+			var ok := true
+			ok = _assert_eq(boss_encounter_result["type"], RunController.EVENT_COMBAT_STARTED, "移动到首领格会开始遭遇") and ok
+			ok = _resolve_encounter(controller) and ok
+			ok = _assert_eq(not map.defeated_boss_ids.is_empty(), true, "击败首领会记录 boss defeat") and ok
+			return ok
+
 		var target := _find_next_reachable_enemy(map)
 		if not bool(target["found"]):
-			push_error("未找到可抵达的敌人，已击败 %s / %s" % [defeated_count, required_defeats])
+			push_error("首领暂不可达，且没有可清理的敌人")
 			return false
 
 		var walk_result := _walk_path(controller, target["path"])
 		if str(walk_result["type"]) == DungeonMapState.EVENT_BLOCKED:
-			return _assert_eq(walk_result["type"], "not_blocked", "靠近敌人的路径不应被阻挡")
+			return _assert_eq(walk_result["type"], "not_blocked", "靠近阻挡敌人的路径不应被阻挡")
 
 		var enemy_position: Vector2i = target["enemy_position"]
 		var encounter_direction: Vector2i = enemy_position - map.player_position
 		var encounter_result := controller.move_player(encounter_direction)
-
-		ok = _assert_eq(encounter_result["type"], RunController.EVENT_COMBAT_STARTED, "移动到敌人格会直接开始遭遇") and ok
-		ok = _assert_eq(controller.mode, RunController.MODE_COMBAT, "移动触发后进入战斗模式") and ok
+		var before_boss_defeat_count := map.defeated_boss_ids.size()
+		var ok := true
+		ok = _assert_eq(encounter_result["type"], RunController.EVENT_COMBAT_STARTED, "移动到阻挡敌人格会开始遭遇") and ok
 		ok = _resolve_encounter(controller) and ok
-		defeated_count += 1
+		ok = _assert_eq(map.defeated_boss_ids.size(), before_boss_defeat_count, "非首领战斗不记录首领击败") and ok
+		ok = _assert_eq(map.is_exit_unlocked(), false, "首领存活时出口保持锁定") and ok
+		if not ok:
+			return false
 
-	ok = _assert_eq(map.defeated_enemy_ids.size() >= required_defeats, true, "地图记录足够击败数") and ok
-	return ok
+	push_error("未能在敌人数量上限内击败首领")
+	return false
 
 
 func _request_stage_exit(controller: RunController) -> bool:
@@ -217,6 +235,15 @@ func _find_next_reachable_enemy(map: DungeonMapState) -> Dictionary:
 				"path": path,
 			}
 	return best
+
+
+func _find_boss_position(map: DungeonMapState) -> Vector2i:
+	for enemy_id in map.enemy_positions.keys():
+		var enemy_position: Vector2i = map.enemy_positions[enemy_id]
+		var tile: DungeonTile = map.get_tile(enemy_position)
+		if tile != null and tile.tile_type == DungeonTile.TileType.BOSS:
+			return enemy_position
+	return INVALID_POSITION
 
 
 func _find_path_to_adjacent_position(map: DungeonMapState, target_position: Vector2i) -> Dictionary:

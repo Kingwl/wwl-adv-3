@@ -11,7 +11,6 @@ const STAGE_1_WIDTH := 16
 const STAGE_1_HEIGHT := 10
 const STAGE_1_ENEMY_BUDGET := 12
 const STAGE_1_PICKUP_BUDGET := 3
-const STAGE_1_REQUIRED_DEFEATS := 8
 
 
 static func create_stage_1_config(seed_value: int = STAGE_1_DEFAULT_SEED) -> StageConfig:
@@ -23,9 +22,9 @@ static func create_stage_1_config(seed_value: int = STAGE_1_DEFAULT_SEED) -> Sta
 		STAGE_1_HEIGHT,
 		STAGE_1_ENEMY_BUDGET,
 		STAGE_1_PICKUP_BUDGET,
-		STAGE_1_REQUIRED_DEFEATS,
+		0,
 		true,
-		StageConfig.ClearCondition.REQUIRED_DEFEATS_OR_BOSS
+		StageConfig.ClearCondition.BOSS_DEFEATED
 	)
 
 
@@ -34,12 +33,12 @@ static func stage_1_rows() -> Array:
 		"################",
 		"#P..m...C..m..E#",
 		"#.####.####.##.#",
-		"#..m...m...H...#",
+		"#..m...m...Hm..#",
 		"###.###.###.##.#",
 		"#m..F..m..e....#",
 		"#.####.####.##.#",
 		"#..m...m...m...#",
-		"#....B....m....#",
+		"#....B.........#",
 		"################",
 	]
 
