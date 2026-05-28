@@ -22,6 +22,8 @@ const COLOR_SELECTED := Color(0.92, 0.82, 0.38)
 const COLOR_ENEMY_PANEL := Color(0.24, 0.07, 0.07)
 const COLOR_ENEMY_BORDER := Color(0.76, 0.20, 0.18)
 const UI_FONT_PATH := "res://assets/fonts/NotoSansCJKsc-Regular.otf"
+const COMBAT_FOCUS_HAND := "hand"
+const COMBAT_FOCUS_END_TURN := "end_turn"
 
 var controller: RunController = RunController.new()
 var run_state: RunState = RunState.new()
@@ -31,6 +33,7 @@ var active_encounter_id: String = ""
 var active_encounter_position: Vector2i = Vector2i.ZERO
 var active_combat: CombatState
 var combat_log: String = ""
+var combat_focus: String = COMBAT_FOCUS_HAND
 var selected_hand_index: int = -1
 
 var map_panel: VBoxContainer
@@ -122,8 +125,12 @@ func _handle_combat_key(keycode: int) -> void:
 		_move_card_selection(-1)
 	elif keycode == KEY_RIGHT or keycode == KEY_D:
 		_move_card_selection(1)
+	elif keycode == KEY_DOWN or keycode == KEY_S:
+		_select_end_turn()
+	elif keycode == KEY_UP or keycode == KEY_W:
+		_select_hand()
 	elif keycode == KEY_SPACE or keycode == KEY_ENTER or keycode == KEY_KP_ENTER:
-		_play_selected_card()
+		_activate_combat_selection()
 
 
 func _build_layout() -> void:
@@ -341,10 +348,12 @@ func _refresh_combat() -> void:
 	_clear_combat_hand()
 	if active_combat == null:
 		selected_hand_index = -1
+		combat_focus = COMBAT_FOCUS_HAND
 		combat_title_label.text = "战斗"
 		combat_enemy_label.text = "[b]敌方目标[/b]\n无"
 		combat_hand_title_label.text = "手牌"
 		end_turn_button.disabled = true
+		_style_end_turn_button(false)
 		return
 
 	_clamp_selected_hand_index()
@@ -371,10 +380,11 @@ func _refresh_combat() -> void:
 	]
 	combat_log_label.text = combat_log
 	end_turn_button.disabled = active_combat.is_victory() or active_combat.is_defeat()
+	_style_end_turn_button(combat_focus == COMBAT_FOCUS_END_TURN)
 
 	for i in range(active_combat.deck.hand.size()):
 		var card = active_combat.deck.hand[i]
-		var is_selected := i == selected_hand_index
+		var is_selected := combat_focus == COMBAT_FOCUS_HAND and i == selected_hand_index
 		var button := Button.new()
 		button.name = "Card_%02d_%s" % [i, card.id]
 		button.custom_minimum_size = Vector2(150, 170)
@@ -450,6 +460,7 @@ func _try_move(direction: Vector2i) -> void:
 
 	if result["type"] == RunController.EVENT_COMBAT_STARTED:
 		selected_hand_index = 0
+		combat_focus = COMBAT_FOCUS_HAND
 		status_label.text = "遭遇已开始。"
 		combat_log = "遭遇开始。"
 	elif result["type"] == DungeonMapState.EVENT_STAGE_EXIT_REQUESTED:
@@ -532,6 +543,7 @@ func _on_action_pressed() -> void:
 	if result["type"] != RunController.EVENT_COMBAT_STARTED:
 		return
 	selected_hand_index = 0
+	combat_focus = COMBAT_FOCUS_HAND
 	combat_log = "遭遇开始。"
 	_refresh()
 
@@ -543,6 +555,7 @@ func _on_card_pressed(hand_index: int) -> void:
 		return
 
 	selected_hand_index = hand_index
+	combat_focus = COMBAT_FOCUS_HAND
 	var result := controller.play_card(hand_index)
 	_sync_from_controller()
 	_clamp_selected_hand_index()
@@ -560,9 +573,13 @@ func _on_card_pressed(hand_index: int) -> void:
 	if result["type"] == RunController.EVENT_COMBAT_WON:
 		selected_position = result["position"]
 		selected_hand_index = -1
+		combat_focus = COMBAT_FOCUS_HAND
 		status_label.text = "击败%s。" % result["defeated_name"]
 		combat_log = ""
 		_refresh()
+		return
+	if active_combat != null and not _has_playable_card():
+		_end_turn_with_log("%s\n费用不足，自动结束回合。" % combat_log)
 		return
 	_refresh()
 
@@ -580,12 +597,17 @@ func _card_play_failure_reason(reason: String) -> String:
 
 
 func _on_end_turn_pressed() -> void:
+	_end_turn_with_log("手动结束回合。")
+
+
+func _end_turn_with_log(prefix: String) -> void:
 	if active_combat == null:
 		return
 	var result := controller.end_turn()
 	_sync_from_controller()
 	_clamp_selected_hand_index()
-	combat_log = "敌人回合：受到 %s 点伤害。" % result["damage_taken"]
+	combat_focus = COMBAT_FOCUS_HAND
+	combat_log = "%s\n敌人回合：受到 %s 点伤害。" % [prefix, result["damage_taken"]]
 	if result["type"] == RunController.EVENT_COMBAT_LOST:
 		combat_log = "玩家倒下。"
 		end_turn_button.disabled = true
@@ -600,14 +622,17 @@ func _finish_combat_victory() -> void:
 		status_label.text = "击败%s。" % result["defeated_name"]
 		selected_position = result["position"]
 		selected_hand_index = -1
+		combat_focus = COMBAT_FOCUS_HAND
 	_refresh()
 
 
 func _move_card_selection(delta: int) -> void:
 	if active_combat == null or active_combat.deck.hand.is_empty():
 		selected_hand_index = -1
+		combat_focus = COMBAT_FOCUS_HAND
 		return
 
+	combat_focus = COMBAT_FOCUS_HAND
 	var count := active_combat.deck.hand.size()
 	if selected_hand_index < 0:
 		selected_hand_index = 0
@@ -618,9 +643,37 @@ func _move_card_selection(delta: int) -> void:
 	_refresh()
 
 
+func _select_end_turn() -> void:
+	if active_combat == null:
+		return
+	combat_focus = COMBAT_FOCUS_END_TURN
+	_refresh()
+
+
+func _select_hand() -> void:
+	if active_combat == null:
+		return
+	combat_focus = COMBAT_FOCUS_HAND
+	_clamp_selected_hand_index()
+	_refresh()
+
+
+func _activate_combat_selection() -> void:
+	if combat_focus == COMBAT_FOCUS_END_TURN:
+		_on_end_turn_pressed()
+		return
+	_play_selected_card()
+
+
 func _play_selected_card() -> void:
 	_clamp_selected_hand_index()
 	if selected_hand_index < 0:
+		return
+	if active_combat == null:
+		return
+	var card = active_combat.deck.hand[selected_hand_index]
+	if card.cost > active_combat.mana:
+		_end_turn_with_log("法力不足，自动结束回合。")
 		return
 	_on_card_pressed(selected_hand_index)
 
@@ -632,6 +685,7 @@ func _on_card_hovered(hand_index: int) -> void:
 		return
 	if selected_hand_index == hand_index:
 		return
+	combat_focus = COMBAT_FOCUS_HAND
 	selected_hand_index = hand_index
 	_refresh()
 
@@ -639,11 +693,14 @@ func _on_card_hovered(hand_index: int) -> void:
 func _clamp_selected_hand_index() -> void:
 	if active_combat == null or active_combat.deck.hand.is_empty():
 		selected_hand_index = -1
+		combat_focus = COMBAT_FOCUS_HAND
 		return
 	selected_hand_index = clampi(selected_hand_index, 0, active_combat.deck.hand.size() - 1)
 
 
 func _selected_card_display_name() -> String:
+	if combat_focus == COMBAT_FOCUS_END_TURN:
+		return "结束回合"
 	if active_combat == null:
 		return "无"
 	if selected_hand_index < 0 or selected_hand_index >= active_combat.deck.hand.size():
@@ -673,6 +730,45 @@ func _card_button_text(card) -> String:
 		parts.append("")
 		parts.append("连击 → %s" % active_combat.combo.preview_chain_for(card))
 	return "\n".join(parts)
+
+
+func _has_playable_card() -> bool:
+	if active_combat == null:
+		return false
+	for card in active_combat.deck.hand:
+		if card.cost <= active_combat.mana:
+			return true
+	return false
+
+
+func _style_end_turn_button(is_selected: bool) -> void:
+	var color := Color(0.20, 0.20, 0.22)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = color.lightened(0.08) if is_selected else color
+	normal.border_color = Color(0.92, 0.78, 0.22) if is_selected else Color(0.08, 0.09, 0.10)
+	normal.border_width_left = 4
+	normal.border_width_top = 4
+	normal.border_width_right = 4
+	normal.border_width_bottom = 4
+	normal.corner_radius_top_left = 4
+	normal.corner_radius_top_right = 4
+	normal.corner_radius_bottom_left = 4
+	normal.corner_radius_bottom_right = 4
+	var hover: StyleBoxFlat = normal.duplicate()
+	hover.bg_color = color.lightened(0.12)
+	var pressed: StyleBoxFlat = normal.duplicate()
+	pressed.bg_color = color.darkened(0.12)
+	var disabled: StyleBoxFlat = normal.duplicate()
+	disabled.bg_color = Color(0.16, 0.16, 0.16)
+	end_turn_button.add_theme_stylebox_override("normal", normal)
+	end_turn_button.add_theme_stylebox_override("hover", hover)
+	end_turn_button.add_theme_stylebox_override("pressed", pressed)
+	end_turn_button.add_theme_stylebox_override("disabled", disabled)
+	end_turn_button.add_theme_stylebox_override("focus", normal)
+	end_turn_button.add_theme_color_override("font_color", Color.WHITE)
+	end_turn_button.add_theme_color_override("font_hover_color", Color.WHITE)
+	end_turn_button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	end_turn_button.add_theme_color_override("font_disabled_color", Color(0.58, 0.58, 0.58))
 
 
 func _style_card_button(button: Button, card, is_selected: bool = false) -> void:

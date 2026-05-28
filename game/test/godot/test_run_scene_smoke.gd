@@ -20,6 +20,9 @@ func _run_tests() -> void:
 	failed = not await _test_run_scene_supports_combat_keyboard_selection(run_scene) or failed
 	_reset_run_scene(run_scene)
 	await process_frame
+	failed = not await _test_run_scene_supports_end_turn_keyboard_selection(run_scene) or failed
+	_reset_run_scene(run_scene)
+	await process_frame
 	failed = not await _test_run_scene_enters_and_wins_combat(run_scene) or failed
 
 	run_scene.queue_free()
@@ -81,6 +84,7 @@ func _reset_run_scene(run_scene) -> void:
 	run_scene._sync_from_controller()
 	run_scene.selected_position = run_scene.run_state.dungeon_map.player_position
 	run_scene.selected_hand_index = -1
+	run_scene.combat_focus = "hand"
 	run_scene.combat_log = ""
 	run_scene._refresh()
 
@@ -102,6 +106,7 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	var selected_card_name: String = run_scene.active_combat.deck.hand[0].display_name
 	var ok := true
 	ok = _assert_eq(run_scene.selected_hand_index, 0, "combat starts with first card selected") and ok
+	ok = _assert_eq(run_scene.combat_focus, "hand", "combat starts focused on hand") and ok
 	ok = _assert_eq(combat_hand_title_label.text.contains("已选：%s" % selected_card_name), true, "combat title shows selected card") and ok
 
 	_press_key(run_scene, KEY_RIGHT)
@@ -113,8 +118,16 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	_press_key(run_scene, KEY_A)
 	ok = _assert_eq(run_scene.selected_hand_index, 0, "A key selects previous card") and ok
 
+	_press_key(run_scene, KEY_DOWN)
+	ok = _assert_eq(run_scene.combat_focus, "end_turn", "down key selects end turn") and ok
+	ok = _assert_eq(combat_hand_title_label.text.contains("已选：结束回合"), true, "combat title shows end turn selection") and ok
+	_press_key(run_scene, KEY_UP)
+	ok = _assert_eq(run_scene.combat_focus, "hand", "up key returns to hand") and ok
+	ok = _assert_eq(run_scene.selected_hand_index, 0, "returning to hand keeps selected card") and ok
+
 	run_scene._on_card_hovered(2)
 	ok = _assert_eq(run_scene.selected_hand_index, 2, "mouse hover syncs selected card") and ok
+	ok = _assert_eq(run_scene.combat_focus, "hand", "mouse hover returns focus to hand") and ok
 
 	var hand_size_before_space: int = run_scene.active_combat.deck.hand.size()
 	var space_card_name: String = run_scene.active_combat.deck.hand[run_scene.selected_hand_index].display_name
@@ -130,6 +143,34 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	await process_frame
 	ok = _assert_eq(run_scene.active_combat.deck.hand.size(), hand_size_before_enter - 1, "enter plays selected card") and ok
 	ok = _assert_eq(combat_hand_row.get_child_count() >= 3, true, "combat hand stays interactive after keyboard play") and ok
+	return ok
+
+
+func _test_run_scene_supports_end_turn_keyboard_selection(run_scene) -> bool:
+	run_scene._try_move(Vector2i.RIGHT)
+	run_scene._try_move(Vector2i.RIGHT)
+	run_scene._try_move(Vector2i.RIGHT)
+	await process_frame
+
+	var ok := true
+	run_scene.active_combat.mana = 0
+	run_scene.selected_hand_index = 0
+	run_scene.combat_focus = "hand"
+	run_scene._refresh()
+	var turn_before_auto_end: int = run_scene.active_combat.turn
+	_press_key(run_scene, KEY_SPACE)
+	await process_frame
+	ok = _assert_eq(run_scene.active_combat.turn, turn_before_auto_end + 1, "unaffordable selected card auto ends turn") and ok
+	ok = _assert_eq(run_scene.active_combat.mana, run_scene.active_combat.max_mana, "auto end starts next player turn") and ok
+	ok = _assert_eq(run_scene.combat_log.contains("法力不足，自动结束回合"), true, "auto end log explains mana") and ok
+
+	var turn_before_manual_end: int = run_scene.active_combat.turn
+	_press_key(run_scene, KEY_S)
+	ok = _assert_eq(run_scene.combat_focus, "end_turn", "S key selects end turn") and ok
+	_press_key(run_scene, KEY_ENTER)
+	await process_frame
+	ok = _assert_eq(run_scene.active_combat.turn, turn_before_manual_end + 1, "enter confirms selected end turn") and ok
+	ok = _assert_eq(run_scene.combat_log.contains("手动结束回合"), true, "manual end turn log") and ok
 	return ok
 
 
