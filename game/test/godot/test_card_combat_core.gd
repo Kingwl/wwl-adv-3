@@ -10,7 +10,7 @@ const ComboState = preload("res://scripts/core/combat/combo_state.gd")
 
 func _init() -> void:
 	var failed := false
-	failed = not _test_combo_resets_when_cost_drops() or failed
+	failed = not _test_combo_requires_next_cost_step() or failed
 	failed = not _test_deck_shuffle_is_seeded() or failed
 	failed = not _test_combat_applies_combo_damage_and_block() or failed
 	failed = not _test_enemy_rows_only_front_attacks_and_rear_waits_after_advancing() or failed
@@ -21,16 +21,23 @@ func _init() -> void:
 	quit(1 if failed else 0)
 
 
-func _test_combo_resets_when_cost_drops() -> bool:
+func _test_combo_requires_next_cost_step() -> bool:
 	var combo := ComboState.new()
+	var focus = StarterCardCatalog.create_focus()
 	var strike = StarterCardCatalog.create_strike()
 	var bolt = StarterCardCatalog.create_bolt()
 	var guard = StarterCardCatalog.create_guard()
+	var hammer = StarterCardCatalog.create_heavy_hammer()
 
 	var ok := true
-	ok = _assert_eq(combo.apply_card(strike), 100, "first card has base multiplier") and ok
-	ok = _assert_eq(combo.apply_card(bolt), 200, "higher cost extends combo") and ok
-	ok = _assert_eq(combo.apply_card(guard), 100, "lower cost resets combo") and ok
+	ok = _assert_eq(combo.apply_card(focus), 100, "first card has base multiplier") and ok
+	ok = _assert_eq(combo.apply_card(strike), 200, "next cost step extends combo") and ok
+	ok = _assert_eq(combo.apply_card(bolt), 300, "second next cost step extends combo") and ok
+	ok = _assert_eq(combo.preview_multiplier_basis_points(hammer), 400, "exact next higher cost previews combo") and ok
+	ok = _assert_eq(combo.preview_multiplier_basis_points(guard), 100, "same cost resets combo") and ok
+	ok = _assert_eq(combo.preview_multiplier_basis_points(focus), 100, "lower cost resets combo") and ok
+	ok = _assert_eq(combo.apply_card(hammer), 400, "exact next higher cost applies combo") and ok
+	ok = _assert_eq(combo.apply_card(guard), 100, "non-next cost resets combo") and ok
 	ok = _assert_eq(combo.chain, 1, "reset combo chain") and ok
 	return ok
 
@@ -50,24 +57,27 @@ func _test_deck_shuffle_is_seeded() -> bool:
 func _test_combat_applies_combo_damage_and_block() -> bool:
 	var combat := CombatState.new()
 	combat.player = CombatantState.new("hero", "Hero", 20, 0)
-	combat.enemies = [CombatantState.new("slime", "Slime", 30, 3)]
+	combat.enemies = [CombatantState.new("slime", "Slime", 50, 3)]
 	combat.mana = 5
 	combat.max_mana = 5
 	combat.deck.hand = [
-		StarterCardCatalog.create_guard(),
+		StarterCardCatalog.create_focus(),
 		StarterCardCatalog.create_strike(),
 		StarterCardCatalog.create_bolt(),
+		StarterCardCatalog.create_guard(),
 	]
 
-	var guard_result = combat.play_card(0)
+	var focus_result = combat.play_card(0)
 	var strike_result = combat.play_card(0, 0)
 	var bolt_result = combat.play_card(0, 0)
+	var guard_result = combat.play_card(0)
 
 	var ok := true
+	ok = _assert_eq(focus_result.ok, true, "focus can start combo") and ok
 	ok = _assert_eq(guard_result.block_gained, 5, "guard grants block") and ok
 	ok = _assert_eq(strike_result.damage_requested, 12, "second combo card scales strike") and ok
 	ok = _assert_eq(bolt_result.damage_requested, 27, "third combo card scales bolt") and ok
-	ok = _assert_eq(combat.enemies[0].health, 0, "enemy loses scaled damage") and ok
+	ok = _assert_eq(combat.enemies[0].health, 11, "enemy loses scaled damage") and ok
 	return ok
 
 
@@ -191,26 +201,26 @@ func _test_reward_cards_are_simple_categories() -> bool:
 func _test_simple_reward_cards_resolve() -> bool:
 	var combat := CombatState.new()
 	combat.player = CombatantState.new("hero", "英雄", 30, 0)
-	combat.enemies = [CombatantState.new("enemy_a", "敌人甲", 100, 0)]
+	combat.enemies = [CombatantState.new("enemy_a", "敌人甲", 120, 0)]
 	combat.mana = 6
 	combat.max_mana = 6
 	combat.deck.hand = [
 		StarterCardCatalog.create_insight(),
 		StarterCardCatalog.create_block(),
-		StarterCardCatalog.create_slash(),
+		StarterCardCatalog.create_charged_slash(),
 		StarterCardCatalog.create_heavy_hammer(),
 	]
-	combat.deck.draw_pile = [StarterCardCatalog.create_charged_slash(), StarterCardCatalog.create_iron_wall()]
+	combat.deck.draw_pile = [StarterCardCatalog.create_slash(), StarterCardCatalog.create_iron_wall()]
 
 	var insight_result = combat.play_card(0)
 	var block_result = combat.play_card(0)
-	var slash_result = combat.play_card(0, 0)
+	var charged_result = combat.play_card(0, 0)
 	var hammer_result = combat.play_card(0, 0)
 
 	var ok := true
 	ok = _assert_eq(insight_result.cards_drawn, 2, "insight draws") and ok
 	ok = _assert_eq(block_result.block_gained, 8, "block grants block") and ok
-	ok = _assert_eq(slash_result.damage_dealt, 24, "slash deals combo damage") and ok
+	ok = _assert_eq(charged_result.damage_dealt, 36, "charged slash deals combo damage") and ok
 	ok = _assert_eq(hammer_result.damage_dealt, 72, "hammer deals combo damage") and ok
 	return ok
 

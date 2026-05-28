@@ -17,7 +17,7 @@ func reset() -> void:
 func preview_chain_for(card: CardDefinition) -> int:
 	if card == null:
 		return 1
-	if chain == 0 or card.cost >= last_cost:
+	if chain == 0 or card.cost == last_cost + 1:
 		return chain + 1
 	return 1
 

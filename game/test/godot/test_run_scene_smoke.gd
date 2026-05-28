@@ -332,6 +332,13 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 		ok = _assert_eq(attack_button.text.contains("预览伤害：%s" % expected_preview_damage), true, "combo card shows scaled preview damage") and ok
 		ok = _assert_eq(attack_button.text.contains("倍率：200%"), true, "combo card shows combo multiplier") and ok
 		ok = _assert_eq(combo_style.border_color, Color(0.95, 0.72, 0.20), "combo multiplier highlights card") and ok
+		var skipped_cost_index := _first_card_cost_index(run_scene.active_combat.deck.hand, 2)
+		ok = _assert_eq(skipped_cost_index >= 0, true, "combat hand has a skipped cost card") and ok
+		if skipped_cost_index >= 0:
+			var skipped_cost_button := _card_button(combat_hand_row, skipped_cost_index)
+			var skipped_cost_style: StyleBoxFlat = skipped_cost_button.get_theme_stylebox("normal") as StyleBoxFlat
+			ok = _assert_eq(skipped_cost_button.text.contains("倍率：100%"), true, "skipped cost does not gain combo multiplier") and ok
+			ok = _assert_eq(skipped_cost_style.border_color, Color(0.08, 0.09, 0.10), "skipped cost does not highlight card") and ok
 		run_scene.active_combat.combo.reset()
 		run_scene._refresh()
 
@@ -477,6 +484,13 @@ func _card_button(combat_hand_row: HBoxContainer, index: int) -> Button:
 func _first_attack_card_index(cards: Array) -> int:
 	for i in range(cards.size()):
 		if cards[i].base_damage > 0:
+			return i
+	return -1
+
+
+func _first_card_cost_index(cards: Array, cost: int) -> int:
+	for i in range(cards.size()):
+		if cards[i].cost == cost:
 			return i
 	return -1
 
