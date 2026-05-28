@@ -5,6 +5,10 @@ const DungeonMapState = preload("res://scripts/core/dungeon/dungeon_map_state.gd
 const StageConfig = preload("res://scripts/core/dungeon/stage_config.gd")
 const StageFixtureCatalog = preload("res://scripts/core/dungeon/stage_fixture_catalog.gd")
 
+const STARTING_LEVEL := 1
+const FIRST_LEVEL_XP := 10
+const LEVEL_XP_STEP := 10
+
 var seed: int = 1
 var stage_index: int = 0
 var current_stage: StageConfig
@@ -25,9 +29,9 @@ func setup(p_seed: int = 1, p_max_health: int = 40, p_max_mana: int = 3) -> void
 	max_health = max(p_max_health, 1)
 	health = max_health
 	max_mana = max(p_max_mana, 0)
-	level = 1
+	level = STARTING_LEVEL
 	xp = 0
-	next_level_xp = 10
+	next_level_xp = FIRST_LEVEL_XP
 	deck_card_ids = [
 		"strike",
 		"strike",
@@ -61,10 +65,11 @@ func gain_xp(amount: int) -> Array:
 	while xp >= next_level_xp:
 		xp -= next_level_xp
 		level += 1
-		next_level_xp += 10
+		next_level_xp += LEVEL_XP_STEP
 		level_events.append({
 			"type": "level_up",
 			"level": level,
+			"xp": xp,
 			"next_level_xp": next_level_xp,
 		})
 	return level_events

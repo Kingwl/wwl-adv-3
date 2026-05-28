@@ -86,6 +86,7 @@ func _reset_run_scene(run_scene) -> void:
 	run_scene.selected_hand_index = -1
 	run_scene.combat_focus = "hand"
 	run_scene.combat_log = ""
+	run_scene.status_message = "探索中。"
 	run_scene._refresh()
 
 
@@ -209,6 +210,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var combat_hand_title_label: Label = run_scene.find_child("CombatHandTitleLabel", true, false)
 	var combat_title_label: Label = run_scene.find_child("CombatTitleLabel", true, false)
 	var player_state_panel: PanelContainer = run_scene.find_child("PlayerStatePanel", true, false)
+	var stats_label: Label = run_scene.find_child("StatsLabel", true, false)
 
 	var ok := true
 	ok = _assert_eq(run_scene.mode, "combat", "run scene enters combat") and ok
@@ -229,11 +231,15 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(run_scene.active_combat.mana, 2, "playing first card spends mana") and ok
 	ok = _assert_eq(run_scene.active_combat.deck.hand.size(), 4, "playing first card removes hand card") and ok
 
+	run_scene.active_combat.enemies[0].health = 0
 	run_scene._finish_combat_victory()
 	await process_frame
 
 	ok = _assert_eq(run_scene.mode, "exploration", "run scene returns to exploration") and ok
 	ok = _assert_eq(run_scene.run_state.dungeon_map.active_enemy_count(), 11, "victory removes map enemy") and ok
+	ok = _assert_eq(run_scene.run_state.xp, 3, "victory grants visible xp") and ok
+	ok = _assert_eq(status_label.text.contains("获得 3 经验"), true, "victory status shows xp reward") and ok
+	ok = _assert_eq(stats_label.text.contains("经验 3/10"), true, "stats label shows updated xp") and ok
 	return ok
 
 

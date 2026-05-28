@@ -20,6 +20,10 @@ const EVENT_TURN_ENDED := "turn_ended"
 const EVENT_COMBAT_WON := "combat_won"
 const EVENT_COMBAT_LOST := "combat_lost"
 
+const XP_REWARD_NORMAL := 3
+const XP_REWARD_ELITE := 8
+const XP_REWARD_BOSS := 14
+
 var run_state: RunState = RunState.new()
 var mode: String = MODE_EXPLORATION
 var active_combat: CombatState
@@ -123,10 +127,14 @@ func end_turn() -> Dictionary:
 func finish_active_combat_victory() -> Dictionary:
 	if mode != MODE_COMBAT or active_combat == null:
 		return _event(EVENT_COMMAND_REJECTED, "not_in_combat")
+	if not active_combat.is_victory():
+		return _event(EVENT_COMMAND_REJECTED, "combat_not_won")
 
 	run_state.health = active_combat.player.health
 	var defeated_name := _active_enemy_display_name()
 	var defeated_position := active_encounter_position
+	var xp_reward := _xp_reward_for_active_encounter()
+	var level_events := run_state.gain_xp(xp_reward)
 	var cleared := false
 	if run_state.dungeon_map != null and active_encounter_id != "":
 		cleared = run_state.dungeon_map.mark_enemy_defeated(active_encounter_id)
@@ -137,7 +145,22 @@ func finish_active_combat_victory() -> Dictionary:
 	result["defeated_name"] = defeated_name
 	result["position"] = defeated_position
 	result["cleared"] = cleared
+	result["xp_gained"] = xp_reward
+	result["level_events"] = level_events
+	result["level"] = run_state.level
+	result["xp"] = run_state.xp
+	result["next_level_xp"] = run_state.next_level_xp
 	return result
+
+
+func xp_reward_for_tile_type(tile_type: int) -> int:
+	if tile_type == DungeonTile.TileType.ELITE:
+		return XP_REWARD_ELITE
+	if tile_type == DungeonTile.TileType.BOSS:
+		return XP_REWARD_BOSS
+	if tile_type == DungeonTile.TileType.ENEMY:
+		return XP_REWARD_NORMAL
+	return 0
 
 
 func create_enemy_for_tile(tile: DungeonTile) -> CombatantState:
@@ -171,6 +194,15 @@ func _active_enemy_display_name() -> String:
 		var enemy: CombatantState = active_combat.enemies[0]
 		return enemy.display_name
 	return "敌人"
+
+
+func _xp_reward_for_active_encounter() -> int:
+	if run_state.dungeon_map == null:
+		return 0
+	var tile: DungeonTile = run_state.dungeon_map.get_tile(active_encounter_position)
+	if tile == null:
+		return 0
+	return xp_reward_for_tile_type(tile.tile_type)
 
 
 func _clear_active_encounter() -> void:

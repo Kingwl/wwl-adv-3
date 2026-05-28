@@ -2,6 +2,7 @@ extends SceneTree
 
 const DungeonMapState = preload("res://scripts/core/dungeon/dungeon_map_state.gd")
 const DungeonTile = preload("res://scripts/core/dungeon/dungeon_tile.gd")
+const RunController = preload("res://scripts/core/run/run_controller.gd")
 const RunState = preload("res://scripts/core/run/run_state.gd")
 const StageConfig = preload("res://scripts/core/dungeon/stage_config.gd")
 const StageFixtureCatalog = preload("res://scripts/core/dungeon/stage_fixture_catalog.gd")
@@ -15,6 +16,7 @@ func _init() -> void:
 	failed = not _test_pickups_are_collected_once() or failed
 	failed = not _test_defeats_unlock_exit() or failed
 	failed = not _test_run_state_starts_stage() or failed
+	failed = not _test_run_state_xp_curve_keeps_stage_1_balanced() or failed
 	failed = not _test_stage_1_fixture_matches_budget() or failed
 	failed = not _test_run_state_starts_stage_1() or failed
 	quit(1 if failed else 0)
@@ -147,6 +149,34 @@ func _test_run_state_starts_stage() -> bool:
 	ok = _assert_eq(map.active_enemy_count(), 1, "run stage map enemy count") and ok
 	ok = _assert_eq(level_events.size(), 1, "run levels from xp") and ok
 	ok = _assert_eq(run.level, 2, "run level after xp") and ok
+	return ok
+
+
+func _test_run_state_xp_curve_keeps_stage_1_balanced() -> bool:
+	var required_path_xp := RunController.XP_REWARD_NORMAL * 7 + RunController.XP_REWARD_ELITE
+	var full_stage_xp := (
+		RunController.XP_REWARD_NORMAL * 10
+		+ RunController.XP_REWARD_ELITE
+		+ RunController.XP_REWARD_BOSS
+	)
+	var unlock_run := RunState.new()
+	unlock_run.setup(7)
+	var unlock_events := unlock_run.gain_xp(required_path_xp)
+	var full_clear_run := RunState.new()
+	full_clear_run.setup(7)
+	var full_clear_events := full_clear_run.gain_xp(full_stage_xp)
+
+	var ok := true
+	ok = _assert_eq(required_path_xp, 29, "stage 1 required path xp budget") and ok
+	ok = _assert_eq(unlock_events.size(), 1, "required path gives one level up") and ok
+	ok = _assert_eq(unlock_run.level, 2, "required path reaches level 2") and ok
+	ok = _assert_eq(unlock_run.xp, 19, "required path stays just short of level 3") and ok
+	ok = _assert_eq(unlock_run.next_level_xp, 20, "level 2 threshold") and ok
+	ok = _assert_eq(full_stage_xp, 52, "stage 1 full clear xp budget") and ok
+	ok = _assert_eq(full_clear_events.size(), 2, "full clear gives two level ups") and ok
+	ok = _assert_eq(full_clear_run.level, 3, "full clear reaches level 3") and ok
+	ok = _assert_eq(full_clear_run.xp, 22, "full clear remains below level 4") and ok
+	ok = _assert_eq(full_clear_run.next_level_xp, 30, "level 3 threshold") and ok
 	return ok
 
 

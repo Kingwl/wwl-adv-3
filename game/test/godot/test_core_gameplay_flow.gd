@@ -15,8 +15,41 @@ const INVALID_POSITION := Vector2i(-9999, -9999)
 
 func _init() -> void:
 	var failed := false
+	failed = not _test_victory_grants_xp_and_level_events() or failed
 	failed = not _test_stage_1_player_flow_reaches_exit() or failed
 	quit(1 if failed else 0)
+
+
+func _test_victory_grants_xp_and_level_events() -> bool:
+	var controller := RunController.new()
+	controller.setup(StageFixtureCatalog.STAGE_1_DEFAULT_SEED, FLOW_HEALTH_BUDGET, 3)
+	controller.start_stage_1()
+	controller.run_state.xp = 7
+
+	var first_step := controller.move_player(Vector2i.RIGHT)
+	var second_step := controller.move_player(Vector2i.RIGHT)
+	var encounter_result := controller.move_player(Vector2i.RIGHT)
+	controller.active_combat.enemies[0].health = 0
+	var victory_result := controller.finish_active_combat_victory()
+	var level_events: Array = victory_result["level_events"]
+
+	var ok := true
+	ok = _assert_eq(controller.xp_reward_for_tile_type(DungeonTile.TileType.ENEMY), 3, "normal enemy xp reward") and ok
+	ok = _assert_eq(controller.xp_reward_for_tile_type(DungeonTile.TileType.ELITE), 8, "elite xp reward") and ok
+	ok = _assert_eq(controller.xp_reward_for_tile_type(DungeonTile.TileType.BOSS), 14, "boss xp reward") and ok
+	ok = _assert_eq(first_step["type"], DungeonMapState.EVENT_MOVED, "approach first enemy step 1") and ok
+	ok = _assert_eq(second_step["type"], DungeonMapState.EVENT_MOVED, "approach first enemy step 2") and ok
+	ok = _assert_eq(encounter_result["type"], RunController.EVENT_COMBAT_STARTED, "first enemy starts combat") and ok
+	ok = _assert_eq(victory_result["type"], RunController.EVENT_COMBAT_WON, "victory event") and ok
+	ok = _assert_eq(victory_result["xp_gained"], 3, "victory grants normal enemy xp") and ok
+	ok = _assert_eq(level_events.size(), 1, "victory can emit level up") and ok
+	if level_events.size() > 0:
+		ok = _assert_eq(level_events[0]["level"], 2, "level event level") and ok
+		ok = _assert_eq(level_events[0]["next_level_xp"], 20, "level event next threshold") and ok
+	ok = _assert_eq(controller.run_state.level, 2, "run state level updated") and ok
+	ok = _assert_eq(controller.run_state.xp, 0, "xp overflow after exact level up") and ok
+	ok = _assert_eq(controller.run_state.next_level_xp, 20, "run state next threshold updated") and ok
+	return ok
 
 
 func _test_stage_1_player_flow_reaches_exit() -> bool:

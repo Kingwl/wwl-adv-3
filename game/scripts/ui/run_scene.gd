@@ -37,6 +37,7 @@ var active_encounter_id: String = ""
 var active_encounter_position: Vector2i = Vector2i.ZERO
 var active_combat: CombatState
 var combat_log: String = ""
+var status_message: String = "探索中。"
 var combat_focus: String = COMBAT_FOCUS_HAND
 var selected_hand_index: int = -1
 
@@ -444,7 +445,7 @@ func _refresh_selected() -> void:
 	]
 
 	if mode == "combat":
-		status_label.text = "遭遇已开始。"
+		status_label.text = status_message
 		action_button.text = "返回探索"
 		action_button.disabled = false
 		return
@@ -455,9 +456,15 @@ func _refresh_selected() -> void:
 		action_button.text = "自动遭遇"
 		action_button.disabled = true
 	else:
-		status_label.text = "探索中。"
+		status_label.text = status_message
 		action_button.text = "自动遭遇"
 		action_button.disabled = true
+
+
+func _set_status_message(message: String) -> void:
+	status_message = message
+	if status_label != null:
+		status_label.text = status_message
 
 
 func _try_move(direction: Vector2i) -> void:
@@ -471,13 +478,17 @@ func _try_move(direction: Vector2i) -> void:
 	if result["type"] == RunController.EVENT_COMBAT_STARTED:
 		selected_hand_index = 0
 		combat_focus = COMBAT_FOCUS_HAND
-		status_label.text = "遭遇已开始。"
+		_set_status_message("遭遇已开始。")
 		combat_log = "遭遇开始。"
 	elif result["type"] == DungeonMapState.EVENT_STAGE_EXIT_REQUESTED:
-		status_label.text = "出口已可用。下一步会接入关卡切换。"
+		_set_status_message("出口已可用。下一步会接入关卡切换。")
 	elif result["type"] == DungeonMapState.EVENT_BLOCKED:
 		selected_position = run_state.dungeon_map.player_position
-		status_label.text = "无法移动：%s" % _movement_block_reason(result["reason"])
+		_set_status_message("无法移动：%s" % _movement_block_reason(result["reason"]))
+	elif result["type"] == DungeonMapState.EVENT_PICKUP_COLLECTED:
+		_set_status_message("收集了拾取物。")
+	elif result["type"] == DungeonMapState.EVENT_MOVED:
+		_set_status_message("探索中。")
 	_refresh()
 
 
@@ -555,6 +566,7 @@ func _on_action_pressed() -> void:
 	selected_hand_index = 0
 	combat_focus = COMBAT_FOCUS_HAND
 	combat_log = "遭遇开始。"
+	_set_status_message("遭遇已开始。")
 	_refresh()
 
 
@@ -584,7 +596,7 @@ func _on_card_pressed(hand_index: int) -> void:
 		selected_position = result["position"]
 		selected_hand_index = -1
 		combat_focus = COMBAT_FOCUS_HAND
-		status_label.text = "击败%s。" % result["defeated_name"]
+		_set_status_message(_combat_victory_summary(result))
 		combat_log = ""
 		_refresh()
 		return
@@ -604,6 +616,18 @@ func _card_play_failure_reason(reason: String) -> String:
 	if reason == "invalid_target":
 		return "目标无效"
 	return "未知原因"
+
+
+func _combat_victory_summary(result: Dictionary) -> String:
+	var parts := [
+		"击败%s。" % str(result.get("defeated_name", "敌人")),
+		"获得 %s 经验。" % int(result.get("xp_gained", 0)),
+	]
+	var level_events: Array = result.get("level_events", [])
+	for raw_event in level_events:
+		var event: Dictionary = raw_event
+		parts.append("升级到 %s 级。" % int(event.get("level", 1)))
+	return "".join(parts)
 
 
 func _on_end_turn_pressed() -> void:
@@ -629,7 +653,7 @@ func _finish_combat_victory() -> void:
 	_sync_from_controller()
 	combat_log = ""
 	if result["type"] == RunController.EVENT_COMBAT_WON:
-		status_label.text = "击败%s。" % result["defeated_name"]
+		_set_status_message(_combat_victory_summary(result))
 		selected_position = result["position"]
 		selected_hand_index = -1
 		combat_focus = COMBAT_FOCUS_HAND
