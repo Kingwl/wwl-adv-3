@@ -119,6 +119,11 @@ func can_enemy_attack(enemy: CombatantState) -> bool:
 
 
 func primary_target_index() -> int:
+	var attackers := active_attackers()
+	for i in range(enemies.size()):
+		if attackers.has(enemies[i]):
+			return i
+
 	var targetable := targetable_enemy_indices()
 	if targetable.is_empty():
 		return -1

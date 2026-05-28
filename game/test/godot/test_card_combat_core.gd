@@ -14,6 +14,7 @@ func _init() -> void:
 	failed = not _test_deck_shuffle_is_seeded() or failed
 	failed = not _test_combat_applies_combo_damage_and_block() or failed
 	failed = not _test_enemy_rows_only_front_attacks_and_rear_waits_after_advancing() or failed
+	failed = not _test_primary_target_prioritizes_ready_attacker() or failed
 	failed = not _test_enemy_rows_are_capped_at_five_enemies() or failed
 	failed = not _test_stage_1_reward_pool_is_stable_and_chinese() or failed
 	failed = not _test_reward_cards_are_simple_categories() or failed
@@ -101,6 +102,29 @@ func _test_enemy_rows_only_front_attacks_and_rear_waits_after_advancing() -> boo
 		ok = _assert_eq(can_advanced_enemy_attack_now, false, "newly advanced enemy waits this turn") and ok
 	ok = _assert_eq(damage_on_advance_turn, 0, "newly advanced enemy does not attack immediately") and ok
 	ok = _assert_eq(damage_next_turn, 7, "advanced enemy attacks on the next enemy turn") and ok
+	return ok
+
+
+func _test_primary_target_prioritizes_ready_attacker() -> bool:
+	var combat := CombatState.new()
+	combat.setup(
+		CombatantState.new("hero", "英雄", 30, 0),
+		[],
+		[[
+			CombatantState.new("waiting", "待命敌人", 8, 2),
+			CombatantState.new("ready", "攻击敌人", 8, 5),
+		]],
+		14,
+		3,
+		0
+	)
+	combat.enemy_front_turns[combat.enemies[0].get_instance_id()] = combat.turn
+	combat.enemy_front_turns[combat.enemies[1].get_instance_id()] = combat.turn - 1
+
+	var ok := true
+	ok = _assert_eq(combat.can_enemy_attack(combat.enemies[0]), false, "waiting enemy cannot attack this turn") and ok
+	ok = _assert_eq(combat.can_enemy_attack(combat.enemies[1]), true, "ready enemy can attack this turn") and ok
+	ok = _assert_eq(combat.primary_target_index(), 1, "primary target is the ready attacker") and ok
 	return ok
 
 

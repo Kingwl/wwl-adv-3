@@ -58,7 +58,8 @@ var status_label: Label
 var action_button: Button
 var combat_title_label: Label
 var combat_enemy_panel: PanelContainer
-var combat_enemy_label: RichTextLabel
+var combat_enemy_label: Label
+var combat_enemy_rows: VBoxContainer
 var combat_hand_title_label: Label
 var combat_hand_row: HBoxContainer
 var combat_log_label: Label
@@ -264,8 +265,19 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_panel.add_child(combat_title_label)
 
 	combat_enemy_panel = _create_combat_state_panel("EnemyStatePanel", COLOR_ENEMY_PANEL, COLOR_ENEMY_BORDER)
-	combat_enemy_label = _create_combat_state_label("EnemyState")
-	combat_enemy_panel.add_child(combat_enemy_label)
+	var enemy_content := VBoxContainer.new()
+	enemy_content.name = "EnemyQueueContent"
+	enemy_content.add_theme_constant_override("separation", 10)
+	combat_enemy_panel.add_child(enemy_content)
+	combat_enemy_label = Label.new()
+	combat_enemy_label.name = "EnemyState"
+	combat_enemy_label.text = "敌方队列"
+	combat_enemy_label.add_theme_font_size_override("font_size", 18)
+	enemy_content.add_child(combat_enemy_label)
+	combat_enemy_rows = VBoxContainer.new()
+	combat_enemy_rows.name = "EnemyRows"
+	combat_enemy_rows.add_theme_constant_override("separation", 10)
+	enemy_content.add_child(combat_enemy_rows)
 	combat_panel.add_child(combat_enemy_panel)
 
 	combat_hand_title_label = Label.new()
@@ -483,11 +495,13 @@ func _ensure_map_cells() -> void:
 
 func _refresh_combat() -> void:
 	_clear_combat_hand()
+	_clear_enemy_rows()
 	if active_combat == null:
 		selected_hand_index = -1
 		combat_focus = COMBAT_FOCUS_HAND
 		combat_title_label.text = "战斗"
-		combat_enemy_label.text = "[b]敌方目标[/b]\n无"
+		combat_enemy_label.text = "敌方队列"
+		_add_empty_enemy_row()
 		combat_hand_title_label.text = "手牌"
 		end_turn_button.disabled = true
 		_style_end_turn_button(false)
@@ -497,7 +511,8 @@ func _refresh_combat() -> void:
 	var selected_card_summary := _selected_card_summary()
 	var target_enemy := _current_target_enemy()
 	combat_title_label.text = "遭遇：%s" % (target_enemy.display_name if target_enemy != null else "敌人")
-	combat_enemy_label.text = "[b]敌方队列[/b]\n%s" % _enemy_queue_text()
+	combat_enemy_label.text = "敌方队列"
+	_refresh_enemy_rows()
 	combat_hand_title_label.text = "手牌（%s）  已选：%s  生命 %s/%s | 护甲 %s | 法力 %s/%s | 连击 %s" % [
 		active_combat.deck.hand.size(),
 		selected_card_summary,
@@ -841,35 +856,94 @@ func _current_target_enemy() -> CombatantState:
 	return active_combat.enemies[target_index]
 
 
-func _enemy_queue_text() -> String:
-	if active_combat == null:
-		return "无"
+func _refresh_enemy_rows() -> void:
 	var rows := active_combat.living_enemy_rows()
 	if rows.is_empty():
-		return "无"
+		_add_empty_enemy_row()
+		return
 
-	var lines: Array = []
+	var target_enemy := _current_target_enemy()
 	for row_index in range(rows.size()):
 		var row: Array = rows[row_index]
-		var row_label := "前排" if row_index == 0 else "第%s排" % [row_index + 1]
-		var parts: Array = []
+		var row_box := VBoxContainer.new()
+		row_box.name = "EnemyRow_%02d" % row_index
+		row_box.add_theme_constant_override("separation", 6)
+
+		var row_label := Label.new()
+		row_label.name = "EnemyRowLabel_%02d" % row_index
+		var row_name := "前排" if row_index == 0 else "第%s排" % [row_index + 1]
+		row_label.text = "%s  %s/%s" % [row_name, row.size(), CombatState.MAX_ENEMIES_PER_ROW]
+		row_label.add_theme_font_size_override("font_size", 15)
+		row_box.add_child(row_label)
+
+		var enemy_cards := HBoxContainer.new()
+		enemy_cards.name = "EnemyCards_%02d" % row_index
+		enemy_cards.add_theme_constant_override("separation", 8)
 		for enemy in row:
-			parts.append(_enemy_queue_entry(enemy))
-		lines.append("%s：%s" % [row_label, "  /  ".join(parts)])
-	return "\n".join(lines)
+			enemy_cards.add_child(_create_enemy_card(enemy, row_index, enemy == target_enemy))
+		row_box.add_child(enemy_cards)
+		combat_enemy_rows.add_child(row_box)
 
 
-func _enemy_queue_entry(enemy: CombatantState) -> String:
-	var state := "可攻击" if active_combat.can_enemy_attack(enemy) else "待命"
-	return "%s %s/%s %s 护甲%s 攻%s %s" % [
-		enemy.display_name,
+func _add_empty_enemy_row() -> void:
+	var empty_label := Label.new()
+	empty_label.name = "EnemyEmptyLabel"
+	empty_label.text = "无"
+	empty_label.add_theme_font_size_override("font_size", 16)
+	combat_enemy_rows.add_child(empty_label)
+
+
+func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.name = "EnemyCard_%s" % enemy.id
+	card.custom_minimum_size = Vector2(150, 118)
+	_style_enemy_card(card, row_index, is_target)
+
+	var content := VBoxContainer.new()
+	content.name = "EnemyCardContent_%s" % enemy.id
+	content.add_theme_constant_override("separation", 4)
+	card.add_child(content)
+
+	var name_label := Label.new()
+	name_label.name = "EnemyName"
+	name_label.text = enemy.display_name
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 15)
+	content.add_child(name_label)
+
+	var health_label := Label.new()
+	health_label.name = "EnemyHealth"
+	health_label.text = "生命 %s/%s\n%s" % [
 		enemy.health,
 		enemy.max_health,
 		_health_bar(enemy.health, enemy.max_health),
-		enemy.block,
-		enemy.attack_damage,
-		state,
 	]
+	health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	health_label.add_theme_font_size_override("font_size", 13)
+	content.add_child(health_label)
+
+	var stats_label := Label.new()
+	stats_label.name = "EnemyStats"
+	stats_label.text = "护甲 %s  攻击 %s" % [enemy.block, enemy.attack_damage]
+	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats_label.add_theme_font_size_override("font_size", 13)
+	content.add_child(stats_label)
+
+	var state_label := Label.new()
+	state_label.name = "EnemyStateLabel"
+	state_label.text = _enemy_state_text(enemy, is_target)
+	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	state_label.add_theme_font_size_override("font_size", 13)
+	content.add_child(state_label)
+	return card
+
+
+func _enemy_state_text(enemy: CombatantState, is_target: bool) -> String:
+	if is_target:
+		return "当前目标"
+	if active_combat.can_enemy_attack(enemy):
+		return "可攻击"
+	return "待命"
 
 
 func _on_end_turn_pressed() -> void:
@@ -1063,6 +1137,12 @@ func _clear_combat_hand() -> void:
 		child.queue_free()
 
 
+func _clear_enemy_rows() -> void:
+	for child in combat_enemy_rows.get_children():
+		combat_enemy_rows.remove_child(child)
+		child.queue_free()
+
+
 func _clear_reward_choices() -> void:
 	for child in reward_choice_row.get_children():
 		reward_choice_row.remove_child(child)
@@ -1210,6 +1290,26 @@ func _style_card_button(button: Button, card, has_combo_multiplier: bool = false
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	button.add_theme_color_override("font_disabled_color", Color(0.58, 0.58, 0.58))
+
+
+func _style_enemy_card(card: PanelContainer, row_index: int, is_target: bool) -> void:
+	var color := COLOR_ENEMY_PANEL if row_index == 0 else COLOR_ENEMY_PANEL.darkened(0.20)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = color.lightened(0.08) if is_target else color
+	normal.border_color = COLOR_SELECTED if is_target else (COLOR_ENEMY_BORDER if row_index == 0 else COLOR_ENEMY_BORDER.darkened(0.32))
+	normal.border_width_left = 3 if is_target else 2
+	normal.border_width_top = 3 if is_target else 2
+	normal.border_width_right = 3 if is_target else 2
+	normal.border_width_bottom = 3 if is_target else 2
+	normal.corner_radius_top_left = 6
+	normal.corner_radius_top_right = 6
+	normal.corner_radius_bottom_left = 6
+	normal.corner_radius_bottom_right = 6
+	normal.content_margin_left = 10
+	normal.content_margin_right = 10
+	normal.content_margin_top = 8
+	normal.content_margin_bottom = 8
+	card.add_theme_stylebox_override("panel", normal)
 
 
 func _style_reward_choice_button(button: Button, choice: Dictionary, is_selected: bool) -> void:

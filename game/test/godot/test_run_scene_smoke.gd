@@ -413,7 +413,8 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var combat_hand_row: HBoxContainer = run_scene.find_child("CombatHandRow", true, false)
 	var combat_hand_title_label: Label = run_scene.find_child("CombatHandTitleLabel", true, false)
 	var combat_title_label: Label = run_scene.find_child("CombatTitleLabel", true, false)
-	var combat_enemy_label: RichTextLabel = run_scene.find_child("EnemyState", true, false)
+	var combat_enemy_label: Label = run_scene.find_child("EnemyState", true, false)
+	var enemy_rows: VBoxContainer = run_scene.find_child("EnemyRows", true, false)
 	var player_state_panel: PanelContainer = run_scene.find_child("PlayerStatePanel", true, false)
 	var stats_label: Label = run_scene.find_child("StatsLabel", true, false)
 
@@ -426,9 +427,16 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）  已选：%s  生命 40/40 | 护甲 0 | 法力 3/3 | 连击 0" % selected_card_summary, "combat hand title") and ok
 	ok = _assert_eq(combat_hand_row.get_child_count(), 5, "combat hand buttons") and ok
 	ok = _assert_eq(combat_title_label.text, "遭遇：敌人", "combat title") and ok
-	ok = _assert_eq(combat_enemy_label.text.contains("前排"), true, "combat enemy panel shows front row") and ok
-	ok = _assert_eq(combat_enemy_label.text.contains("第2排"), true, "combat enemy panel shows rear row") and ok
-	ok = _assert_eq(combat_enemy_label.text.contains("待命"), true, "combat enemy panel shows waiting row") and ok
+	ok = _assert_eq(combat_enemy_label.text, "敌方队列", "combat enemy panel title") and ok
+	ok = _assert_eq(enemy_rows.get_child_count(), 2, "combat enemy panel splits rows") and ok
+	var front_cards: HBoxContainer = enemy_rows.get_child(0).find_child("EnemyCards_00", true, false)
+	var rear_cards: HBoxContainer = enemy_rows.get_child(1).find_child("EnemyCards_01", true, false)
+	ok = _assert_eq(front_cards.get_child_count(), 1, "front row has separate enemy card") and ok
+	ok = _assert_eq(rear_cards.get_child_count(), 1, "rear row has separate enemy card") and ok
+	var target_state: Label = front_cards.get_child(0).find_child("EnemyStateLabel", true, false)
+	var rear_state: Label = rear_cards.get_child(0).find_child("EnemyStateLabel", true, false)
+	ok = _assert_eq(target_state.text, "当前目标", "single-target card auto target is marked") and ok
+	ok = _assert_eq(rear_state.text, "待命", "rear row is waiting") and ok
 	ok = _assert_eq(player_state_panel, null, "combat has no player state panel") and ok
 	ok = _assert_eq(_visible_text_has_english(combat_hand_row), false, "combat hand text uses Chinese") and ok
 	ok = _assert_eq(_visible_text_has_english(run_scene), false, "combat visible text uses Chinese") and ok
