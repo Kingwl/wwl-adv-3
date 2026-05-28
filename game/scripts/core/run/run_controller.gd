@@ -14,6 +14,8 @@ const StarterCardCatalog = preload("res://scripts/core/cards/starter_card_catalo
 const MODE_EXPLORATION := "exploration"
 const MODE_COMBAT := "combat"
 const MODE_REWARD := "reward"
+const REWARD_SOURCE_LEVEL_UP := "level_up"
+const REWARD_SOURCE_TREASURE := "treasure"
 
 const EVENT_COMMAND_REJECTED := "command_rejected"
 const EVENT_COMBAT_STARTED := "combat_started"
@@ -35,6 +37,9 @@ var active_encounter_id: String = ""
 var active_encounter_position: Vector2i = Vector2i.ZERO
 var pending_reward_level_events: Array = []
 var active_reward_level_event: Dictionary = {}
+var active_reward_source: String = ""
+var active_reward_title: String = ""
+var active_reward_pickup_id: String = ""
 var pending_reward_choices: Array = []
 
 
@@ -62,6 +67,10 @@ func move_player(direction: Vector2i) -> Dictionary:
 		if tile == null:
 			return _event(EVENT_COMMAND_REJECTED, "missing_tile")
 		return _start_encounter_for_tile(result["to"], tile)
+	if str(result["type"]) == DungeonMapState.EVENT_PICKUP_COLLECTED:
+		if int(result.get("tile_type", -1)) == DungeonTile.TileType.TREASURE:
+			_start_treasure_reward(result)
+			_add_reward_fields(result)
 	return result
 
 
@@ -191,6 +200,9 @@ func apply_reward_choice(choice: Dictionary) -> Dictionary:
 	if bool(result.get("ok", false)):
 		run_state.reward_offer_index += 1
 		var applied_level_event := active_reward_level_event.duplicate(true)
+		var applied_reward_source := active_reward_source
+		var applied_reward_title := active_reward_title
+		var applied_reward_pickup_id := active_reward_pickup_id
 		var remaining_before_advance := pending_reward_level_events.size()
 		if remaining_before_advance > 0:
 			_start_next_queued_reward()
@@ -198,6 +210,9 @@ func apply_reward_choice(choice: Dictionary) -> Dictionary:
 			_clear_reward_state()
 			mode = MODE_EXPLORATION
 		result["level_event"] = applied_level_event
+		result["reward_source"] = applied_reward_source
+		result["reward_title"] = applied_reward_title
+		result["pickup_id"] = applied_reward_pickup_id
 		result["reward_choices"] = pending_reward_choices.duplicate(true)
 		result["reward_pending_count"] = pending_reward_level_events.size()
 	return result
@@ -276,6 +291,9 @@ func _clear_active_encounter() -> void:
 func _clear_reward_state() -> void:
 	pending_reward_level_events.clear()
 	active_reward_level_event.clear()
+	active_reward_source = ""
+	active_reward_title = ""
+	active_reward_pickup_id = ""
 	pending_reward_choices.clear()
 
 
@@ -290,8 +308,29 @@ func _start_next_queued_reward() -> void:
 		mode = MODE_EXPLORATION
 		return
 	active_reward_level_event = pending_reward_level_events.pop_front()
+	active_reward_source = REWARD_SOURCE_LEVEL_UP
+	active_reward_title = "升级奖励：等级 %s" % int(active_reward_level_event.get("level", run_state.level))
+	active_reward_pickup_id = ""
 	pending_reward_choices = create_level_up_reward_choices(active_reward_level_event)
 	mode = MODE_REWARD
+
+
+func _start_treasure_reward(pickup_event: Dictionary) -> void:
+	pending_reward_level_events.clear()
+	active_reward_level_event.clear()
+	active_reward_source = REWARD_SOURCE_TREASURE
+	active_reward_title = "宝箱奖励"
+	active_reward_pickup_id = str(pickup_event.get("occupant_id", ""))
+	pending_reward_choices = create_level_up_reward_choices()
+	mode = MODE_REWARD
+
+
+func _add_reward_fields(event: Dictionary) -> void:
+	event["reward_source"] = active_reward_source
+	event["reward_title"] = active_reward_title
+	event["pickup_id"] = active_reward_pickup_id
+	event["reward_choices"] = pending_reward_choices.duplicate(true)
+	event["reward_pending_count"] = pending_reward_level_events.size()
 
 
 func _choice_is_pending(choice: Dictionary) -> bool:

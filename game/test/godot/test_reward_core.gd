@@ -15,6 +15,7 @@ func _init() -> void:
 	failed = not _test_run_combat_uses_current_run_deck() or failed
 	failed = not _test_level_up_enters_reward_mode_until_choice_applied() or failed
 	failed = not _test_multiple_level_ups_queue_multiple_rewards() or failed
+	failed = not _test_treasure_pickup_enters_reward_mode() or failed
 	quit(1 if failed else 0)
 
 
@@ -132,6 +133,34 @@ func _test_multiple_level_ups_queue_multiple_rewards() -> bool:
 	ok = _assert_eq(_choice_card_ids(first_choices) == _choice_card_ids(second_choices), false, "queued rewards use different offer index") and ok
 	ok = _assert_eq(second_reward["type"], RunController.EVENT_REWARD_APPLIED, "second queued reward applies") and ok
 	ok = _assert_eq(controller.run_state.reward_offer_index, 2, "two reward choices advance offer index twice") and ok
+	return ok
+
+
+func _test_treasure_pickup_enters_reward_mode() -> bool:
+	var controller := RunController.new()
+	controller.setup(StageFixtureCatalog.STAGE_1_DEFAULT_SEED, 40, 3)
+	var map = controller.start_stage_1()
+	map.player_position = Vector2i(7, 1)
+
+	var before_deck_size := controller.run_state.deck_card_ids.size()
+	var pickup_result := controller.move_player(Vector2i.RIGHT)
+	var mode_after_pickup := controller.mode
+	var move_result := controller.move_player(Vector2i.RIGHT)
+	var reward_choices: Array = controller.pending_reward_choices.duplicate(true)
+	var reward_result := controller.apply_reward_choice_index(0)
+
+	var ok := true
+	ok = _assert_eq(pickup_result["type"], "pickup_collected", "treasure pickup event") and ok
+	ok = _assert_eq(pickup_result["reward_source"], RunController.REWARD_SOURCE_TREASURE, "treasure pickup starts treasure reward") and ok
+	ok = _assert_eq(mode_after_pickup, RunController.MODE_REWARD, "treasure pickup pauses in reward mode") and ok
+	ok = _assert_eq(reward_choices.size(), 3, "treasure reward has three choices") and ok
+	ok = _assert_eq(controller.run_state.dungeon_map.active_pickup_count(), 2, "treasure is removed from map") and ok
+	ok = _assert_eq(move_result["type"], RunController.EVENT_COMMAND_REJECTED, "movement is blocked while treasure reward is pending") and ok
+	ok = _assert_eq(reward_result["type"], RunController.EVENT_REWARD_APPLIED, "treasure reward applies") and ok
+	ok = _assert_eq(reward_result["reward_source"], RunController.REWARD_SOURCE_TREASURE, "applied reward records treasure source") and ok
+	ok = _assert_eq(controller.mode, RunController.MODE_EXPLORATION, "treasure reward returns to exploration after choice") and ok
+	ok = _assert_eq(controller.run_state.deck_card_ids.size(), before_deck_size + 1, "treasure reward adds one card") and ok
+	ok = _assert_eq(controller.run_state.deck_card_ids.back(), reward_choices[0]["card_id"], "treasure reward adds selected card") and ok
 	return ok
 
 

@@ -85,6 +85,8 @@ func _collect_first_reachable_pickup(controller: RunController) -> bool:
 	var ok := true
 	ok = _assert_eq(result["type"], DungeonMapState.EVENT_PICKUP_COLLECTED, "抵达拾取物会触发收集") and ok
 	ok = _assert_eq(map.collected_pickup_ids.size(), before_count + 1, "拾取物会记录为已收集") and ok
+	if controller.mode == RunController.MODE_REWARD:
+		ok = _resolve_pending_rewards(controller) and ok
 	return ok
 
 

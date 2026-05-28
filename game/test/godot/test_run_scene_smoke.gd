@@ -34,6 +34,9 @@ func _run_tests() -> void:
 	failed = not await _test_run_scene_shows_level_reward_choices(run_scene) or failed
 	_reset_run_scene(run_scene)
 	await process_frame
+	failed = not await _test_run_scene_shows_treasure_reward_choices(run_scene) or failed
+	_reset_run_scene(run_scene)
+	await process_frame
 	failed = not await _test_run_scene_enters_and_wins_combat(run_scene) or failed
 
 	run_scene.queue_free()
@@ -183,6 +186,36 @@ func _test_run_scene_shows_level_reward_choices(run_scene) -> bool:
 	ok = _assert_eq(run_scene.mode, "exploration", "reward choice returns to exploration") and ok
 	ok = _assert_eq(run_scene.run_state.deck_card_ids.size(), before_deck_size + 1, "reward choice adds card to run deck") and ok
 	ok = _assert_eq(run_scene.status_message.contains("获得卡牌"), true, "reward result updates status") and ok
+	return ok
+
+
+func _test_run_scene_shows_treasure_reward_choices(run_scene) -> bool:
+	var map = run_scene.run_state.dungeon_map
+	map.player_position = Vector2i(7, 1)
+	run_scene.selected_position = map.player_position
+	run_scene._refresh()
+
+	run_scene._try_move(Vector2i.RIGHT)
+	await process_frame
+
+	var reward_panel: VBoxContainer = run_scene.find_child("RewardPanel", true, false)
+	var reward_title_label: Label = run_scene.find_child("RewardTitleLabel", true, false)
+	var reward_choice_row: HBoxContainer = run_scene.find_child("RewardChoiceRow", true, false)
+	var before_deck_size: int = run_scene.run_state.deck_card_ids.size()
+
+	var ok := true
+	ok = _assert_eq(run_scene.mode, "reward", "treasure pickup enters reward mode") and ok
+	ok = _assert_eq(reward_panel.visible, true, "treasure reward panel visible") and ok
+	ok = _assert_eq(reward_title_label.text, "宝箱奖励", "treasure reward title") and ok
+	ok = _assert_eq(reward_choice_row.get_child_count(), 3, "treasure reward shows three choices") and ok
+	ok = _assert_eq(run_scene.run_state.dungeon_map.active_pickup_count(), 2, "treasure pickup is removed from map") and ok
+	ok = _assert_eq(run_scene.status_message.contains("发现宝箱奖励"), true, "treasure reward status") and ok
+	ok = _assert_eq(_visible_text_has_english(reward_panel), false, "treasure reward text uses Chinese") and ok
+
+	_press_key(run_scene, KEY_ENTER)
+	await process_frame
+	ok = _assert_eq(run_scene.mode, "exploration", "treasure reward choice returns to exploration") and ok
+	ok = _assert_eq(run_scene.run_state.deck_card_ids.size(), before_deck_size + 1, "treasure reward adds card to run deck") and ok
 	return ok
 
 

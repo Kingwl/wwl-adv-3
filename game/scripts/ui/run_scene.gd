@@ -460,11 +460,9 @@ func _refresh_reward() -> void:
 	_clear_reward_choices()
 	var choices: Array = controller.pending_reward_choices
 	_clamp_selected_reward_index()
-	var reward_level := run_state.level
-	if controller.active_reward_level_event.has("level"):
-		reward_level = int(controller.active_reward_level_event["level"])
-
-	reward_title_label.text = "升级奖励：等级 %s" % reward_level
+	reward_title_label.text = controller.active_reward_title
+	if reward_title_label.text == "":
+		reward_title_label.text = "奖励"
 	reward_summary_label.text = "生命 %s/%s  等级 %s  经验 %s/%s  牌组 %s 张" % [
 		run_state.health,
 		run_state.max_health,
@@ -567,7 +565,10 @@ func _try_move(direction: Vector2i) -> void:
 		selected_position = run_state.dungeon_map.player_position
 		_set_status_message("无法移动：%s" % _movement_block_reason(result["reason"]))
 	elif result["type"] == DungeonMapState.EVENT_PICKUP_COLLECTED:
-		_set_status_message("收集了拾取物。")
+		if mode == RunController.MODE_REWARD:
+			_set_status_message("发现宝箱奖励。")
+		else:
+			_set_status_message("收集了拾取物。")
 	elif result["type"] == DungeonMapState.EVENT_MOVED:
 		_set_status_message("探索中。")
 	_refresh()
