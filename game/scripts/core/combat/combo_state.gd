@@ -3,8 +3,7 @@ extends RefCounted
 
 const CardDefinition = preload("res://scripts/core/cards/card_definition.gd")
 
-const BASE_MULTIPLIER_BASIS_POINTS := 100
-const CHAIN_BONUS_BASIS_POINTS := 25
+const MULTIPLIER_BASIS_POINTS_PER_CHAIN := 100
 
 var chain: int = 0
 var last_cost: int = -1
@@ -25,7 +24,7 @@ func preview_chain_for(card: CardDefinition) -> int:
 
 func preview_multiplier_basis_points(card: CardDefinition) -> int:
 	var next_chain := preview_chain_for(card)
-	return BASE_MULTIPLIER_BASIS_POINTS + max(next_chain - 1, 0) * CHAIN_BONUS_BASIS_POINTS
+	return max(next_chain, 1) * MULTIPLIER_BASIS_POINTS_PER_CHAIN
 
 
 func apply_card(card: CardDefinition) -> int:

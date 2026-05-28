@@ -26,7 +26,7 @@ func _test_combo_resets_when_cost_drops() -> bool:
 
 	var ok := true
 	ok = _assert_eq(combo.apply_card(strike), 100, "first card has base multiplier") and ok
-	ok = _assert_eq(combo.apply_card(bolt), 125, "higher cost extends combo") and ok
+	ok = _assert_eq(combo.apply_card(bolt), 200, "higher cost extends combo") and ok
 	ok = _assert_eq(combo.apply_card(guard), 100, "lower cost resets combo") and ok
 	ok = _assert_eq(combo.chain, 1, "reset combo chain") and ok
 	return ok
@@ -62,9 +62,9 @@ func _test_combat_applies_combo_damage_and_block() -> bool:
 
 	var ok := true
 	ok = _assert_eq(guard_result.block_gained, 5, "guard grants block") and ok
-	ok = _assert_eq(strike_result.damage_requested, 7, "second combo card scales strike") and ok
-	ok = _assert_eq(bolt_result.damage_requested, 13, "third combo card scales bolt") and ok
-	ok = _assert_eq(combat.enemies[0].health, 10, "enemy loses scaled damage") and ok
+	ok = _assert_eq(strike_result.damage_requested, 12, "second combo card scales strike") and ok
+	ok = _assert_eq(bolt_result.damage_requested, 27, "third combo card scales bolt") and ok
+	ok = _assert_eq(combat.enemies[0].health, 0, "enemy loses scaled damage") and ok
 	return ok
 
 
@@ -133,8 +133,8 @@ func _test_simple_reward_cards_resolve() -> bool:
 	var ok := true
 	ok = _assert_eq(insight_result.cards_drawn, 2, "insight draws") and ok
 	ok = _assert_eq(block_result.block_gained, 8, "block grants block") and ok
-	ok = _assert_eq(slash_result.damage_dealt, 12, "slash deals combo damage") and ok
-	ok = _assert_eq(hammer_result.damage_dealt, 31, "hammer deals combo damage") and ok
+	ok = _assert_eq(slash_result.damage_dealt, 24, "slash deals combo damage") and ok
+	ok = _assert_eq(hammer_result.damage_dealt, 72, "hammer deals combo damage") and ok
 	return ok
 
 
