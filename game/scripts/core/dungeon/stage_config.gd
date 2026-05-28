@@ -4,6 +4,7 @@ extends RefCounted
 enum ClearCondition {
 	REQUIRED_DEFEATS,
 	BOSS_DEFEATED,
+	REQUIRED_DEFEATS_OR_BOSS,
 	EXIT_ONLY,
 }
 
@@ -66,6 +67,8 @@ func is_exit_unlocked(defeated_count: int, boss_defeated: bool = false) -> bool:
 		return defeated_count >= required_defeats
 	if clear_condition == ClearCondition.BOSS_DEFEATED:
 		return boss_defeated
+	if clear_condition == ClearCondition.REQUIRED_DEFEATS_OR_BOSS:
+		return defeated_count >= required_defeats or boss_defeated
 	if clear_condition == ClearCondition.EXIT_ONLY:
 		return true
 

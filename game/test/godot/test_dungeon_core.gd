@@ -15,6 +15,7 @@ func _init() -> void:
 	failed = not _test_enemy_tiles_start_encounters_without_moving_player() or failed
 	failed = not _test_pickups_are_collected_once() or failed
 	failed = not _test_defeats_unlock_exit() or failed
+	failed = not _test_boss_defeat_unlocks_stage_1_exit() or failed
 	failed = not _test_run_state_starts_stage() or failed
 	failed = not _test_run_state_xp_curve_keeps_stage_1_balanced() or failed
 	failed = not _test_stage_1_fixture_matches_budget() or failed
@@ -128,6 +129,19 @@ func _test_defeats_unlock_exit() -> bool:
 	ok = _assert_eq(map.is_exit_unlocked(), true, "exit unlocked after required defeat") and ok
 	ok = _assert_eq(move_result["type"], DungeonMapState.EVENT_MOVED, "defeated enemy tile becomes floor") and ok
 	ok = _assert_eq(exit_result["type"], DungeonMapState.EVENT_STAGE_EXIT_REQUESTED, "exit interaction") and ok
+	return ok
+
+
+func _test_boss_defeat_unlocks_stage_1_exit() -> bool:
+	var map := StageFixtureCatalog.create_stage_1_map(404)
+	var marked := map.mark_enemy_defeated("boss_11")
+	map.player_position = Vector2i(13, 1)
+	var exit_result := map.move_player(Vector2i.RIGHT)
+
+	var ok := true
+	ok = _assert_eq(marked, true, "stage 1 boss id can be marked defeated") and ok
+	ok = _assert_eq(map.is_exit_unlocked(), true, "stage 1 boss defeat unlocks exit") and ok
+	ok = _assert_eq(exit_result["type"], DungeonMapState.EVENT_STAGE_EXIT_REQUESTED, "stage 1 exit responds after boss defeat") and ok
 	return ok
 
 

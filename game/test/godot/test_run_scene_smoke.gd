@@ -14,7 +14,13 @@ func _run_tests() -> void:
 	await process_frame
 
 	failed = not _test_run_scene_loads_stage_1(run_scene) or failed
+	failed = not _test_run_scene_non_adjacent_click_only_selects(run_scene) or failed
+	_reset_run_scene(run_scene)
+	await process_frame
 	failed = not _test_run_scene_supports_touch_cell_activation(run_scene) or failed
+	_reset_run_scene(run_scene)
+	await process_frame
+	failed = not _test_run_scene_exit_responds_after_boss_defeat(run_scene) or failed
 	_reset_run_scene(run_scene)
 	await process_frame
 	failed = not await _test_run_scene_supports_combat_keyboard_selection(run_scene) or failed
@@ -50,6 +56,47 @@ func _test_run_scene_loads_stage_1(run_scene) -> bool:
 	ok = _assert_eq(map_grid.get_child_count(), 160, "run scene map cell count") and ok
 	ok = _assert_eq(action_button.disabled, true, "action button starts disabled") and ok
 	ok = _assert_eq(_visible_text_has_english(run_scene), false, "exploration visible text uses Chinese") and ok
+	return ok
+
+
+func _test_run_scene_non_adjacent_click_only_selects(run_scene) -> bool:
+	var start_position: Vector2i = run_scene.run_state.dungeon_map.player_position
+	var remote_pickup_position := Vector2i(8, 1)
+
+	run_scene._on_cell_activated(remote_pickup_position)
+
+	var selected_button := _map_cell_button(run_scene, remote_pickup_position)
+	var player_button := _map_cell_button(run_scene, start_position)
+	var selected_style: StyleBoxFlat = selected_button.get_theme_stylebox("normal") as StyleBoxFlat
+	var player_style: StyleBoxFlat = player_button.get_theme_stylebox("normal") as StyleBoxFlat
+
+	var ok := true
+	ok = _assert_eq(run_scene.run_state.dungeon_map.player_position, start_position, "remote click does not move player") and ok
+	ok = _assert_eq(run_scene.selected_position, remote_pickup_position, "remote click only changes selected tile") and ok
+	ok = _assert_eq(selected_button.text, "宝", "remote selected pickup remains pickup text") and ok
+	ok = _assert_eq(selected_style.bg_color, Color(0.18, 0.50, 0.32), "remote selected pickup keeps tile color") and ok
+	ok = _assert_eq(selected_style.border_color, Color(0.92, 0.82, 0.38), "remote selected pickup uses selected border") and ok
+	ok = _assert_eq(player_button.text, "我", "player marker stays on actual player") and ok
+	ok = _assert_eq(player_style.bg_color, Color(0.18, 0.48, 0.82), "player keeps player color") and ok
+	_press_key(run_scene, KEY_RIGHT)
+	ok = _assert_eq(run_scene.run_state.dungeon_map.player_position, start_position + Vector2i.RIGHT, "keyboard moves from actual player position") and ok
+	return ok
+
+
+func _test_run_scene_exit_responds_after_boss_defeat(run_scene) -> bool:
+	var status_label: Label = run_scene.find_child("StatusLabel", true, false)
+	var map = run_scene.run_state.dungeon_map
+	map.mark_enemy_defeated("boss_11")
+	map.player_position = Vector2i(13, 1)
+	run_scene.selected_position = map.player_position
+	run_scene._refresh()
+
+	run_scene._try_move(Vector2i.RIGHT)
+
+	var ok := true
+	ok = _assert_eq(map.is_exit_unlocked(), true, "boss defeat unlocks exit in scene") and ok
+	ok = _assert_eq(run_scene.selected_position, map.exit_position, "exit request selects exit tile") and ok
+	ok = _assert_eq(status_label.text.contains("出口已可用"), true, "exit request shows status") and ok
 	return ok
 
 
@@ -263,6 +310,11 @@ func _first_attack_card_index(cards: Array) -> int:
 		if cards[i].base_damage > 0:
 			return i
 	return -1
+
+
+func _map_cell_button(run_scene, position: Vector2i) -> Button:
+	var map_grid: GridContainer = run_scene.find_child("MapGrid", true, false)
+	return map_grid.get_child(position.y * map_grid.columns + position.x) as Button
 
 
 func _assert_eq(actual, expected, label: String) -> bool:

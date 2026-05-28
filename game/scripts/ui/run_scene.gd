@@ -420,13 +420,12 @@ func _refresh_cell(position: Vector2i) -> void:
 	var color := _tile_color(tile)
 	if position == map.player_position:
 		color = COLOR_PLAYER
-	if position == selected_position:
-		color = COLOR_SELECTED
+	var is_selected := position == selected_position
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_disabled_color", Color(0.55, 0.56, 0.58))
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	_set_button_color(button, color)
+	_set_button_color(button, color, is_selected)
 
 
 func _refresh_selected() -> void:
@@ -961,9 +960,14 @@ func _tile_color(tile: DungeonTile) -> Color:
 	return COLOR_FLOOR
 
 
-func _set_button_color(button: Button, color: Color) -> void:
+func _set_button_color(button: Button, color: Color, is_selected: bool = false) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = color
+	normal.border_color = COLOR_SELECTED if is_selected else Color(0.12, 0.13, 0.15)
+	normal.border_width_left = 3 if is_selected else 1
+	normal.border_width_top = 3 if is_selected else 1
+	normal.border_width_right = 3 if is_selected else 1
+	normal.border_width_bottom = 3 if is_selected else 1
 	normal.corner_radius_top_left = 4
 	normal.corner_radius_top_right = 4
 	normal.corner_radius_bottom_left = 4

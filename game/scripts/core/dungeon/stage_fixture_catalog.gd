@@ -25,7 +25,7 @@ static func create_stage_1_config(seed_value: int = STAGE_1_DEFAULT_SEED) -> Sta
 		STAGE_1_PICKUP_BUDGET,
 		STAGE_1_REQUIRED_DEFEATS,
 		true,
-		StageConfig.ClearCondition.REQUIRED_DEFEATS
+		StageConfig.ClearCondition.REQUIRED_DEFEATS_OR_BOSS
 	)
 
 
