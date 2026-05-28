@@ -108,9 +108,32 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	ok = _assert_eq(run_scene.selected_hand_index, 0, "combat starts with first card selected") and ok
 	ok = _assert_eq(run_scene.combat_focus, "hand", "combat starts focused on hand") and ok
 	ok = _assert_eq(combat_hand_title_label.text.contains("已选：%s" % selected_card_name), true, "combat title shows selected card") and ok
+	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 0, "selected card floats up") and ok
+	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), 10, "unselected card stays lower") and ok
+
+	var attack_index := _first_attack_card_index(run_scene.active_combat.deck.hand)
+	ok = _assert_eq(attack_index >= 0, true, "combat hand has attack card") and ok
+	if attack_index >= 0:
+		var attack_button := _card_button(combat_hand_row, attack_index)
+		ok = _assert_eq(attack_button.text.contains("预览伤害："), true, "attack card shows preview damage") and ok
+		ok = _assert_eq(attack_button.text.contains("倍率：100%"), true, "card shows base multiplier") and ok
+		run_scene.active_combat.combo.chain = 1
+		run_scene.active_combat.combo.last_cost = 0
+		run_scene._refresh()
+		attack_button = _card_button(combat_hand_row, attack_index)
+		var attack_card = run_scene.active_combat.deck.hand[attack_index]
+		var expected_preview_damage: int = attack_card.base_damage * 2
+		var combo_style: StyleBoxFlat = attack_button.get_theme_stylebox("normal") as StyleBoxFlat
+		ok = _assert_eq(attack_button.text.contains("预览伤害：%s" % expected_preview_damage), true, "combo card shows scaled preview damage") and ok
+		ok = _assert_eq(attack_button.text.contains("倍率：200%"), true, "combo card shows combo multiplier") and ok
+		ok = _assert_eq(combo_style.border_color, Color(0.95, 0.72, 0.20), "combo multiplier highlights card") and ok
+		run_scene.active_combat.combo.reset()
+		run_scene._refresh()
 
 	_press_key(run_scene, KEY_RIGHT)
 	ok = _assert_eq(run_scene.selected_hand_index, 1, "right key selects next card") and ok
+	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), 0, "right-selected card floats up") and ok
+	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 10, "previous card lowers after selection moves") and ok
 	_press_key(run_scene, KEY_D)
 	ok = _assert_eq(run_scene.selected_hand_index, 2, "D key selects next card") and ok
 	_press_key(run_scene, KEY_LEFT)
@@ -192,8 +215,8 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(run_scene.active_encounter_id, "enemy_01", "active encounter id") and ok
 	ok = _assert_eq(status_label.text, "遭遇已开始。", "combat start does not leak internal id") and ok
 	ok = _assert_eq(combat_panel.visible, true, "combat panel visible") and ok
-	var selected_card_name: String = run_scene.active_combat.deck.hand[0].display_name
-	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）  已选：%s  生命 40/40 | 护甲 0 | 法力 3/3 | 连击 0" % selected_card_name, "combat hand title") and ok
+	var selected_card_summary: String = run_scene._selected_card_summary()
+	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）  已选：%s  生命 40/40 | 护甲 0 | 法力 3/3 | 连击 0" % selected_card_summary, "combat hand title") and ok
 	ok = _assert_eq(combat_hand_row.get_child_count(), 5, "combat hand buttons") and ok
 	ok = _assert_eq(combat_title_label.text, "遭遇：敌人", "combat title") and ok
 	ok = _assert_eq(player_state_panel, null, "combat has no player state panel") and ok
@@ -219,6 +242,21 @@ func _press_key(run_scene, keycode: int) -> void:
 	event.pressed = true
 	event.keycode = keycode
 	run_scene._unhandled_key_input(event)
+
+
+func _card_slot(combat_hand_row: HBoxContainer, index: int) -> MarginContainer:
+	return combat_hand_row.get_child(index) as MarginContainer
+
+
+func _card_button(combat_hand_row: HBoxContainer, index: int) -> Button:
+	return _card_slot(combat_hand_row, index).get_child(0) as Button
+
+
+func _first_attack_card_index(cards: Array) -> int:
+	for i in range(cards.size()):
+		if cards[i].base_damage > 0:
+			return i
+	return -1
 
 
 func _assert_eq(actual, expected, label: String) -> bool:

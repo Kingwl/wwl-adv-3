@@ -21,6 +21,10 @@ const COLOR_EXIT_OPEN := Color(0.80, 0.66, 0.24)
 const COLOR_SELECTED := Color(0.92, 0.82, 0.38)
 const COLOR_ENEMY_PANEL := Color(0.24, 0.07, 0.07)
 const COLOR_ENEMY_BORDER := Color(0.76, 0.20, 0.18)
+const COLOR_COMBO_HIGHLIGHT := Color(0.95, 0.72, 0.20)
+const CARD_SIZE := Vector2(150, 170)
+const CARD_SELECTED_LIFT := 10
+const CARD_SLOT_SIZE := Vector2(CARD_SIZE.x, CARD_SIZE.y + CARD_SELECTED_LIFT)
 const UI_FONT_PATH := "res://assets/fonts/NotoSansCJKsc-Regular.otf"
 const COMBAT_FOCUS_HAND := "hand"
 const COMBAT_FOCUS_END_TURN := "end_turn"
@@ -358,7 +362,7 @@ func _refresh_combat() -> void:
 
 	_clamp_selected_hand_index()
 	var enemy: CombatantState = active_combat.enemies[0]
-	var selected_card_name := _selected_card_display_name()
+	var selected_card_summary := _selected_card_summary()
 	combat_title_label.text = "遭遇：%s" % enemy.display_name
 	combat_enemy_label.text = "[b]敌方目标[/b]\n%s\n生命 %s / %s  %s\n护甲 %s    下回合攻击 %s" % [
 		enemy.display_name,
@@ -370,7 +374,7 @@ func _refresh_combat() -> void:
 	]
 	combat_hand_title_label.text = "手牌（%s）  已选：%s  生命 %s/%s | 护甲 %s | 法力 %s/%s | 连击 %s" % [
 		active_combat.deck.hand.size(),
-		selected_card_name,
+		selected_card_summary,
 		active_combat.player.health,
 		active_combat.player.max_health,
 		active_combat.player.block,
@@ -385,17 +389,23 @@ func _refresh_combat() -> void:
 	for i in range(active_combat.deck.hand.size()):
 		var card = active_combat.deck.hand[i]
 		var is_selected := combat_focus == COMBAT_FOCUS_HAND and i == selected_hand_index
+		var has_combo_multiplier := _preview_card_multiplier_basis_points(card) > 100
+		var slot := MarginContainer.new()
+		slot.name = "CardSlot_%02d_%s" % [i, card.id]
+		slot.custom_minimum_size = CARD_SLOT_SIZE
+		_style_card_slot(slot, is_selected)
 		var button := Button.new()
 		button.name = "Card_%02d_%s" % [i, card.id]
-		button.custom_minimum_size = Vector2(150, 170)
+		button.custom_minimum_size = CARD_SIZE
 		button.text = _card_button_text(card)
 		button.add_theme_font_size_override("font_size", 16)
 		button.focus_mode = Control.FOCUS_NONE
 		button.disabled = card.cost > active_combat.mana or active_combat.is_victory() or active_combat.is_defeat()
 		button.mouse_entered.connect(_on_card_hovered.bind(i))
 		button.pressed.connect(_on_card_pressed.bind(i))
-		_style_card_button(button, card, is_selected)
-		combat_hand_row.add_child(button)
+		_style_card_button(button, card, has_combo_multiplier)
+		slot.add_child(button)
+		combat_hand_row.add_child(slot)
 
 
 func _refresh_cell(position: Vector2i) -> void:
@@ -698,14 +708,22 @@ func _clamp_selected_hand_index() -> void:
 	selected_hand_index = clampi(selected_hand_index, 0, active_combat.deck.hand.size() - 1)
 
 
-func _selected_card_display_name() -> String:
+func _selected_card_summary() -> String:
 	if combat_focus == COMBAT_FOCUS_END_TURN:
 		return "结束回合"
 	if active_combat == null:
 		return "无"
 	if selected_hand_index < 0 or selected_hand_index >= active_combat.deck.hand.size():
 		return "无"
-	return active_combat.deck.hand[selected_hand_index].display_name
+	var card = active_combat.deck.hand[selected_hand_index]
+	var multiplier_percent := _preview_card_multiplier_basis_points(card)
+	if card.base_damage <= 0:
+		return "%s | 无伤害 | 倍率 %s%%" % [card.display_name, multiplier_percent]
+	return "%s | 预览伤害 %s | 倍率 %s%%" % [
+		card.display_name,
+		_preview_card_damage(card),
+		multiplier_percent,
+	]
 
 
 func _clear_combat_hand() -> void:
@@ -722,6 +740,7 @@ func _card_button_text(card) -> String:
 	]
 	if card.base_damage > 0:
 		parts.append("攻击：%s" % card.base_damage)
+		parts.append("预览伤害：%s" % _preview_card_damage(card))
 	if card.block > 0:
 		parts.append("防御：%s" % card.block)
 	if card.draw_count > 0:
@@ -729,7 +748,20 @@ func _card_button_text(card) -> String:
 	if active_combat != null:
 		parts.append("")
 		parts.append("连击 → %s" % active_combat.combo.preview_chain_for(card))
+		parts.append("倍率：%s%%" % _preview_card_multiplier_basis_points(card))
 	return "\n".join(parts)
+
+
+func _preview_card_multiplier_basis_points(card) -> int:
+	if active_combat == null or card == null:
+		return 100
+	return active_combat.combo.preview_multiplier_basis_points(card)
+
+
+func _preview_card_damage(card) -> int:
+	if card == null or card.base_damage <= 0:
+		return 0
+	return int((card.base_damage * _preview_card_multiplier_basis_points(card)) / 100)
 
 
 func _has_playable_card() -> bool:
@@ -771,7 +803,15 @@ func _style_end_turn_button(is_selected: bool) -> void:
 	end_turn_button.add_theme_color_override("font_disabled_color", Color(0.58, 0.58, 0.58))
 
 
-func _style_card_button(button: Button, card, is_selected: bool = false) -> void:
+func _style_card_slot(slot: MarginContainer, is_selected: bool) -> void:
+	var top_margin := 0 if is_selected else CARD_SELECTED_LIFT
+	slot.add_theme_constant_override("margin_top", top_margin)
+	slot.add_theme_constant_override("margin_bottom", CARD_SELECTED_LIFT - top_margin)
+	slot.add_theme_constant_override("margin_left", 0)
+	slot.add_theme_constant_override("margin_right", 0)
+
+
+func _style_card_button(button: Button, card, has_combo_multiplier: bool = false) -> void:
 	var color := Color(0.18, 0.20, 0.24)
 	if card.base_damage > 0:
 		color = Color(0.42, 0.16, 0.14)
@@ -781,8 +821,8 @@ func _style_card_button(button: Button, card, is_selected: bool = false) -> void
 		color = Color(0.20, 0.36, 0.26)
 
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = color.lightened(0.08) if is_selected else color
-	normal.border_color = Color(0.92, 0.78, 0.22) if is_selected else Color(0.08, 0.09, 0.10)
+	normal.bg_color = color.lightened(0.08) if has_combo_multiplier else color
+	normal.border_color = COLOR_COMBO_HIGHLIGHT if has_combo_multiplier else Color(0.08, 0.09, 0.10)
 	normal.border_width_left = 4
 	normal.border_width_top = 4
 	normal.border_width_right = 4
@@ -801,8 +841,8 @@ func _style_card_button(button: Button, card, is_selected: bool = false) -> void
 	pressed.bg_color = color.darkened(0.12)
 	var disabled: StyleBoxFlat = normal.duplicate()
 	disabled.bg_color = Color(0.18, 0.18, 0.18)
-	if is_selected:
-		disabled.border_color = Color(0.70, 0.63, 0.34)
+	if has_combo_multiplier:
+		disabled.border_color = COLOR_COMBO_HIGHLIGHT.darkened(0.25)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", pressed)
