@@ -153,6 +153,10 @@ func _request_stage_exit(controller: RunController) -> bool:
 func _resolve_encounter(controller: RunController) -> bool:
 	for _step in range(MAX_ENCOUNTER_STEPS):
 		var combat: CombatState = controller.active_combat
+		if controller.mode == RunController.MODE_REWARD:
+			if not _apply_first_pending_reward(controller):
+				return false
+			continue
 		if controller.mode == RunController.MODE_EXPLORATION and combat == null:
 			return true
 		if combat == null:
@@ -177,10 +181,34 @@ func _resolve_encounter(controller: RunController) -> bool:
 			push_error("自动出牌失败：%s" % result["reason"])
 			return false
 		if result["type"] == RunController.EVENT_COMBAT_WON:
-			return true
+			return _resolve_pending_rewards(controller)
 
 	push_error("遭遇未能在步数上限内结束")
 	return false
+
+
+func _resolve_pending_rewards(controller: RunController) -> bool:
+	for _step in range(MAX_ENCOUNTER_STEPS):
+		if controller.mode == RunController.MODE_EXPLORATION:
+			return true
+		if controller.mode != RunController.MODE_REWARD:
+			push_error("奖励结算时进入了未知模式：%s" % controller.mode)
+			return false
+		if not _apply_first_pending_reward(controller):
+			return false
+	push_error("奖励未能在步数上限内结算")
+	return false
+
+
+func _apply_first_pending_reward(controller: RunController) -> bool:
+	if controller.pending_reward_choices.is_empty():
+		push_error("升级奖励缺少选项")
+		return false
+	var result := controller.apply_reward_choice_index(0)
+	if result["type"] != RunController.EVENT_REWARD_APPLIED:
+		push_error("自动选择升级奖励失败：%s" % result["reason"])
+		return false
+	return true
 
 
 func _choose_next_card(combat: CombatState) -> int:

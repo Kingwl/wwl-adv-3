@@ -31,6 +31,9 @@ func _run_tests() -> void:
 	failed = not await _test_run_scene_supports_end_turn_keyboard_selection(run_scene) or failed
 	_reset_run_scene(run_scene)
 	await process_frame
+	failed = not await _test_run_scene_shows_level_reward_choices(run_scene) or failed
+	_reset_run_scene(run_scene)
+	await process_frame
 	failed = not await _test_run_scene_enters_and_wins_combat(run_scene) or failed
 
 	run_scene.queue_free()
@@ -133,10 +136,54 @@ func _reset_run_scene(run_scene) -> void:
 	run_scene._sync_from_controller()
 	run_scene.selected_position = run_scene.run_state.dungeon_map.player_position
 	run_scene.selected_hand_index = -1
+	run_scene.selected_reward_index = 0
 	run_scene.combat_focus = "hand"
 	run_scene.combat_log = ""
 	run_scene.status_message = "探索中。"
 	run_scene._refresh()
+
+
+func _test_run_scene_shows_level_reward_choices(run_scene) -> bool:
+	run_scene.controller.run_state.xp = 7
+	run_scene._try_move(Vector2i.RIGHT)
+	run_scene._try_move(Vector2i.RIGHT)
+	run_scene._try_move(Vector2i.RIGHT)
+	await process_frame
+
+	run_scene.active_combat.enemies[0].health = 0
+	run_scene._finish_combat_victory()
+	await process_frame
+
+	var reward_panel: VBoxContainer = run_scene.find_child("RewardPanel", true, false)
+	var reward_title_label: Label = run_scene.find_child("RewardTitleLabel", true, false)
+	var reward_choice_row: HBoxContainer = run_scene.find_child("RewardChoiceRow", true, false)
+	var map_panel: VBoxContainer = run_scene.find_child("MapPanel", true, false)
+	var combat_panel: VBoxContainer = run_scene.find_child("CombatPanel", true, false)
+	var before_deck_size: int = run_scene.run_state.deck_card_ids.size()
+	var first_choice_button: Button = reward_choice_row.get_child(0)
+
+	var ok := true
+	ok = _assert_eq(run_scene.mode, "reward", "level-up victory enters reward mode") and ok
+	ok = _assert_eq(reward_panel.visible, true, "reward panel visible") and ok
+	ok = _assert_eq(map_panel.visible, false, "map hidden during reward choice") and ok
+	ok = _assert_eq(combat_panel.visible, false, "combat hidden during reward choice") and ok
+	ok = _assert_eq(reward_title_label.text.contains("升级奖励"), true, "reward title is Chinese") and ok
+	ok = _assert_eq(reward_choice_row.get_child_count(), 3, "reward shows three choices") and ok
+	ok = _assert_eq(first_choice_button.text.contains("加入牌组"), true, "reward choice adds to deck") and ok
+	ok = _assert_eq(_visible_text_has_english(reward_panel), false, "reward visible text uses Chinese") and ok
+
+	_press_key(run_scene, KEY_RIGHT)
+	ok = _assert_eq(run_scene.selected_reward_index, 1, "right key selects next reward") and ok
+	var selected_button: Button = reward_choice_row.get_child(1)
+	var selected_style: StyleBoxFlat = selected_button.get_theme_stylebox("normal") as StyleBoxFlat
+	ok = _assert_eq(selected_style.border_color, Color(0.92, 0.82, 0.38), "selected reward is highlighted") and ok
+
+	_press_key(run_scene, KEY_ENTER)
+	await process_frame
+	ok = _assert_eq(run_scene.mode, "exploration", "reward choice returns to exploration") and ok
+	ok = _assert_eq(run_scene.run_state.deck_card_ids.size(), before_deck_size + 1, "reward choice adds card to run deck") and ok
+	ok = _assert_eq(run_scene.status_message.contains("获得卡牌"), true, "reward result updates status") and ok
+	return ok
 
 
 func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:

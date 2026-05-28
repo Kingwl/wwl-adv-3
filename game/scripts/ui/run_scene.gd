@@ -25,6 +25,7 @@ const COLOR_COMBO_HIGHLIGHT := Color(0.95, 0.72, 0.20)
 const CARD_SIZE := Vector2(150, 170)
 const CARD_SELECTED_LIFT := 10
 const CARD_SLOT_SIZE := Vector2(CARD_SIZE.x, CARD_SIZE.y + CARD_SELECTED_LIFT)
+const REWARD_CHOICE_SIZE := Vector2(220, 240)
 const UI_FONT_PATH := "res://assets/fonts/NotoSansCJKsc-Regular.otf"
 const COMBAT_FOCUS_HAND := "hand"
 const COMBAT_FOCUS_END_TURN := "end_turn"
@@ -40,10 +41,12 @@ var combat_log: String = ""
 var status_message: String = "探索中。"
 var combat_focus: String = COMBAT_FOCUS_HAND
 var selected_hand_index: int = -1
+var selected_reward_index: int = 0
 
 var map_panel: VBoxContainer
 var side_panel: VBoxContainer
 var combat_panel: VBoxContainer
+var reward_panel: VBoxContainer
 var map_grid: GridContainer
 var stage_label: Label
 var stats_label: Label
@@ -57,6 +60,9 @@ var combat_hand_title_label: Label
 var combat_hand_row: HBoxContainer
 var combat_log_label: Label
 var end_turn_button: Button
+var reward_title_label: Label
+var reward_summary_label: Label
+var reward_choice_row: HBoxContainer
 var cell_buttons: Dictionary = {}
 
 
@@ -110,6 +116,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 	if mode == "combat":
 		_handle_combat_key(key_event.keycode)
+	elif mode == "reward":
+		_handle_reward_key(key_event.keycode)
 	elif mode == "exploration":
 		_handle_exploration_key(key_event.keycode)
 
@@ -136,6 +144,15 @@ func _handle_combat_key(keycode: int) -> void:
 		_select_hand()
 	elif keycode == KEY_SPACE or keycode == KEY_ENTER or keycode == KEY_KP_ENTER:
 		_activate_combat_selection()
+
+
+func _handle_reward_key(keycode: int) -> void:
+	if keycode == KEY_LEFT or keycode == KEY_A:
+		_move_reward_selection(-1)
+	elif keycode == KEY_RIGHT or keycode == KEY_D:
+		_move_reward_selection(1)
+	elif keycode == KEY_SPACE or keycode == KEY_ENTER or keycode == KEY_KP_ENTER:
+		_activate_reward_selection()
 
 
 func _build_layout() -> void:
@@ -215,6 +232,7 @@ func _build_layout() -> void:
 	side_panel.add_child(debug_label)
 
 	_build_combat_panel(main_row)
+	_build_reward_panel(main_row)
 	_create_cells()
 
 
@@ -260,6 +278,31 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_log_label.name = "CombatLogLabel"
 	combat_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	combat_panel.add_child(combat_log_label)
+
+
+func _build_reward_panel(parent: Control) -> void:
+	reward_panel = VBoxContainer.new()
+	reward_panel.name = "RewardPanel"
+	reward_panel.custom_minimum_size = Vector2(920, 0)
+	reward_panel.add_theme_constant_override("separation", 18)
+	reward_panel.visible = false
+	parent.add_child(reward_panel)
+
+	reward_title_label = Label.new()
+	reward_title_label.name = "RewardTitleLabel"
+	reward_title_label.add_theme_font_size_override("font_size", 30)
+	reward_panel.add_child(reward_title_label)
+
+	reward_summary_label = Label.new()
+	reward_summary_label.name = "RewardSummaryLabel"
+	reward_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	reward_summary_label.add_theme_font_size_override("font_size", 18)
+	reward_panel.add_child(reward_summary_label)
+
+	reward_choice_row = HBoxContainer.new()
+	reward_choice_row.name = "RewardChoiceRow"
+	reward_choice_row.add_theme_constant_override("separation", 14)
+	reward_panel.add_child(reward_choice_row)
 
 
 func _create_combat_state_panel(panel_name: String, fill_color: Color, border_color: Color) -> PanelContainer:
@@ -321,10 +364,12 @@ func _create_cells() -> void:
 
 func _refresh() -> void:
 	var map: DungeonMapState = run_state.dungeon_map
-	var in_combat := mode == "combat"
-	map_panel.visible = not in_combat
-	side_panel.visible = not in_combat
+	var in_combat := mode == RunController.MODE_COMBAT
+	var in_reward := mode == RunController.MODE_REWARD
+	map_panel.visible = not in_combat and not in_reward
+	side_panel.visible = not in_combat and not in_reward
 	combat_panel.visible = in_combat
+	reward_panel.visible = in_reward
 
 	stage_label.text = "%s  种子：%s" % [run_state.current_stage.display_name, str(run_state.current_stage.seed)]
 	stats_label.text = "生命 %s/%s\n等级 %s  经验 %s/%s\n敌人 %s/%s  拾取物 %s/%s\n出口 %s" % [
@@ -345,6 +390,8 @@ func _refresh() -> void:
 
 	if in_combat:
 		_refresh_combat()
+	elif in_reward:
+		_refresh_reward()
 	else:
 		_refresh_selected()
 
@@ -407,6 +454,41 @@ func _refresh_combat() -> void:
 		_style_card_button(button, card, has_combo_multiplier)
 		slot.add_child(button)
 		combat_hand_row.add_child(slot)
+
+
+func _refresh_reward() -> void:
+	_clear_reward_choices()
+	var choices: Array = controller.pending_reward_choices
+	_clamp_selected_reward_index()
+	var reward_level := run_state.level
+	if controller.active_reward_level_event.has("level"):
+		reward_level = int(controller.active_reward_level_event["level"])
+
+	reward_title_label.text = "升级奖励：等级 %s" % reward_level
+	reward_summary_label.text = "生命 %s/%s  等级 %s  经验 %s/%s  牌组 %s 张" % [
+		run_state.health,
+		run_state.max_health,
+		run_state.level,
+		run_state.xp,
+		run_state.next_level_xp,
+		run_state.deck_card_ids.size(),
+	]
+	if choices.is_empty():
+		reward_summary_label.text = "暂无可选奖励。"
+		return
+
+	for i in range(choices.size()):
+		var choice: Dictionary = choices[i]
+		var button := Button.new()
+		button.name = "RewardChoice_%02d_%s" % [i, str(choice.get("card_id", ""))]
+		button.custom_minimum_size = REWARD_CHOICE_SIZE
+		button.text = _reward_choice_text(choice)
+		button.add_theme_font_size_override("font_size", 18)
+		button.focus_mode = Control.FOCUS_NONE
+		button.mouse_entered.connect(_on_reward_choice_hovered.bind(i))
+		button.pressed.connect(_on_reward_choice_pressed.bind(i))
+		_style_reward_choice_button(button, choice, i == selected_reward_index)
+		reward_choice_row.add_child(button)
 
 
 func _refresh_cell(position: Vector2i) -> void:
@@ -595,6 +677,7 @@ func _on_card_pressed(hand_index: int) -> void:
 		selected_position = result["position"]
 		selected_hand_index = -1
 		combat_focus = COMBAT_FOCUS_HAND
+		selected_reward_index = 0
 		_set_status_message(_combat_victory_summary(result))
 		combat_log = ""
 		_refresh()
@@ -656,6 +739,7 @@ func _finish_combat_victory() -> void:
 		selected_position = result["position"]
 		selected_hand_index = -1
 		combat_focus = COMBAT_FOCUS_HAND
+		selected_reward_index = 0
 	_refresh()
 
 
@@ -698,6 +782,49 @@ func _activate_combat_selection() -> void:
 	_play_selected_card()
 
 
+func _move_reward_selection(delta: int) -> void:
+	if mode != RunController.MODE_REWARD:
+		return
+	var count := controller.pending_reward_choices.size()
+	if count <= 0:
+		selected_reward_index = 0
+		return
+	selected_reward_index = (selected_reward_index + delta) % count
+	if selected_reward_index < 0:
+		selected_reward_index += count
+	_refresh()
+
+
+func _activate_reward_selection() -> void:
+	_on_reward_choice_pressed(selected_reward_index)
+
+
+func _on_reward_choice_hovered(choice_index: int) -> void:
+	if mode != RunController.MODE_REWARD:
+		return
+	if choice_index < 0 or choice_index >= controller.pending_reward_choices.size():
+		return
+	if selected_reward_index == choice_index:
+		return
+	selected_reward_index = choice_index
+	_refresh()
+
+
+func _on_reward_choice_pressed(choice_index: int) -> void:
+	if mode != RunController.MODE_REWARD:
+		return
+	selected_reward_index = choice_index
+	var result := controller.apply_reward_choice_index(choice_index)
+	_sync_from_controller()
+	if result["type"] == RunController.EVENT_REWARD_APPLIED:
+		var choice: Dictionary = result.get("choice", {})
+		_set_status_message("获得卡牌：%s。" % str(choice.get("display_name", "奖励")))
+		selected_reward_index = 0
+	else:
+		_set_status_message("无法选择奖励。")
+	_refresh()
+
+
 func _play_selected_card() -> void:
 	_clamp_selected_hand_index()
 	if selected_hand_index < 0:
@@ -731,6 +858,14 @@ func _clamp_selected_hand_index() -> void:
 	selected_hand_index = clampi(selected_hand_index, 0, active_combat.deck.hand.size() - 1)
 
 
+func _clamp_selected_reward_index() -> void:
+	var count := controller.pending_reward_choices.size()
+	if count <= 0:
+		selected_reward_index = 0
+		return
+	selected_reward_index = clampi(selected_reward_index, 0, count - 1)
+
+
 func _selected_card_summary() -> String:
 	if combat_focus == COMBAT_FOCUS_END_TURN:
 		return "结束回合"
@@ -755,6 +890,12 @@ func _clear_combat_hand() -> void:
 		child.queue_free()
 
 
+func _clear_reward_choices() -> void:
+	for child in reward_choice_row.get_children():
+		reward_choice_row.remove_child(child)
+		child.queue_free()
+
+
 func _card_button_text(card) -> String:
 	var parts := [
 		card.display_name,
@@ -773,6 +914,27 @@ func _card_button_text(card) -> String:
 		parts.append("连击 → %s" % active_combat.combo.preview_chain_for(card))
 		parts.append("倍率：%s%%" % _preview_card_multiplier_basis_points(card))
 	return "\n".join(parts)
+
+
+func _reward_choice_text(choice: Dictionary) -> String:
+	return "\n".join([
+		str(choice.get("display_name", "奖励")),
+		"",
+		_reward_category_label(str(choice.get("category", ""))),
+		str(choice.get("description", "")),
+		"",
+		"加入牌组",
+	])
+
+
+func _reward_category_label(category: String) -> String:
+	if category == "attack":
+		return "攻击牌"
+	if category == "defense":
+		return "防御牌"
+	if category == "draw":
+		return "抽牌"
+	return "卡牌"
 
 
 func _preview_card_multiplier_basis_points(card) -> int:
@@ -875,6 +1037,44 @@ func _style_card_button(button: Button, card, has_combo_multiplier: bool = false
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	button.add_theme_color_override("font_disabled_color", Color(0.58, 0.58, 0.58))
+
+
+func _style_reward_choice_button(button: Button, choice: Dictionary, is_selected: bool) -> void:
+	var color := Color(0.22, 0.23, 0.26)
+	var category := str(choice.get("category", ""))
+	if category == "attack":
+		color = Color(0.42, 0.16, 0.14)
+	elif category == "defense":
+		color = Color(0.15, 0.28, 0.44)
+	elif category == "draw":
+		color = Color(0.20, 0.36, 0.26)
+
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = color.lightened(0.08) if is_selected else color
+	normal.border_color = COLOR_SELECTED if is_selected else Color(0.08, 0.09, 0.10)
+	normal.border_width_left = 4
+	normal.border_width_top = 4
+	normal.border_width_right = 4
+	normal.border_width_bottom = 4
+	normal.corner_radius_top_left = 6
+	normal.corner_radius_top_right = 6
+	normal.corner_radius_bottom_left = 6
+	normal.corner_radius_bottom_right = 6
+	normal.content_margin_left = 14
+	normal.content_margin_right = 14
+	normal.content_margin_top = 14
+	normal.content_margin_bottom = 14
+	var hover: StyleBoxFlat = normal.duplicate()
+	hover.bg_color = color.lightened(0.12)
+	var pressed: StyleBoxFlat = normal.duplicate()
+	pressed.bg_color = color.darkened(0.12)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("focus", normal)
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 
 
 func _health_bar(health: int, max_health: int) -> String:

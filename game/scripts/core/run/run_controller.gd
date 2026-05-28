@@ -13,6 +13,7 @@ const StarterCardCatalog = preload("res://scripts/core/cards/starter_card_catalo
 
 const MODE_EXPLORATION := "exploration"
 const MODE_COMBAT := "combat"
+const MODE_REWARD := "reward"
 
 const EVENT_COMMAND_REJECTED := "command_rejected"
 const EVENT_COMBAT_STARTED := "combat_started"
@@ -32,15 +33,20 @@ var mode: String = MODE_EXPLORATION
 var active_combat: CombatState
 var active_encounter_id: String = ""
 var active_encounter_position: Vector2i = Vector2i.ZERO
+var pending_reward_level_events: Array = []
+var active_reward_level_event: Dictionary = {}
+var pending_reward_choices: Array = []
 
 
 func setup(seed: int = 1, max_health: int = 40, max_mana: int = 3) -> void:
 	run_state.setup(seed, max_health, max_mana)
 	_clear_active_encounter()
+	_clear_reward_state()
 
 
 func start_stage_1() -> DungeonMapState:
 	_clear_active_encounter()
+	_clear_reward_state()
 	return run_state.start_stage_1()
 
 
@@ -143,6 +149,8 @@ func finish_active_combat_victory() -> Dictionary:
 		cleared = run_state.dungeon_map.mark_enemy_defeated(active_encounter_id)
 
 	_clear_active_encounter()
+	if not level_events.is_empty():
+		_start_level_rewards(level_events)
 
 	var result := _event(EVENT_COMBAT_WON)
 	result["defeated_name"] = defeated_name
@@ -153,6 +161,9 @@ func finish_active_combat_victory() -> Dictionary:
 	result["level"] = run_state.level
 	result["xp"] = run_state.xp
 	result["next_level_xp"] = run_state.next_level_xp
+	result["reward_choices"] = pending_reward_choices.duplicate(true)
+	result["reward_level_event"] = active_reward_level_event.duplicate(true)
+	result["reward_pending_count"] = pending_reward_level_events.size()
 	return result
 
 
@@ -169,10 +180,35 @@ func create_level_up_reward_choices(level_event: Dictionary = {}) -> Array:
 
 
 func apply_reward_choice(choice: Dictionary) -> Dictionary:
+	if mode != MODE_REWARD:
+		return _event(EVENT_REWARD_REJECTED, "not_in_reward")
+	if pending_reward_choices.is_empty():
+		return _event(EVENT_REWARD_REJECTED, "missing_reward_choices")
+	if not _choice_is_pending(choice):
+		return _event(EVENT_REWARD_REJECTED, "invalid_reward_choice")
+
 	var result := RewardGenerator.apply_choice(run_state, choice)
 	if bool(result.get("ok", false)):
 		run_state.reward_offer_index += 1
+		var applied_level_event := active_reward_level_event.duplicate(true)
+		var remaining_before_advance := pending_reward_level_events.size()
+		if remaining_before_advance > 0:
+			_start_next_queued_reward()
+		else:
+			_clear_reward_state()
+			mode = MODE_EXPLORATION
+		result["level_event"] = applied_level_event
+		result["reward_choices"] = pending_reward_choices.duplicate(true)
+		result["reward_pending_count"] = pending_reward_level_events.size()
 	return result
+
+
+func apply_reward_choice_index(choice_index: int) -> Dictionary:
+	if mode != MODE_REWARD:
+		return _event(EVENT_REWARD_REJECTED, "not_in_reward")
+	if choice_index < 0 or choice_index >= pending_reward_choices.size():
+		return _event(EVENT_REWARD_REJECTED, "invalid_reward_index")
+	return apply_reward_choice(pending_reward_choices[choice_index])
 
 
 func xp_reward_for_tile_type(tile_type: int) -> int:
@@ -235,6 +271,36 @@ func _clear_active_encounter() -> void:
 	active_combat = null
 	active_encounter_id = ""
 	active_encounter_position = Vector2i.ZERO
+
+
+func _clear_reward_state() -> void:
+	pending_reward_level_events.clear()
+	active_reward_level_event.clear()
+	pending_reward_choices.clear()
+
+
+func _start_level_rewards(level_events: Array) -> void:
+	pending_reward_level_events = level_events.duplicate(true)
+	_start_next_queued_reward()
+
+
+func _start_next_queued_reward() -> void:
+	if pending_reward_level_events.is_empty():
+		_clear_reward_state()
+		mode = MODE_EXPLORATION
+		return
+	active_reward_level_event = pending_reward_level_events.pop_front()
+	pending_reward_choices = create_level_up_reward_choices(active_reward_level_event)
+	mode = MODE_REWARD
+
+
+func _choice_is_pending(choice: Dictionary) -> bool:
+	var card_id := str(choice.get("card_id", ""))
+	for raw_pending_choice in pending_reward_choices:
+		var pending_choice: Dictionary = raw_pending_choice
+		if str(pending_choice.get("card_id", "")) == card_id:
+			return true
+	return false
 
 
 func _add_play_result_fields(event: Dictionary, card: CardDefinition, play_result: CardPlayResult) -> void:

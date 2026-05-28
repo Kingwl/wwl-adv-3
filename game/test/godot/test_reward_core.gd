@@ -13,6 +13,8 @@ func _init() -> void:
 	failed = not _test_stage_1_card_rewards_are_seeded_and_diverse() or failed
 	failed = not _test_reward_choice_adds_card_to_run_deck() or failed
 	failed = not _test_run_combat_uses_current_run_deck() or failed
+	failed = not _test_level_up_enters_reward_mode_until_choice_applied() or failed
+	failed = not _test_multiple_level_ups_queue_multiple_rewards() or failed
 	quit(1 if failed else 0)
 
 
@@ -86,13 +88,50 @@ func _test_run_combat_uses_current_run_deck() -> bool:
 	var ok := true
 	ok = _assert_eq(encounter_result["type"], RunController.EVENT_COMBAT_STARTED, "combat starts") and ok
 	ok = _assert_eq(combat_card_ids, ["heavy_hammer"], "combat deck uses run deck card ids") and ok
+	return ok
 
-	var reward_choices := controller.create_level_up_reward_choices({"level": 2})
-	var before_reward_index := controller.run_state.reward_offer_index
-	var reward_result := controller.apply_reward_choice(reward_choices[0])
+
+func _test_level_up_enters_reward_mode_until_choice_applied() -> bool:
+	var controller := _start_first_enemy_combat_with_xp(7)
+	controller.active_combat.enemies[0].health = 0
+	var victory_result := controller.finish_active_combat_victory()
+	var move_result := controller.move_player(Vector2i.RIGHT)
+	var reward_choices: Array = controller.pending_reward_choices.duplicate(true)
+	var before_count := controller.run_state.deck_card_ids.size()
+	var reward_result := controller.apply_reward_choice_index(0)
+
+	var ok := true
+	ok = _assert_eq(victory_result["type"], RunController.EVENT_COMBAT_WON, "level-up victory event") and ok
+	ok = _assert_eq(controller.mode, RunController.MODE_EXPLORATION, "reward choice returns to exploration") and ok
+	ok = _assert_eq(victory_result["level_events"].size(), 1, "victory has one level event") and ok
+	ok = _assert_eq(reward_choices.size(), 3, "level-up creates three reward choices") and ok
+	ok = _assert_eq(move_result["type"], RunController.EVENT_COMMAND_REJECTED, "movement is blocked while reward is pending") and ok
+	ok = _assert_eq(move_result["reason"], "not_in_exploration", "reward mode blocks exploration commands") and ok
 	ok = _assert_eq(reward_result["type"], RunController.EVENT_REWARD_APPLIED, "controller applies reward") and ok
-	ok = _assert_eq(controller.run_state.reward_offer_index, before_reward_index + 1, "controller advances reward offer index") and ok
+	ok = _assert_eq(controller.run_state.reward_offer_index, 1, "controller advances reward offer index") and ok
+	ok = _assert_eq(controller.run_state.deck_card_ids.size(), before_count + 1, "reward adds card to run deck") and ok
 	ok = _assert_eq(controller.run_state.deck_card_ids.back(), reward_choices[0]["card_id"], "controller reward mutates run deck") and ok
+	return ok
+
+
+func _test_multiple_level_ups_queue_multiple_rewards() -> bool:
+	var controller := _start_first_enemy_combat_with_xp(27)
+	controller.active_combat.enemies[0].health = 0
+	var victory_result := controller.finish_active_combat_victory()
+	var first_choices: Array = controller.pending_reward_choices.duplicate(true)
+	var first_reward := controller.apply_reward_choice_index(0)
+	var second_choices: Array = controller.pending_reward_choices.duplicate(true)
+	var second_reward := controller.apply_reward_choice_index(0)
+
+	var ok := true
+	ok = _assert_eq(victory_result["level_events"].size(), 2, "large xp gain queues two level rewards") and ok
+	ok = _assert_eq(first_choices.size(), 3, "first queued reward has choices") and ok
+	ok = _assert_eq(first_reward["type"], RunController.EVENT_REWARD_APPLIED, "first queued reward applies") and ok
+	ok = _assert_eq(controller.mode, RunController.MODE_EXPLORATION, "second reward returns to exploration after selection") and ok
+	ok = _assert_eq(second_choices.size(), 3, "second queued reward has choices") and ok
+	ok = _assert_eq(_choice_card_ids(first_choices) == _choice_card_ids(second_choices), false, "queued rewards use different offer index") and ok
+	ok = _assert_eq(second_reward["type"], RunController.EVENT_REWARD_APPLIED, "second queued reward applies") and ok
+	ok = _assert_eq(controller.run_state.reward_offer_index, 2, "two reward choices advance offer index twice") and ok
 	return ok
 
 
@@ -113,6 +152,17 @@ func _combat_deck_card_ids(controller: RunController) -> Array:
 		ids.append(card.id)
 	ids.sort()
 	return ids
+
+
+func _start_first_enemy_combat_with_xp(xp: int) -> RunController:
+	var controller := RunController.new()
+	controller.setup(StageFixtureCatalog.STAGE_1_DEFAULT_SEED, 40, 3)
+	controller.run_state.xp = xp
+	controller.start_stage_1()
+	controller.move_player(Vector2i.RIGHT)
+	controller.move_player(Vector2i.RIGHT)
+	controller.move_player(Vector2i.RIGHT)
+	return controller
 
 
 func _assert_eq(actual, expected, label: String) -> bool:
