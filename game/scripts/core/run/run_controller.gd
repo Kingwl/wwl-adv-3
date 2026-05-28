@@ -14,6 +14,7 @@ const StarterCardCatalog = preload("res://scripts/core/cards/starter_card_catalo
 const MODE_EXPLORATION := "exploration"
 const MODE_COMBAT := "combat"
 const MODE_REWARD := "reward"
+const MODE_RUN_END := "run_end"
 const REWARD_SOURCE_LEVEL_UP := "level_up"
 const REWARD_SOURCE_TREASURE := "treasure"
 
@@ -23,12 +24,16 @@ const EVENT_CARD_PLAYED := "card_played"
 const EVENT_TURN_ENDED := "turn_ended"
 const EVENT_COMBAT_WON := "combat_won"
 const EVENT_COMBAT_LOST := "combat_lost"
+const EVENT_STAGE_ADVANCED := "stage_advanced"
+const EVENT_RUN_WON := "run_won"
 const EVENT_REWARD_APPLIED := RewardGenerator.EVENT_REWARD_APPLIED
 const EVENT_REWARD_REJECTED := RewardGenerator.EVENT_REWARD_REJECTED
 
 const XP_REWARD_NORMAL := 3
 const XP_REWARD_ELITE := 8
 const XP_REWARD_BOSS := 14
+const XP_GEM_REWARD := 5
+const HEALING_PICKUP_AMOUNT := 10
 
 var run_state: RunState = RunState.new()
 var mode: String = MODE_EXPLORATION
@@ -41,17 +46,22 @@ var active_reward_source: String = ""
 var active_reward_title: String = ""
 var active_reward_pickup_id: String = ""
 var pending_reward_choices: Array = []
+var active_run_end_reason: String = ""
+var active_run_end_title: String = ""
+var active_run_end_summary: String = ""
 
 
 func setup(seed: int = 1, max_health: int = 40, max_mana: int = 3) -> void:
 	run_state.setup(seed, max_health, max_mana)
 	_clear_active_encounter()
 	_clear_reward_state()
+	_clear_run_end_state()
 
 
 func start_stage_1() -> DungeonMapState:
 	_clear_active_encounter()
 	_clear_reward_state()
+	_clear_run_end_state()
 	return run_state.start_stage_1()
 
 
@@ -62,15 +72,16 @@ func move_player(direction: Vector2i) -> Dictionary:
 		return _event(EVENT_COMMAND_REJECTED, "missing_map")
 
 	var result: Dictionary = run_state.dungeon_map.move_player(direction)
-	if str(result["type"]) == DungeonMapState.EVENT_ENCOUNTER_STARTED:
+	var result_type := str(result["type"])
+	if result_type == DungeonMapState.EVENT_ENCOUNTER_STARTED:
 		var tile: DungeonTile = run_state.dungeon_map.get_tile(result["to"])
 		if tile == null:
 			return _event(EVENT_COMMAND_REJECTED, "missing_tile")
 		return _start_encounter_for_tile(result["to"], tile)
-	if str(result["type"]) == DungeonMapState.EVENT_PICKUP_COLLECTED:
-		if int(result.get("tile_type", -1)) == DungeonTile.TileType.TREASURE:
-			_start_treasure_reward(result)
-			_add_reward_fields(result)
+	if result_type == DungeonMapState.EVENT_PICKUP_COLLECTED:
+		_apply_pickup_effect(result)
+	if result_type == DungeonMapState.EVENT_STAGE_EXIT_REQUESTED:
+		return _advance_stage_or_end_run(result)
 	return result
 
 
@@ -139,6 +150,8 @@ func end_turn() -> Dictionary:
 	result["damage_taken"] = damage_taken
 	if active_combat.is_defeat():
 		result["type"] = EVENT_COMBAT_LOST
+		_start_run_defeat()
+		_add_run_end_fields(result)
 	return result
 
 
@@ -297,6 +310,12 @@ func _clear_reward_state() -> void:
 	pending_reward_choices.clear()
 
 
+func _clear_run_end_state() -> void:
+	active_run_end_reason = ""
+	active_run_end_title = ""
+	active_run_end_summary = ""
+
+
 func _start_level_rewards(level_events: Array) -> void:
 	pending_reward_level_events = level_events.duplicate(true)
 	_start_next_queued_reward()
@@ -325,12 +344,126 @@ func _start_treasure_reward(pickup_event: Dictionary) -> void:
 	mode = MODE_REWARD
 
 
+func _apply_pickup_effect(event: Dictionary) -> void:
+	var tile_type := int(event.get("tile_type", -1))
+	event["pickup_type"] = _pickup_type_name(tile_type)
+	if tile_type == DungeonTile.TileType.TREASURE:
+		_start_treasure_reward(event)
+		_add_reward_fields(event)
+		return
+	if tile_type == DungeonTile.TileType.HEALING:
+		var recovered := run_state.heal(HEALING_PICKUP_AMOUNT)
+		event["heal_amount"] = HEALING_PICKUP_AMOUNT
+		event["health_recovered"] = recovered
+		event["health"] = run_state.health
+		event["max_health"] = run_state.max_health
+		return
+	if tile_type == DungeonTile.TileType.XP_GEM:
+		var level_events := run_state.gain_xp(XP_GEM_REWARD)
+		event["xp_gained"] = XP_GEM_REWARD
+		event["level_events"] = level_events
+		event["level"] = run_state.level
+		event["xp"] = run_state.xp
+		event["next_level_xp"] = run_state.next_level_xp
+		if not level_events.is_empty():
+			_start_level_rewards(level_events)
+			_add_reward_fields(event)
+		return
+
+
+func _advance_stage_or_end_run(exit_event: Dictionary) -> Dictionary:
+	var previous_stage_id := run_state.current_stage.id
+	var previous_stage_name := run_state.current_stage.display_name
+	if run_state.has_next_stage():
+		var next_map := run_state.start_next_stage()
+		_clear_active_encounter()
+		_clear_reward_state()
+		_clear_run_end_state()
+		var result := exit_event.duplicate(true)
+		result["type"] = EVENT_STAGE_ADVANCED
+		result["reason"] = "stage_advanced"
+		result["previous_stage_id"] = previous_stage_id
+		result["previous_stage_display_name"] = previous_stage_name
+		result["stage_index"] = run_state.stage_index
+		result["stage_id"] = run_state.current_stage.id
+		result["stage_display_name"] = run_state.current_stage.display_name
+		result["position"] = next_map.player_position
+		return result
+
+	_start_run_victory()
+	var final_result := exit_event.duplicate(true)
+	final_result["type"] = EVENT_RUN_WON
+	final_result["reason"] = "run_won"
+	final_result["previous_stage_id"] = previous_stage_id
+	final_result["previous_stage_display_name"] = previous_stage_name
+	_add_run_end_fields(final_result)
+	return final_result
+
+
+func _start_run_defeat() -> void:
+	var defeated_by := _active_enemy_display_name()
+	var summary := "你被%s击倒。到达%s，等级 %s，牌组 %s 张。" % [
+		defeated_by,
+		run_state.current_stage.display_name,
+		run_state.level,
+		run_state.deck_card_ids.size(),
+	]
+	_start_run_end("defeat", "冒险结束", summary)
+
+
+func _start_run_victory() -> void:
+	var summary := "你突破了%s。等级 %s，经验 %s/%s，牌组 %s 张。" % [
+		run_state.current_stage.display_name,
+		run_state.level,
+		run_state.xp,
+		run_state.next_level_xp,
+		run_state.deck_card_ids.size(),
+	]
+	_start_run_end("victory", "原型通关", summary)
+
+
+func _start_run_end(reason: String, title: String, summary: String) -> void:
+	active_run_end_reason = reason
+	active_run_end_title = title
+	active_run_end_summary = summary
+	active_combat = null
+	active_encounter_id = ""
+	active_encounter_position = Vector2i.ZERO
+	_clear_reward_state()
+	mode = MODE_RUN_END
+
+
+func _add_run_end_fields(event: Dictionary) -> void:
+	event["run_end_reason"] = active_run_end_reason
+	event["run_end_title"] = active_run_end_title
+	event["run_end_summary"] = active_run_end_summary
+	event["level"] = run_state.level
+	event["health"] = run_state.health
+	event["deck_size"] = run_state.deck_card_ids.size()
+
+
 func _add_reward_fields(event: Dictionary) -> void:
 	event["reward_source"] = active_reward_source
 	event["reward_title"] = active_reward_title
 	event["pickup_id"] = active_reward_pickup_id
 	event["reward_choices"] = pending_reward_choices.duplicate(true)
 	event["reward_pending_count"] = pending_reward_level_events.size()
+
+
+func _pickup_type_name(tile_type: int) -> String:
+	if tile_type == DungeonTile.TileType.TREASURE:
+		return "treasure"
+	if tile_type == DungeonTile.TileType.HEALING:
+		return "healing"
+	if tile_type == DungeonTile.TileType.XP_GEM:
+		return "xp_gem"
+	if tile_type == DungeonTile.TileType.FORGE:
+		return "forge"
+	if tile_type == DungeonTile.TileType.SHRINE:
+		return "shrine"
+	if tile_type == DungeonTile.TileType.HAZARD:
+		return "hazard"
+	return "pickup"
 
 
 func _choice_is_pending(choice: Dictionary) -> bool:

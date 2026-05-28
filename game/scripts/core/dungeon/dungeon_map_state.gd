@@ -203,6 +203,8 @@ func _tile_from_marker(
 		return _create_pickup_tile(DungeonTile.TileType.TREASURE, "treasure_%02d" % [pickup_count + 1], position)
 	if marker == "H":
 		return _create_pickup_tile(DungeonTile.TileType.HEALING, "healing_%02d" % [pickup_count + 1], position)
+	if marker == "X":
+		return _create_pickup_tile(DungeonTile.TileType.XP_GEM, "xp_gem_%02d" % [pickup_count + 1], position)
 	if marker == "S":
 		return _create_pickup_tile(DungeonTile.TileType.SHRINE, "shrine_%02d" % [pickup_count + 1], position)
 	if marker == "F":
@@ -240,6 +242,8 @@ func _marker_from_tile(tile: DungeonTile) -> String:
 		return "C"
 	if tile.tile_type == DungeonTile.TileType.HEALING:
 		return "H"
+	if tile.tile_type == DungeonTile.TileType.XP_GEM:
+		return "X"
 	if tile.tile_type == DungeonTile.TileType.SHRINE:
 		return "S"
 	if tile.tile_type == DungeonTile.TileType.FORGE:

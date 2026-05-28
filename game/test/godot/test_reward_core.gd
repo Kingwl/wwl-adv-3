@@ -1,6 +1,8 @@
 extends SceneTree
 
 const RewardGenerator = preload("res://scripts/core/rewards/reward_generator.gd")
+const DungeonMapState = preload("res://scripts/core/dungeon/dungeon_map_state.gd")
+const DungeonTile = preload("res://scripts/core/dungeon/dungeon_tile.gd")
 const RunController = preload("res://scripts/core/run/run_controller.gd")
 const RunState = preload("res://scripts/core/run/run_state.gd")
 const StageFixtureCatalog = preload("res://scripts/core/dungeon/stage_fixture_catalog.gd")
@@ -16,6 +18,8 @@ func _init() -> void:
 	failed = not _test_level_up_enters_reward_mode_until_choice_applied() or failed
 	failed = not _test_multiple_level_ups_queue_multiple_rewards() or failed
 	failed = not _test_treasure_pickup_enters_reward_mode() or failed
+	failed = not _test_healing_pickup_restores_health() or failed
+	failed = not _test_xp_gem_pickup_grants_xp_and_can_level() or failed
 	quit(1 if failed else 0)
 
 
@@ -161,6 +165,51 @@ func _test_treasure_pickup_enters_reward_mode() -> bool:
 	ok = _assert_eq(controller.mode, RunController.MODE_EXPLORATION, "treasure reward returns to exploration after choice") and ok
 	ok = _assert_eq(controller.run_state.deck_card_ids.size(), before_deck_size + 1, "treasure reward adds one card") and ok
 	ok = _assert_eq(controller.run_state.deck_card_ids.back(), reward_choices[0]["card_id"], "treasure reward adds selected card") and ok
+	return ok
+
+
+func _test_healing_pickup_restores_health() -> bool:
+	var controller := RunController.new()
+	controller.setup(StageFixtureCatalog.STAGE_1_DEFAULT_SEED, 40, 3)
+	var map = controller.start_stage_1()
+	map.player_position = Vector2i(10, 3)
+	controller.run_state.health = 22
+
+	var result := controller.move_player(Vector2i.RIGHT)
+
+	var ok := true
+	ok = _assert_eq(result["type"], DungeonMapState.EVENT_PICKUP_COLLECTED, "healing pickup event") and ok
+	ok = _assert_eq(result["tile_type"], DungeonTile.TileType.HEALING, "healing tile type") and ok
+	ok = _assert_eq(result["health_recovered"], RunController.HEALING_PICKUP_AMOUNT, "healing pickup restores health") and ok
+	ok = _assert_eq(controller.run_state.health, 32, "run health increases after healing") and ok
+	ok = _assert_eq(controller.mode, RunController.MODE_EXPLORATION, "healing does not open reward mode") and ok
+	ok = _assert_eq(controller.run_state.dungeon_map.active_pickup_count(), 2, "healing pickup is removed from map") and ok
+	return ok
+
+
+func _test_xp_gem_pickup_grants_xp_and_can_level() -> bool:
+	var controller := RunController.new()
+	controller.setup(StageFixtureCatalog.STAGE_1_DEFAULT_SEED, 40, 3)
+	var map = controller.start_stage_1()
+	map.player_position = Vector2i(3, 5)
+	controller.run_state.xp = 5
+
+	var before_deck_size := controller.run_state.deck_card_ids.size()
+	var result := controller.move_player(Vector2i.RIGHT)
+	var reward_choices: Array = controller.pending_reward_choices.duplicate(true)
+	var reward_result := controller.apply_reward_choice_index(0)
+
+	var ok := true
+	ok = _assert_eq(result["type"], DungeonMapState.EVENT_PICKUP_COLLECTED, "xp gem pickup event") and ok
+	ok = _assert_eq(result["tile_type"], DungeonTile.TileType.XP_GEM, "xp gem tile type") and ok
+	ok = _assert_eq(result["xp_gained"], RunController.XP_GEM_REWARD, "xp gem grants xp") and ok
+	ok = _assert_eq(result["level_events"].size(), 1, "xp gem can trigger level up") and ok
+	ok = _assert_eq(controller.mode, RunController.MODE_EXPLORATION, "xp gem reward returns to exploration after choice") and ok
+	ok = _assert_eq(reward_choices.size(), 3, "xp gem level reward has choices") and ok
+	ok = _assert_eq(reward_result["type"], RunController.EVENT_REWARD_APPLIED, "xp gem level reward applies") and ok
+	ok = _assert_eq(controller.run_state.level, 2, "xp gem level updates run") and ok
+	ok = _assert_eq(controller.run_state.xp, 0, "xp gem exact threshold leaves no overflow") and ok
+	ok = _assert_eq(controller.run_state.deck_card_ids.size(), before_deck_size + 1, "xp gem reward adds card") and ok
 	return ok
 
 

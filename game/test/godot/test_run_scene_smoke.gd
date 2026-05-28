@@ -37,6 +37,12 @@ func _run_tests() -> void:
 	failed = not await _test_run_scene_shows_treasure_reward_choices(run_scene) or failed
 	_reset_run_scene(run_scene)
 	await process_frame
+	failed = not await _test_run_scene_applies_healing_and_xp_pickups(run_scene) or failed
+	_reset_run_scene(run_scene)
+	await process_frame
+	failed = not await _test_run_scene_shows_run_end_on_defeat(run_scene) or failed
+	_reset_run_scene(run_scene)
+	await process_frame
 	failed = not await _test_run_scene_enters_and_wins_combat(run_scene) or failed
 
 	run_scene.queue_free()
@@ -93,6 +99,8 @@ func _test_run_scene_non_adjacent_click_only_selects(run_scene) -> bool:
 
 func _test_run_scene_exit_responds_after_boss_defeat(run_scene) -> bool:
 	var status_label: Label = run_scene.find_child("StatusLabel", true, false)
+	var stage_label: Label = run_scene.find_child("StageLabel", true, false)
+	var map_grid: GridContainer = run_scene.find_child("MapGrid", true, false)
 	var map = run_scene.run_state.dungeon_map
 	map.mark_enemy_defeated(_stage_1_boss_id(map))
 	map.player_position = Vector2i(13, 1)
@@ -103,8 +111,12 @@ func _test_run_scene_exit_responds_after_boss_defeat(run_scene) -> bool:
 
 	var ok := true
 	ok = _assert_eq(map.is_exit_unlocked(), true, "boss defeat unlocks exit in scene") and ok
-	ok = _assert_eq(run_scene.selected_position, map.exit_position, "exit request selects exit tile") and ok
-	ok = _assert_eq(status_label.text.contains("出口已可用"), true, "exit request shows status") and ok
+	ok = _assert_eq(run_scene.run_state.current_stage.id, "stage_2", "exit advances scene to stage 2") and ok
+	ok = _assert_eq(run_scene.selected_position, run_scene.run_state.dungeon_map.player_position, "stage advance selects new player position") and ok
+	ok = _assert_eq(status_label.text.contains("进入第二关"), true, "stage advance shows status") and ok
+	ok = _assert_eq(stage_label.text.contains("第二关"), true, "stage label updates to stage 2") and ok
+	ok = _assert_eq(map_grid.columns, 18, "stage 2 rebuilds map columns") and ok
+	ok = _assert_eq(map_grid.get_child_count(), 180, "stage 2 rebuilds map cells") and ok
 	return ok
 
 
@@ -216,6 +228,69 @@ func _test_run_scene_shows_treasure_reward_choices(run_scene) -> bool:
 	await process_frame
 	ok = _assert_eq(run_scene.mode, "exploration", "treasure reward choice returns to exploration") and ok
 	ok = _assert_eq(run_scene.run_state.deck_card_ids.size(), before_deck_size + 1, "treasure reward adds card to run deck") and ok
+	return ok
+
+
+func _test_run_scene_applies_healing_and_xp_pickups(run_scene) -> bool:
+	var stats_label: Label = run_scene.find_child("StatsLabel", true, false)
+	var reward_panel: VBoxContainer = run_scene.find_child("RewardPanel", true, false)
+	var reward_choice_row: HBoxContainer = run_scene.find_child("RewardChoiceRow", true, false)
+	var map = run_scene.run_state.dungeon_map
+	run_scene.run_state.health = 22
+	map.player_position = Vector2i(10, 3)
+	run_scene.selected_position = map.player_position
+	run_scene._refresh()
+
+	run_scene._try_move(Vector2i.RIGHT)
+	await process_frame
+
+	var ok := true
+	ok = _assert_eq(run_scene.mode, "exploration", "healing pickup stays in exploration") and ok
+	ok = _assert_eq(run_scene.run_state.health, 32, "healing pickup updates health") and ok
+	ok = _assert_eq(run_scene.status_message.contains("恢复 10 生命"), true, "healing pickup status") and ok
+	ok = _assert_eq(stats_label.text.contains("生命 32/40"), true, "healing pickup stats update") and ok
+
+	map.player_position = Vector2i(3, 5)
+	run_scene.selected_position = map.player_position
+	run_scene.run_state.xp = 5
+	run_scene._refresh()
+	run_scene._try_move(Vector2i.RIGHT)
+	await process_frame
+
+	var before_deck_size: int = run_scene.run_state.deck_card_ids.size()
+	ok = _assert_eq(run_scene.mode, "reward", "xp gem level-up enters reward mode") and ok
+	ok = _assert_eq(run_scene.run_state.level, 2, "xp gem can level up") and ok
+	ok = _assert_eq(reward_panel.visible, true, "xp gem reward panel visible") and ok
+	ok = _assert_eq(reward_choice_row.get_child_count(), 3, "xp gem reward shows three choices") and ok
+	ok = _assert_eq(run_scene.status_message.contains("获得 5 经验"), true, "xp gem status shows xp") and ok
+
+	_press_key(run_scene, KEY_ENTER)
+	await process_frame
+	ok = _assert_eq(run_scene.mode, "exploration", "xp gem reward returns to exploration") and ok
+	ok = _assert_eq(run_scene.run_state.deck_card_ids.size(), before_deck_size + 1, "xp gem reward adds card") and ok
+	return ok
+
+
+func _test_run_scene_shows_run_end_on_defeat(run_scene) -> bool:
+	run_scene.run_state.health = 1
+	run_scene._try_move(Vector2i.RIGHT)
+	run_scene._try_move(Vector2i.RIGHT)
+	run_scene._try_move(Vector2i.RIGHT)
+	await process_frame
+
+	run_scene._on_end_turn_pressed()
+	await process_frame
+
+	var run_end_panel: VBoxContainer = run_scene.find_child("RunEndPanel", true, false)
+	var run_end_title_label: Label = run_scene.find_child("RunEndTitleLabel", true, false)
+	var restart_button: Button = run_scene.find_child("RestartButton", true, false)
+
+	var ok := true
+	ok = _assert_eq(run_scene.mode, "run_end", "combat defeat enters run end mode") and ok
+	ok = _assert_eq(run_end_panel.visible, true, "run end panel visible") and ok
+	ok = _assert_eq(run_end_title_label.text, "冒险结束", "defeat run end title") and ok
+	ok = _assert_eq(restart_button.text, "重新开始", "run end has restart button") and ok
+	ok = _assert_eq(_visible_text_has_english(run_end_panel), false, "run end visible text uses Chinese") and ok
 	return ok
 
 

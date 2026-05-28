@@ -53,6 +53,27 @@ func start_stage_1() -> DungeonMapState:
 	return start_stage(StageFixtureCatalog.create_stage_1_config(seed), StageFixtureCatalog.stage_1_rows())
 
 
+func start_stage_2() -> DungeonMapState:
+	if stage_index < 1:
+		stage_index = 1
+	return start_stage(
+		StageFixtureCatalog.create_stage_2_config(seed + StageFixtureCatalog.STAGE_2_SEED_OFFSET),
+		StageFixtureCatalog.stage_2_rows()
+	)
+
+
+func has_next_stage() -> bool:
+	return stage_index < StageFixtureCatalog.FINAL_STAGE_INDEX
+
+
+func start_next_stage() -> DungeonMapState:
+	if stage_index <= 0:
+		return start_stage_1()
+	if stage_index == 1:
+		return start_stage_2()
+	return null
+
+
 func gain_xp(amount: int) -> Array:
 	var level_events: Array = []
 	xp += max(amount, 0)
@@ -67,6 +88,12 @@ func gain_xp(amount: int) -> Array:
 			"next_level_xp": next_level_xp,
 		})
 	return level_events
+
+
+func heal(amount: int) -> int:
+	var before_health := health
+	health = mini(max_health, health + max(amount, 0))
+	return health - before_health
 
 
 func add_card(card_id: String) -> bool:

@@ -16,6 +16,8 @@ const COLOR_ENEMY := Color(0.63, 0.22, 0.20)
 const COLOR_ELITE := Color(0.78, 0.38, 0.14)
 const COLOR_BOSS := Color(0.50, 0.18, 0.55)
 const COLOR_PICKUP := Color(0.18, 0.50, 0.32)
+const COLOR_RUN_END := Color(0.18, 0.19, 0.22)
+const COLOR_RUN_END_BORDER := Color(0.80, 0.66, 0.24)
 const COLOR_EXIT_LOCKED := Color(0.42, 0.40, 0.33)
 const COLOR_EXIT_OPEN := Color(0.80, 0.66, 0.24)
 const COLOR_SELECTED := Color(0.92, 0.82, 0.38)
@@ -47,6 +49,7 @@ var map_panel: VBoxContainer
 var side_panel: VBoxContainer
 var combat_panel: VBoxContainer
 var reward_panel: VBoxContainer
+var run_end_panel: VBoxContainer
 var map_grid: GridContainer
 var stage_label: Label
 var stats_label: Label
@@ -63,6 +66,9 @@ var end_turn_button: Button
 var reward_title_label: Label
 var reward_summary_label: Label
 var reward_choice_row: HBoxContainer
+var run_end_title_label: Label
+var run_end_summary_label: Label
+var restart_button: Button
 var cell_buttons: Dictionary = {}
 
 
@@ -118,6 +124,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_handle_combat_key(key_event.keycode)
 	elif mode == "reward":
 		_handle_reward_key(key_event.keycode)
+	elif mode == "run_end":
+		_handle_run_end_key(key_event.keycode)
 	elif mode == "exploration":
 		_handle_exploration_key(key_event.keycode)
 
@@ -153,6 +161,11 @@ func _handle_reward_key(keycode: int) -> void:
 		_move_reward_selection(1)
 	elif keycode == KEY_SPACE or keycode == KEY_ENTER or keycode == KEY_KP_ENTER:
 		_activate_reward_selection()
+
+
+func _handle_run_end_key(keycode: int) -> void:
+	if keycode == KEY_SPACE or keycode == KEY_ENTER or keycode == KEY_KP_ENTER or keycode == KEY_R:
+		_restart_run()
 
 
 func _build_layout() -> void:
@@ -227,12 +240,13 @@ func _build_layout() -> void:
 
 	var debug_label := Label.new()
 	debug_label.name = "DebugLabel"
-	debug_label.text = "图例：我 玩家 / 敌 敌人 / 精 精英 / 首 首领 / 宝 宝箱 / 疗 治疗 / 锻 锻造 / 出 出口"
+	debug_label.text = "图例：我 玩家 / 敌 敌人 / 精 精英 / 首 首领 / 宝 宝箱 / 疗 治疗 / 晶 经验宝石 / 锻 锻造 / 出 出口"
 	debug_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	side_panel.add_child(debug_label)
 
 	_build_combat_panel(main_row)
 	_build_reward_panel(main_row)
+	_build_run_end_panel(main_row)
 	_create_cells()
 
 
@@ -305,6 +319,60 @@ func _build_reward_panel(parent: Control) -> void:
 	reward_panel.add_child(reward_choice_row)
 
 
+func _build_run_end_panel(parent: Control) -> void:
+	run_end_panel = VBoxContainer.new()
+	run_end_panel.name = "RunEndPanel"
+	run_end_panel.custom_minimum_size = Vector2(720, 0)
+	run_end_panel.add_theme_constant_override("separation", 18)
+	run_end_panel.visible = false
+	parent.add_child(run_end_panel)
+
+	var frame := PanelContainer.new()
+	frame.name = "RunEndFrame"
+	frame.custom_minimum_size = Vector2(620, 260)
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_RUN_END
+	style.border_color = COLOR_RUN_END_BORDER
+	style.border_width_left = 4
+	style.border_width_top = 4
+	style.border_width_right = 4
+	style.border_width_bottom = 4
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = 22
+	style.content_margin_right = 22
+	style.content_margin_top = 20
+	style.content_margin_bottom = 20
+	frame.add_theme_stylebox_override("panel", style)
+	run_end_panel.add_child(frame)
+
+	var content := VBoxContainer.new()
+	content.name = "RunEndContent"
+	content.add_theme_constant_override("separation", 14)
+	frame.add_child(content)
+
+	run_end_title_label = Label.new()
+	run_end_title_label.name = "RunEndTitleLabel"
+	run_end_title_label.add_theme_font_size_override("font_size", 32)
+	content.add_child(run_end_title_label)
+
+	run_end_summary_label = Label.new()
+	run_end_summary_label.name = "RunEndSummaryLabel"
+	run_end_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	run_end_summary_label.add_theme_font_size_override("font_size", 18)
+	content.add_child(run_end_summary_label)
+
+	restart_button = Button.new()
+	restart_button.name = "RestartButton"
+	restart_button.text = "重新开始"
+	restart_button.custom_minimum_size = Vector2(180, 42)
+	restart_button.focus_mode = Control.FOCUS_NONE
+	restart_button.pressed.connect(_restart_run)
+	content.add_child(restart_button)
+
+
 func _create_combat_state_panel(panel_name: String, fill_color: Color, border_color: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.name = panel_name
@@ -349,7 +417,11 @@ func _add_move_button(parent: Control, label: String, direction: Vector2i) -> vo
 
 
 func _create_cells() -> void:
+	for child in map_grid.get_children():
+		map_grid.remove_child(child)
+		child.queue_free()
 	cell_buttons.clear()
+	map_grid.columns = run_state.dungeon_map.width
 	for y in range(run_state.dungeon_map.height):
 		for x in range(run_state.dungeon_map.width):
 			var position := Vector2i(x, y)
@@ -366,10 +438,13 @@ func _refresh() -> void:
 	var map: DungeonMapState = run_state.dungeon_map
 	var in_combat := mode == RunController.MODE_COMBAT
 	var in_reward := mode == RunController.MODE_REWARD
-	map_panel.visible = not in_combat and not in_reward
-	side_panel.visible = not in_combat and not in_reward
+	var in_run_end := mode == RunController.MODE_RUN_END
+	_ensure_map_cells()
+	map_panel.visible = not in_combat and not in_reward and not in_run_end
+	side_panel.visible = not in_combat and not in_reward and not in_run_end
 	combat_panel.visible = in_combat
 	reward_panel.visible = in_reward
+	run_end_panel.visible = in_run_end
 
 	stage_label.text = "%s  种子：%s" % [run_state.current_stage.display_name, str(run_state.current_stage.seed)]
 	stats_label.text = "生命 %s/%s\n等级 %s  经验 %s/%s\n敌人 %s/%s  拾取物 %s/%s\n出口 %s" % [
@@ -392,8 +467,18 @@ func _refresh() -> void:
 		_refresh_combat()
 	elif in_reward:
 		_refresh_reward()
+	elif in_run_end:
+		_refresh_run_end()
 	else:
 		_refresh_selected()
+
+
+func _ensure_map_cells() -> void:
+	if map_grid == null or run_state.dungeon_map == null:
+		return
+	var expected_count := run_state.dungeon_map.width * run_state.dungeon_map.height
+	if map_grid.columns != run_state.dungeon_map.width or cell_buttons.size() != expected_count:
+		_create_cells()
 
 
 func _refresh_combat() -> void:
@@ -489,6 +574,25 @@ func _refresh_reward() -> void:
 		reward_choice_row.add_child(button)
 
 
+func _refresh_run_end() -> void:
+	run_end_title_label.text = controller.active_run_end_title
+	if run_end_title_label.text == "":
+		run_end_title_label.text = "冒险结束"
+	var summary := controller.active_run_end_summary
+	if summary == "":
+		summary = status_message
+	run_end_summary_label.text = "%s\n生命 %s/%s  等级 %s  经验 %s/%s\n已到达：%s  牌组 %s 张" % [
+		summary,
+		run_state.health,
+		run_state.max_health,
+		run_state.level,
+		run_state.xp,
+		run_state.next_level_xp,
+		run_state.current_stage.display_name,
+		run_state.deck_card_ids.size(),
+	]
+
+
 func _refresh_cell(position: Vector2i) -> void:
 	var button: Button = cell_buttons[position]
 	var map: DungeonMapState = run_state.dungeon_map
@@ -559,16 +663,18 @@ func _try_move(direction: Vector2i) -> void:
 		combat_focus = COMBAT_FOCUS_HAND
 		_set_status_message("遭遇已开始。")
 		combat_log = "遭遇开始。"
-	elif result["type"] == DungeonMapState.EVENT_STAGE_EXIT_REQUESTED:
-		_set_status_message("出口已可用。下一步会接入关卡切换。")
+	elif result["type"] == RunController.EVENT_STAGE_ADVANCED:
+		selected_position = run_state.dungeon_map.player_position
+		selected_hand_index = -1
+		combat_focus = COMBAT_FOCUS_HAND
+		_set_status_message("进入%s。" % str(result.get("stage_display_name", "下一关")))
+	elif result["type"] == RunController.EVENT_RUN_WON:
+		_set_status_message("原型通关。")
 	elif result["type"] == DungeonMapState.EVENT_BLOCKED:
 		selected_position = run_state.dungeon_map.player_position
 		_set_status_message("无法移动：%s" % _movement_block_reason(result["reason"]))
 	elif result["type"] == DungeonMapState.EVENT_PICKUP_COLLECTED:
-		if mode == RunController.MODE_REWARD:
-			_set_status_message("发现宝箱奖励。")
-		else:
-			_set_status_message("收集了拾取物。")
+		_set_status_message(_pickup_summary(result))
 	elif result["type"] == DungeonMapState.EVENT_MOVED:
 		_set_status_message("探索中。")
 	_refresh()
@@ -611,6 +717,8 @@ func _tile_type_description(tile_type: int) -> String:
 		return "宝箱"
 	if tile_type == DungeonTile.TileType.HEALING:
 		return "治疗"
+	if tile_type == DungeonTile.TileType.XP_GEM:
+		return "经验宝石"
 	if tile_type == DungeonTile.TileType.FORGE:
 		return "锻造"
 	if tile_type == DungeonTile.TileType.SHRINE:
@@ -713,6 +821,24 @@ func _combat_victory_summary(result: Dictionary) -> String:
 	return "".join(parts)
 
 
+func _pickup_summary(result: Dictionary) -> String:
+	var tile_type := int(result.get("tile_type", -1))
+	if tile_type == DungeonTile.TileType.TREASURE:
+		return "发现宝箱奖励。"
+	if tile_type == DungeonTile.TileType.HEALING:
+		return "恢复 %s 生命。" % int(result.get("health_recovered", 0))
+	if tile_type == DungeonTile.TileType.XP_GEM:
+		var parts := ["获得 %s 经验。" % int(result.get("xp_gained", 0))]
+		var level_events: Array = result.get("level_events", [])
+		for raw_event in level_events:
+			var event: Dictionary = raw_event
+			parts.append("升级到 %s 级。" % int(event.get("level", 1)))
+		if mode == RunController.MODE_REWARD:
+			parts.append("选择升级奖励。")
+		return "".join(parts)
+	return "收集了%s。" % _tile_type_description(tile_type)
+
+
 func _on_end_turn_pressed() -> void:
 	_end_turn_with_log("手动结束回合。")
 
@@ -727,7 +853,7 @@ func _end_turn_with_log(prefix: String) -> void:
 	combat_log = "%s\n敌人回合：受到 %s 点伤害。" % [prefix, result["damage_taken"]]
 	if result["type"] == RunController.EVENT_COMBAT_LOST:
 		combat_log = "玩家倒下。"
-		end_turn_button.disabled = true
+		_set_status_message(str(result.get("run_end_summary", "玩家倒下。")))
 	_refresh()
 
 
@@ -823,6 +949,19 @@ func _on_reward_choice_pressed(choice_index: int) -> void:
 		selected_reward_index = 0
 	else:
 		_set_status_message("无法选择奖励。")
+	_refresh()
+
+
+func _restart_run() -> void:
+	controller.setup(1001)
+	controller.start_stage_1()
+	_sync_from_controller()
+	selected_position = run_state.dungeon_map.player_position
+	selected_hand_index = -1
+	selected_reward_index = 0
+	combat_focus = COMBAT_FOCUS_HAND
+	combat_log = ""
+	status_message = "探索中。"
 	_refresh()
 
 
@@ -1108,6 +1247,8 @@ func _cell_text(position: Vector2i, tile: DungeonTile) -> String:
 		return "宝"
 	if tile.tile_type == DungeonTile.TileType.HEALING:
 		return "疗"
+	if tile.tile_type == DungeonTile.TileType.XP_GEM:
+		return "晶"
 	if tile.tile_type == DungeonTile.TileType.FORGE:
 		return "锻"
 	if tile.tile_type == DungeonTile.TileType.SHRINE:
@@ -1130,6 +1271,8 @@ func _tile_description(tile: DungeonTile) -> String:
 		return "宝箱"
 	if tile.tile_type == DungeonTile.TileType.HEALING:
 		return "治疗"
+	if tile.tile_type == DungeonTile.TileType.XP_GEM:
+		return "经验宝石"
 	if tile.tile_type == DungeonTile.TileType.SHRINE:
 		return "祭坛"
 	if tile.tile_type == DungeonTile.TileType.FORGE:

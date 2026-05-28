@@ -8,6 +8,7 @@ enum TileType {
 	EXIT,
 	TREASURE,
 	HEALING,
+	XP_GEM,
 	SHRINE,
 	FORGE,
 	HAZARD,
@@ -46,6 +47,7 @@ func is_pickup_tile() -> bool:
 	return (
 		tile_type == TileType.TREASURE
 		or tile_type == TileType.HEALING
+		or tile_type == TileType.XP_GEM
 		or tile_type == TileType.SHRINE
 		or tile_type == TileType.FORGE
 		or tile_type == TileType.HAZARD

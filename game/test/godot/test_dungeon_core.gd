@@ -20,6 +20,9 @@ func _init() -> void:
 	failed = not _test_run_state_xp_curve_keeps_stage_1_balanced() or failed
 	failed = not _test_stage_1_fixture_matches_budget() or failed
 	failed = not _test_run_state_starts_stage_1() or failed
+	failed = not _test_xp_gem_marker_loads_as_pickup() or failed
+	failed = not _test_stage_2_fixture_matches_budget() or failed
+	failed = not _test_run_state_advances_to_stage_2() or failed
 	quit(1 if failed else 0)
 
 
@@ -231,6 +234,64 @@ func _test_run_state_starts_stage_1() -> bool:
 	return ok
 
 
+func _test_xp_gem_marker_loads_as_pickup() -> bool:
+	var map := DungeonMapState.new()
+	map.setup_from_rows(_stage_config(0), [
+		"#####",
+		"#PX.#",
+		"#####",
+	])
+
+	var result := map.move_player(Vector2i.RIGHT)
+
+	var ok := true
+	ok = _assert_eq(result["type"], DungeonMapState.EVENT_PICKUP_COLLECTED, "xp gem pickup event") and ok
+	ok = _assert_eq(result["tile_type"], DungeonTile.TileType.XP_GEM, "xp gem marker tile type") and ok
+	ok = _assert_eq(result["occupant_id"], "xp_gem_01", "xp gem pickup id") and ok
+	ok = _assert_eq(map.active_pickup_count(), 0, "xp gem removed after pickup") and ok
+	return ok
+
+
+func _test_stage_2_fixture_matches_budget() -> bool:
+	var config := StageFixtureCatalog.create_stage_2_config(422)
+	var map := StageFixtureCatalog.create_stage_2_map(422)
+
+	var ok := true
+	ok = _assert_eq(config.id, "stage_2", "stage 2 id") and ok
+	ok = _assert_eq(config.seed, 422, "stage 2 seed override") and ok
+	ok = _assert_eq(map.width, 18, "stage 2 width") and ok
+	ok = _assert_eq(map.height, 10, "stage 2 height") and ok
+	ok = _assert_eq(map.active_enemy_count(), config.enemy_budget, "stage 2 enemy budget") and ok
+	ok = _assert_eq(map.active_enemy_count(), 12, "stage 2 has 12 enemies") and ok
+	ok = _assert_eq(map.active_pickup_count(), config.pickup_budget, "stage 2 pickup budget") and ok
+	ok = _assert_eq(map.active_pickup_count(), 4, "stage 2 has 4 pickups") and ok
+	ok = _assert_eq(map.exit_position, Vector2i(16, 1), "stage 2 exit position") and ok
+	ok = _assert_eq(map.player_position, Vector2i(1, 1), "stage 2 player position") and ok
+	ok = _assert_eq(map.is_exit_unlocked(), false, "stage 2 starts locked") and ok
+	ok = _assert_eq(map.mark_enemy_defeated(_boss_id(map)), true, "stage 2 boss can be marked") and ok
+	ok = _assert_eq(map.is_exit_unlocked(), true, "stage 2 unlocks after boss defeat") and ok
+	return ok
+
+
+func _test_run_state_advances_to_stage_2() -> bool:
+	var run := RunState.new()
+	run.setup(515)
+	run.start_stage_1()
+	run.health = 27
+	var map := run.start_next_stage()
+
+	var ok := true
+	ok = _assert_eq(run.stage_index, 2, "next stage increments run stage index") and ok
+	ok = _assert_eq(run.current_stage.id, "stage_2", "run current stage 2 id") and ok
+	ok = _assert_eq(run.current_stage.seed, 616, "run seed feeds stage 2 with offset") and ok
+	ok = _assert_eq(run.health, 27, "stage advance preserves health") and ok
+	ok = _assert_eq(run.deck_card_ids.size(), 8, "stage advance preserves deck") and ok
+	ok = _assert_eq(run.has_next_stage(), false, "stage 2 is final prototype stage") and ok
+	ok = _assert_eq(map.active_enemy_count(), 12, "run stage 2 enemy count") and ok
+	ok = _assert_eq(map.active_pickup_count(), 4, "run stage 2 pickup count") and ok
+	return ok
+
+
 func _stage_config(required_defeats: int) -> StageConfig:
 	return StageConfig.new(
 		"stage_1",
@@ -264,6 +325,10 @@ func _defeat_stage_1_non_boss_sample(map: DungeonMapState) -> bool:
 
 
 func _stage_1_boss_id(map: DungeonMapState) -> String:
+	return _boss_id(map)
+
+
+func _boss_id(map: DungeonMapState) -> String:
 	for enemy_id in map.enemy_positions.keys():
 		var enemy_position: Vector2i = map.enemy_positions[enemy_id]
 		var tile: DungeonTile = map.get_tile(enemy_position)

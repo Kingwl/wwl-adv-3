@@ -16,7 +16,9 @@ const INVALID_POSITION := Vector2i(-9999, -9999)
 func _init() -> void:
 	var failed := false
 	failed = not _test_victory_grants_xp_and_level_events() or failed
+	failed = not _test_combat_defeat_ends_run() or failed
 	failed = not _test_stage_1_player_flow_reaches_exit() or failed
+	failed = not _test_stage_2_exit_ends_prototype_run() or failed
 	quit(1 if failed else 0)
 
 
@@ -52,6 +54,26 @@ func _test_victory_grants_xp_and_level_events() -> bool:
 	return ok
 
 
+func _test_combat_defeat_ends_run() -> bool:
+	var controller := RunController.new()
+	controller.setup(StageFixtureCatalog.STAGE_1_DEFAULT_SEED, 1, 3)
+	controller.start_stage_1()
+	controller.move_player(Vector2i.RIGHT)
+	controller.move_player(Vector2i.RIGHT)
+	var encounter_result := controller.move_player(Vector2i.RIGHT)
+	var defeat_result := controller.end_turn()
+	var move_result := controller.move_player(Vector2i.LEFT)
+
+	var ok := true
+	ok = _assert_eq(encounter_result["type"], RunController.EVENT_COMBAT_STARTED, "low-health run starts combat") and ok
+	ok = _assert_eq(defeat_result["type"], RunController.EVENT_COMBAT_LOST, "enemy turn can defeat player") and ok
+	ok = _assert_eq(controller.mode, RunController.MODE_RUN_END, "combat defeat ends run") and ok
+	ok = _assert_eq(controller.active_run_end_reason, "defeat", "run end reason records defeat") and ok
+	ok = _assert_eq(controller.active_combat == null, true, "run end clears active combat") and ok
+	ok = _assert_eq(move_result["type"], RunController.EVENT_COMMAND_REJECTED, "run end blocks exploration") and ok
+	return ok
+
+
 func _test_stage_1_player_flow_reaches_exit() -> bool:
 	var controller := RunController.new()
 	controller.setup(StageFixtureCatalog.STAGE_1_DEFAULT_SEED, FLOW_HEALTH_BUDGET, 3)
@@ -63,7 +85,26 @@ func _test_stage_1_player_flow_reaches_exit() -> bool:
 	ok = _collect_first_reachable_pickup(controller) and ok
 	ok = _assert_eq(map.is_exit_unlocked(), true, "击败首领后出口解锁") and ok
 	ok = _request_stage_exit(controller) and ok
+	ok = _assert_eq(controller.run_state.current_stage.id, "stage_2", "第 1 关出口进入第 2 关") and ok
+	ok = _assert_eq(controller.mode, RunController.MODE_EXPLORATION, "进入第 2 关后回到探索") and ok
 	ok = _assert_eq(controller.run_state.health > 0, true, "流程结束时玩家仍存活") and ok
+	return ok
+
+
+func _test_stage_2_exit_ends_prototype_run() -> bool:
+	var controller := RunController.new()
+	controller.setup(StageFixtureCatalog.STAGE_1_DEFAULT_SEED, FLOW_HEALTH_BUDGET, 3)
+	var map: DungeonMapState = controller.run_state.start_stage_2()
+	map.mark_enemy_defeated(_find_boss_id(map))
+	map.player_position = Vector2i(15, 1)
+
+	var result := controller.move_player(Vector2i.RIGHT)
+
+	var ok := true
+	ok = _assert_eq(result["type"], RunController.EVENT_RUN_WON, "stage 2 exit ends prototype run") and ok
+	ok = _assert_eq(controller.mode, RunController.MODE_RUN_END, "prototype victory enters run end mode") and ok
+	ok = _assert_eq(controller.active_run_end_reason, "victory", "run end reason records victory") and ok
+	ok = _assert_eq(controller.active_run_end_title, "原型通关", "run end victory title") and ok
 	return ok
 
 
@@ -149,7 +190,7 @@ func _request_stage_exit(controller: RunController) -> bool:
 
 	var exit_direction: Vector2i = route["direction"]
 	var exit_result := controller.move_player(exit_direction)
-	return _assert_eq(exit_result["type"], DungeonMapState.EVENT_STAGE_EXIT_REQUESTED, "移动到出口会请求过关")
+	return _assert_eq(exit_result["type"], RunController.EVENT_STAGE_ADVANCED, "移动到第 1 关出口会进入第 2 关")
 
 
 func _resolve_encounter(controller: RunController) -> bool:
@@ -276,6 +317,15 @@ func _find_boss_position(map: DungeonMapState) -> Vector2i:
 	return INVALID_POSITION
 
 
+func _find_boss_id(map: DungeonMapState) -> String:
+	for enemy_id in map.enemy_positions.keys():
+		var enemy_position: Vector2i = map.enemy_positions[enemy_id]
+		var tile: DungeonTile = map.get_tile(enemy_position)
+		if tile != null and tile.tile_type == DungeonTile.TileType.BOSS:
+			return enemy_id
+	return ""
+
+
 func _find_path_to_adjacent_position(map: DungeonMapState, target_position: Vector2i) -> Dictionary:
 	var best := {
 		"found": false,
@@ -367,6 +417,9 @@ func _walk_path(controller: RunController, path: Array) -> Dictionary:
 		if event_type == DungeonMapState.EVENT_BLOCKED or event_type == DungeonMapState.EVENT_ENCOUNTER_STARTED:
 			push_error("寻路路径被中断：%s" % event_type)
 			return result
+		if event_type == DungeonMapState.EVENT_PICKUP_COLLECTED and controller.mode == RunController.MODE_REWARD:
+			if not _resolve_pending_rewards(controller):
+				return result
 	return result
 
 
