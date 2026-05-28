@@ -10,7 +10,7 @@
 - 启动场景和启动脚本。
 - 基础目录结构。
 - 本地 scaffold 检查脚本。
-- GitHub Actions scaffold 检查。
+- GitHub Actions scaffold 检查和 Godot headless 测试门禁。
 - 核心卡牌战斗第一版：卡牌定义、带 seed 的牌库抽牌、按费用递增的 combo 倍率、战斗者生命/护甲、打牌结算和胜负状态。
 - 第 1 关奖励卡池第一版：7 张纯攻击、防御和抽卡卡牌，均使用中文显示名。
 - 核心地牢地图第一版：地图 tile、关卡配置、run 状态、fixture 加载、移动阻挡、遭遇触发、拾取物收集和出口解锁。
@@ -31,14 +31,10 @@ Godot: 4.6.3 stable.
 ```bash
 cd game
 ./tools/check-all.sh
-godot --headless --path . -s res://test/godot/test_card_combat_core.gd
-godot --headless --path . -s res://test/godot/test_dungeon_core.gd
-godot --headless --path . -s res://test/godot/test_core_gameplay_flow.gd
-godot --headless --path . -s res://test/godot/test_run_scene_smoke.gd
+./tools/test-godot.sh
 ```
 
 ## 下一步
 
-1. 将 Godot headless 测试接入 CI 门禁。
-2. 给敌人补 XP 掉落和升级阈值结算。
-3. 增加升级/宝箱奖励的 3 选 1 UI。
+1. 给敌人补 XP 掉落和升级阈值结算。
+2. 增加升级/宝箱奖励的 3 选 1 UI。

@@ -14,3 +14,19 @@
 - 不写死地图坐标、敌人编号或手牌顺序。
 - 通过 `RunController` 的移动、自动遭遇、出牌、结束回合和出口请求等玩家命令驱动流程。
 - 只断言稳定的玩法结果：遭遇会触发、战斗能胜利、敌人会清除、物品能收集、出口会解锁并请求过关。
+
+## CI 门禁
+
+CI 会先运行 scaffold 检查：
+
+```bash
+cd game
+./tools/check-all.sh
+```
+
+随后安装项目固定的 Godot 版本，并运行所有 Godot headless 测试：
+
+```bash
+cd game
+./tools/test-godot.sh
+```
