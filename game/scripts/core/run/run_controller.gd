@@ -7,6 +7,7 @@ const CombatState = preload("res://scripts/core/combat/combat_state.gd")
 const CombatantState = preload("res://scripts/core/combat/combatant_state.gd")
 const DungeonMapState = preload("res://scripts/core/dungeon/dungeon_map_state.gd")
 const DungeonTile = preload("res://scripts/core/dungeon/dungeon_tile.gd")
+const RewardGenerator = preload("res://scripts/core/rewards/reward_generator.gd")
 const RunState = preload("res://scripts/core/run/run_state.gd")
 const StarterCardCatalog = preload("res://scripts/core/cards/starter_card_catalog.gd")
 
@@ -19,6 +20,8 @@ const EVENT_CARD_PLAYED := "card_played"
 const EVENT_TURN_ENDED := "turn_ended"
 const EVENT_COMBAT_WON := "combat_won"
 const EVENT_COMBAT_LOST := "combat_lost"
+const EVENT_REWARD_APPLIED := RewardGenerator.EVENT_REWARD_APPLIED
+const EVENT_REWARD_REJECTED := RewardGenerator.EVENT_REWARD_REJECTED
 
 const XP_REWARD_NORMAL := 3
 const XP_REWARD_ELITE := 8
@@ -153,6 +156,25 @@ func finish_active_combat_victory() -> Dictionary:
 	return result
 
 
+func create_level_up_reward_choices(level_event: Dictionary = {}) -> Array:
+	var reward_level := run_state.level
+	if level_event.has("level"):
+		reward_level = int(level_event["level"])
+	return RewardGenerator.create_stage_1_card_choices(
+		run_state.seed,
+		run_state.stage_index,
+		reward_level,
+		run_state.reward_offer_index
+	)
+
+
+func apply_reward_choice(choice: Dictionary) -> Dictionary:
+	var result := RewardGenerator.apply_choice(run_state, choice)
+	if bool(result.get("ok", false)):
+		run_state.reward_offer_index += 1
+	return result
+
+
 func xp_reward_for_tile_type(tile_type: int) -> int:
 	if tile_type == DungeonTile.TileType.ELITE:
 		return XP_REWARD_ELITE
@@ -175,12 +197,15 @@ func _create_combat_for_tile(tile: DungeonTile) -> CombatState:
 	var enemy := create_enemy_for_tile(tile)
 	var player := CombatantState.new("hero", "英雄", run_state.max_health, 0, run_state.health)
 	var combat := CombatState.new()
+	var deck_cards := run_state.create_deck_cards()
+	if deck_cards.is_empty():
+		deck_cards = StarterCardCatalog.create_starter_deck()
 	var defeated_count := 0
 	if run_state.dungeon_map != null:
 		defeated_count = run_state.dungeon_map.defeated_enemy_ids.size()
 	combat.setup(
 		player,
-		StarterCardCatalog.create_starter_deck(),
+		deck_cards,
 		[enemy],
 		run_state.seed + run_state.stage_index + defeated_count,
 		run_state.max_mana,

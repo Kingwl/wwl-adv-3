@@ -4,6 +4,7 @@ extends RefCounted
 const DungeonMapState = preload("res://scripts/core/dungeon/dungeon_map_state.gd")
 const StageConfig = preload("res://scripts/core/dungeon/stage_config.gd")
 const StageFixtureCatalog = preload("res://scripts/core/dungeon/stage_fixture_catalog.gd")
+const StarterCardCatalog = preload("res://scripts/core/cards/starter_card_catalog.gd")
 
 const STARTING_LEVEL := 1
 const FIRST_LEVEL_XP := 10
@@ -19,6 +20,7 @@ var max_mana: int = 3
 var level: int = 1
 var xp: int = 0
 var next_level_xp: int = 10
+var reward_offer_index: int = 0
 var deck_card_ids: Array = []
 var item_ids: Array = []
 
@@ -32,16 +34,8 @@ func setup(p_seed: int = 1, p_max_health: int = 40, p_max_mana: int = 3) -> void
 	level = STARTING_LEVEL
 	xp = 0
 	next_level_xp = FIRST_LEVEL_XP
-	deck_card_ids = [
-		"strike",
-		"strike",
-		"strike",
-		"bolt",
-		"bolt",
-		"guard",
-		"guard",
-		"focus",
-	]
+	reward_offer_index = 0
+	deck_card_ids = StarterCardCatalog.starter_deck_card_ids()
 	item_ids.clear()
 	current_stage = null
 	dungeon_map = null
@@ -75,9 +69,15 @@ func gain_xp(amount: int) -> Array:
 	return level_events
 
 
-func add_card(card_id: String) -> void:
-	if card_id != "":
-		deck_card_ids.append(card_id)
+func add_card(card_id: String) -> bool:
+	if card_id == "" or not StarterCardCatalog.has_card_id(card_id):
+		return false
+	deck_card_ids.append(card_id)
+	return true
+
+
+func create_deck_cards() -> Array:
+	return StarterCardCatalog.create_cards_from_ids(deck_card_ids)
 
 
 func add_item(item_id: String) -> void:

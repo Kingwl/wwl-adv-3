@@ -6,6 +6,7 @@ GODOT_BIN="${GODOT_BIN:-godot}"
 
 tests=(
   "test/godot/test_card_combat_core.gd"
+  "test/godot/test_reward_core.gd"
   "test/godot/test_dungeon_core.gd"
   "test/godot/test_core_gameplay_flow.gd"
   "test/godot/test_run_scene_smoke.gd"

@@ -3,10 +3,22 @@ extends RefCounted
 
 const CardDefinition = preload("res://scripts/core/cards/card_definition.gd")
 
+const CARD_ID_STRIKE := "strike"
+const CARD_ID_BOLT := "bolt"
+const CARD_ID_GUARD := "guard"
+const CARD_ID_FOCUS := "focus"
+const CARD_ID_SWIFT_STRIKE := "swift_strike"
+const CARD_ID_SLASH := "slash"
+const CARD_ID_CHARGED_SLASH := "charged_slash"
+const CARD_ID_HEAVY_HAMMER := "heavy_hammer"
+const CARD_ID_BLOCK := "block"
+const CARD_ID_IRON_WALL := "iron_wall"
+const CARD_ID_INSIGHT := "insight"
+
 
 static func create_strike() -> CardDefinition:
 	return CardDefinition.new(
-		"strike",
+		CARD_ID_STRIKE,
 		"打击",
 		1,
 		6,
@@ -18,7 +30,7 @@ static func create_strike() -> CardDefinition:
 
 static func create_bolt() -> CardDefinition:
 	return CardDefinition.new(
-		"bolt",
+		CARD_ID_BOLT,
 		"闪电",
 		2,
 		9,
@@ -30,7 +42,7 @@ static func create_bolt() -> CardDefinition:
 
 static func create_guard() -> CardDefinition:
 	return CardDefinition.new(
-		"guard",
+		CARD_ID_GUARD,
 		"防守",
 		1,
 		0,
@@ -42,7 +54,7 @@ static func create_guard() -> CardDefinition:
 
 static func create_focus() -> CardDefinition:
 	return CardDefinition.new(
-		"focus",
+		CARD_ID_FOCUS,
 		"专注",
 		0,
 		0,
@@ -54,7 +66,7 @@ static func create_focus() -> CardDefinition:
 
 static func create_swift_strike() -> CardDefinition:
 	return CardDefinition.new(
-		"swift_strike",
+		CARD_ID_SWIFT_STRIKE,
 		"迅击",
 		0,
 		3,
@@ -66,7 +78,7 @@ static func create_swift_strike() -> CardDefinition:
 
 static func create_slash() -> CardDefinition:
 	return CardDefinition.new(
-		"slash",
+		CARD_ID_SLASH,
 		"劈砍",
 		1,
 		8,
@@ -78,7 +90,7 @@ static func create_slash() -> CardDefinition:
 
 static func create_charged_slash() -> CardDefinition:
 	return CardDefinition.new(
-		"charged_slash",
+		CARD_ID_CHARGED_SLASH,
 		"蓄力斩",
 		2,
 		12,
@@ -90,7 +102,7 @@ static func create_charged_slash() -> CardDefinition:
 
 static func create_heavy_hammer() -> CardDefinition:
 	return CardDefinition.new(
-		"heavy_hammer",
+		CARD_ID_HEAVY_HAMMER,
 		"重锤",
 		3,
 		18,
@@ -102,7 +114,7 @@ static func create_heavy_hammer() -> CardDefinition:
 
 static func create_block() -> CardDefinition:
 	return CardDefinition.new(
-		"block",
+		CARD_ID_BLOCK,
 		"格挡",
 		1,
 		0,
@@ -114,7 +126,7 @@ static func create_block() -> CardDefinition:
 
 static func create_iron_wall() -> CardDefinition:
 	return CardDefinition.new(
-		"iron_wall",
+		CARD_ID_IRON_WALL,
 		"铁壁",
 		2,
 		0,
@@ -126,7 +138,7 @@ static func create_iron_wall() -> CardDefinition:
 
 static func create_insight() -> CardDefinition:
 	return CardDefinition.new(
-		"insight",
+		CARD_ID_INSIGHT,
 		"洞察",
 		0,
 		0,
@@ -137,25 +149,72 @@ static func create_insight() -> CardDefinition:
 
 
 static func create_starter_deck() -> Array:
+	return create_cards_from_ids(starter_deck_card_ids())
+
+
+static func starter_deck_card_ids() -> Array:
 	return [
-		create_strike(),
-		create_strike(),
-		create_strike(),
-		create_bolt(),
-		create_bolt(),
-		create_guard(),
-		create_guard(),
-		create_focus(),
+		CARD_ID_STRIKE,
+		CARD_ID_STRIKE,
+		CARD_ID_STRIKE,
+		CARD_ID_BOLT,
+		CARD_ID_BOLT,
+		CARD_ID_GUARD,
+		CARD_ID_GUARD,
+		CARD_ID_FOCUS,
 	]
 
 
 static func create_stage_1_reward_pool() -> Array:
+	return create_cards_from_ids(stage_1_reward_card_ids())
+
+
+static func stage_1_reward_card_ids() -> Array:
 	return [
-		create_swift_strike(),
-		create_slash(),
-		create_charged_slash(),
-		create_heavy_hammer(),
-		create_block(),
-		create_iron_wall(),
-		create_insight(),
+		CARD_ID_SWIFT_STRIKE,
+		CARD_ID_SLASH,
+		CARD_ID_CHARGED_SLASH,
+		CARD_ID_HEAVY_HAMMER,
+		CARD_ID_BLOCK,
+		CARD_ID_IRON_WALL,
+		CARD_ID_INSIGHT,
 	]
+
+
+static func create_card_by_id(card_id: String) -> CardDefinition:
+	if card_id == CARD_ID_STRIKE:
+		return create_strike()
+	if card_id == CARD_ID_BOLT:
+		return create_bolt()
+	if card_id == CARD_ID_GUARD:
+		return create_guard()
+	if card_id == CARD_ID_FOCUS:
+		return create_focus()
+	if card_id == CARD_ID_SWIFT_STRIKE:
+		return create_swift_strike()
+	if card_id == CARD_ID_SLASH:
+		return create_slash()
+	if card_id == CARD_ID_CHARGED_SLASH:
+		return create_charged_slash()
+	if card_id == CARD_ID_HEAVY_HAMMER:
+		return create_heavy_hammer()
+	if card_id == CARD_ID_BLOCK:
+		return create_block()
+	if card_id == CARD_ID_IRON_WALL:
+		return create_iron_wall()
+	if card_id == CARD_ID_INSIGHT:
+		return create_insight()
+	return null
+
+
+static func create_cards_from_ids(card_ids: Array) -> Array:
+	var cards: Array = []
+	for raw_card_id in card_ids:
+		var card := create_card_by_id(str(raw_card_id))
+		if card != null:
+			cards.append(card)
+	return cards
+
+
+static func has_card_id(card_id: String) -> bool:
+	return create_card_by_id(card_id) != null

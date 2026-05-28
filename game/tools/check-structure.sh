@@ -8,6 +8,7 @@ required_dirs=(
   "${GAME_DIR}/scripts/core/cards"
   "${GAME_DIR}/scripts/core/combat"
   "${GAME_DIR}/scripts/core/dungeon"
+  "${GAME_DIR}/scripts/core/rewards"
   "${GAME_DIR}/scripts/core/run"
   "${GAME_DIR}/scripts/core"
   "${GAME_DIR}/scripts/board"
