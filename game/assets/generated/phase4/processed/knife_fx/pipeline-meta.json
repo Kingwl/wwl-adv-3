@@ -1,0 +1,155 @@
+{
+  "target": "asset",
+  "mode": "knife_fx",
+  "prompt": "",
+  "role": "",
+  "input": "game/assets/generated/phase4/raw/knife_fx_raw.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 90,
+  "rows": 2,
+  "cols": 2,
+  "cell_size": 128,
+  "fit_scale": 0.9,
+  "trim_border": 4,
+  "edge_clean_depth": 3,
+  "align": "center",
+  "shared_scale": true,
+  "component_mode": "all",
+  "component_padding": 0,
+  "min_component_area": 1,
+  "edge_touch_margin": 0,
+  "frame_labels": [
+    "knife_fx-1",
+    "knife_fx-2",
+    "knife_fx-3",
+    "knife_fx-4"
+  ],
+  "frames": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "source_box": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 16,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        124,
+        225,
+        451,
+        303
+      ],
+      "edge_touch": false,
+      "output_size": [
+        105,
+        25
+      ],
+      "paste_position": [
+        11,
+        51
+      ]
+    },
+    {
+      "grid": [
+        0,
+        1
+      ],
+      "source_box": [
+        512,
+        0,
+        1024,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 28,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        71,
+        202,
+        429,
+        313
+      ],
+      "edge_touch": false,
+      "output_size": [
+        115,
+        35
+      ],
+      "paste_position": [
+        6,
+        46
+      ]
+    },
+    {
+      "grid": [
+        1,
+        0
+      ],
+      "source_box": [
+        0,
+        512,
+        512,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 38,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        101,
+        133,
+        445,
+        284
+      ],
+      "edge_touch": false,
+      "output_size": [
+        110,
+        48
+      ],
+      "paste_position": [
+        9,
+        40
+      ]
+    },
+    {
+      "grid": [
+        1,
+        1
+      ],
+      "source_box": [
+        512,
+        512,
+        1024,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 56,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        68,
+        112,
+        417,
+        291
+      ],
+      "edge_touch": false,
+      "output_size": [
+        112,
+        57
+      ],
+      "paste_position": [
+        8,
+        35
+      ]
+    }
+  ],
+  "edge_touch_frames": []
+}

@@ -1,0 +1,155 @@
+{
+  "target": "asset",
+  "mode": "runetracer_fx",
+  "prompt": "",
+  "role": "",
+  "input": "game/assets/generated/phase4/raw/runetracer_fx_raw.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 90,
+  "rows": 2,
+  "cols": 2,
+  "cell_size": 128,
+  "fit_scale": 0.9,
+  "trim_border": 4,
+  "edge_clean_depth": 3,
+  "align": "center",
+  "shared_scale": true,
+  "component_mode": "all",
+  "component_padding": 0,
+  "min_component_area": 1,
+  "edge_touch_margin": 0,
+  "frame_labels": [
+    "runetracer_fx-1",
+    "runetracer_fx-2",
+    "runetracer_fx-3",
+    "runetracer_fx-4"
+  ],
+  "frames": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "source_box": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 39,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        124,
+        147,
+        389,
+        428
+      ],
+      "edge_touch": false,
+      "output_size": [
+        99,
+        105
+      ],
+      "paste_position": [
+        14,
+        11
+      ]
+    },
+    {
+      "grid": [
+        0,
+        1
+      ],
+      "source_box": [
+        512,
+        0,
+        1024,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 40,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        78,
+        138,
+        378,
+        421
+      ],
+      "edge_touch": false,
+      "output_size": [
+        112,
+        106
+      ],
+      "paste_position": [
+        8,
+        11
+      ]
+    },
+    {
+      "grid": [
+        1,
+        0
+      ],
+      "source_box": [
+        0,
+        512,
+        512,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 34,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        124,
+        99,
+        424,
+        351
+      ],
+      "edge_touch": false,
+      "output_size": [
+        112,
+        94
+      ],
+      "paste_position": [
+        8,
+        17
+      ]
+    },
+    {
+      "grid": [
+        1,
+        1
+      ],
+      "source_box": [
+        512,
+        512,
+        1024,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 64,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        90,
+        89,
+        397,
+        394
+      ],
+      "edge_touch": false,
+      "output_size": [
+        115,
+        114
+      ],
+      "paste_position": [
+        6,
+        7
+      ]
+    }
+  ],
+  "edge_touch_frames": []
+}

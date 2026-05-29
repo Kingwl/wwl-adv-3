@@ -1,0 +1,155 @@
+{
+  "target": "asset",
+  "mode": "song_of_mana_fx",
+  "prompt": "",
+  "role": "",
+  "input": "game/assets/generated/phase4/raw/song_of_mana_fx_raw.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 90,
+  "rows": 2,
+  "cols": 2,
+  "cell_size": 128,
+  "fit_scale": 0.9,
+  "trim_border": 4,
+  "edge_clean_depth": 3,
+  "align": "center",
+  "shared_scale": true,
+  "component_mode": "all",
+  "component_padding": 0,
+  "min_component_area": 1,
+  "edge_touch_margin": 0,
+  "frame_labels": [
+    "song_of_mana_fx-1",
+    "song_of_mana_fx-2",
+    "song_of_mana_fx-3",
+    "song_of_mana_fx-4"
+  ],
+  "frames": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "source_box": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 110,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        130,
+        229,
+        390,
+        429
+      ],
+      "edge_touch": false,
+      "output_size": [
+        98,
+        75
+      ],
+      "paste_position": [
+        15,
+        26
+      ]
+    },
+    {
+      "grid": [
+        0,
+        1
+      ],
+      "source_box": [
+        512,
+        0,
+        1024,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 129,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        80,
+        222,
+        353,
+        438
+      ],
+      "edge_touch": false,
+      "output_size": [
+        103,
+        81
+      ],
+      "paste_position": [
+        12,
+        23
+      ]
+    },
+    {
+      "grid": [
+        1,
+        0
+      ],
+      "source_box": [
+        0,
+        512,
+        512,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 147,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        131,
+        80,
+        407,
+        342
+      ],
+      "edge_touch": false,
+      "output_size": [
+        104,
+        98
+      ],
+      "paste_position": [
+        12,
+        15
+      ]
+    },
+    {
+      "grid": [
+        1,
+        1
+      ],
+      "source_box": [
+        512,
+        512,
+        1024,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 229,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        80,
+        47,
+        363,
+        352
+      ],
+      "edge_touch": false,
+      "output_size": [
+        106,
+        115
+      ],
+      "paste_position": [
+        11,
+        6
+      ]
+    }
+  ],
+  "edge_touch_frames": []
+}

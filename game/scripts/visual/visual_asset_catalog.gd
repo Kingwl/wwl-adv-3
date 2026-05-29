@@ -7,6 +7,7 @@ const HERO_WALK_SHEET := "res://assets/generated/phase1/processed/hero_walk_4dir
 const PICKUPS_EXIT_SHEET := "res://assets/generated/phase1/processed/pickups_exit_pack/sheet-transparent.png"
 const SHARED_CARD_FX_SHEET := "res://assets/generated/phase1/processed/card_fx_atlas/sheet-transparent.png"
 const DEDICATED_CARD_FX_SHEET := "res://assets/generated/phase2/processed/dedicated_card_fx_atlas/sheet-transparent.png"
+const PHASE4_CARD_FX_ROOT := "res://assets/generated/phase4/processed"
 const MAP_TILESET_CORE_SHEET := "res://assets/generated/phase3/processed/map_tileset_core/sheet-transparent.png"
 const CARD_ICON_ATLAS_A_SHEET := "res://assets/generated/phase3/processed/card_icon_atlas_a/sheet-transparent.png"
 const CARD_ICON_ATLAS_B_SHEET := "res://assets/generated/phase3/processed/card_icon_atlas_b/sheet-transparent.png"
@@ -38,6 +39,26 @@ const CARD_FX_ACTION_FRAMES := {
 	"random_strike": [13, 14, 15, 16],
 	"bounce_projectile": [17, 18, 19, 20],
 	"all_screen_burst": [21, 22, 23, 24],
+}
+
+const CARD_ATTACK_FX_ROWS := {
+	"whip": [DEDICATED_CARD_FX_SHEET, 6, 4, [1, 2, 3, 4]],
+	"king_bible": [DEDICATED_CARD_FX_SHEET, 6, 4, [5, 6, 7, 8]],
+	"garlic": [DEDICATED_CARD_FX_SHEET, 6, 4, [9, 10, 11, 12]],
+	"santa_water": [DEDICATED_CARD_FX_SHEET, 6, 4, [13, 14, 15, 16]],
+	"pentagram": [DEDICATED_CARD_FX_SHEET, 6, 4, [17, 18, 19, 20]],
+	"lightning_ring": [DEDICATED_CARD_FX_SHEET, 6, 4, [21, 22, 23, 24]],
+	"magic_wand": [PHASE4_CARD_FX_ROOT + "/magic_wand_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"knife": [PHASE4_CARD_FX_ROOT + "/knife_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"axe": [PHASE4_CARD_FX_ROOT + "/axe_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"cross": [PHASE4_CARD_FX_ROOT + "/cross_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"fire_wand": [PHASE4_CARD_FX_ROOT + "/fire_wand_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"runetracer": [PHASE4_CARD_FX_ROOT + "/runetracer_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"peachone": [PHASE4_CARD_FX_ROOT + "/peachone_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"ebony_wings": [PHASE4_CARD_FX_ROOT + "/ebony_wings_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"song_of_mana": [PHASE4_CARD_FX_ROOT + "/song_of_mana_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"bone": [PHASE4_CARD_FX_ROOT + "/bone_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"cherry_bomb": [PHASE4_CARD_FX_ROOT + "/cherry_bomb_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
 }
 
 const ENEMY_COMBAT_SHEETS := {
@@ -198,6 +219,17 @@ func card_texture(card_id: String, frame_index: int = 0) -> Texture2D:
 func card_fx_texture(action: String, frame_index: int = 0) -> Texture2D:
 	var frames: Array = CARD_FX_ACTION_FRAMES.get(action, CARD_FX_ACTION_FRAMES["single_impact"])
 	return _sheet_frame_from_sequence(SHARED_CARD_FX_SHEET, 6, 4, frames, frame_index)
+
+
+func card_attack_fx_texture(card_id: String, frame_index: int = 0) -> Texture2D:
+	if not CARD_ATTACK_FX_ROWS.has(card_id):
+		return null
+	var fx_info: Array = CARD_ATTACK_FX_ROWS[card_id]
+	var sheet_path := str(fx_info[0])
+	var rows := int(fx_info[1])
+	var cols := int(fx_info[2])
+	var frames: Array = fx_info[3]
+	return _sheet_frame_from_sequence(sheet_path, rows, cols, frames, frame_index)
 
 
 func _card_icon_texture(card_id: String, frame_index: int) -> Texture2D:

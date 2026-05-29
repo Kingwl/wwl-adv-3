@@ -1,0 +1,155 @@
+{
+  "target": "asset",
+  "mode": "ebony_wings_fx",
+  "prompt": "",
+  "role": "",
+  "input": "game/assets/generated/phase4/raw/ebony_wings_fx_raw.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 90,
+  "rows": 2,
+  "cols": 2,
+  "cell_size": 128,
+  "fit_scale": 0.9,
+  "trim_border": 4,
+  "edge_clean_depth": 3,
+  "align": "center",
+  "shared_scale": true,
+  "component_mode": "all",
+  "component_padding": 0,
+  "min_component_area": 1,
+  "edge_touch_margin": 0,
+  "frame_labels": [
+    "ebony_wings_fx-1",
+    "ebony_wings_fx-2",
+    "ebony_wings_fx-3",
+    "ebony_wings_fx-4"
+  ],
+  "frames": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "source_box": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 57,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        97,
+        80,
+        438,
+        457
+      ],
+      "edge_touch": false,
+      "output_size": [
+        104,
+        115
+      ],
+      "paste_position": [
+        12,
+        6
+      ]
+    },
+    {
+      "grid": [
+        0,
+        1
+      ],
+      "source_box": [
+        512,
+        0,
+        1024,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 109,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        49,
+        117,
+        419,
+        460
+      ],
+      "edge_touch": false,
+      "output_size": [
+        113,
+        104
+      ],
+      "paste_position": [
+        7,
+        12
+      ]
+    },
+    {
+      "grid": [
+        1,
+        0
+      ],
+      "source_box": [
+        0,
+        512,
+        512,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 118,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        63,
+        44,
+        435,
+        402
+      ],
+      "edge_touch": false,
+      "output_size": [
+        113,
+        109
+      ],
+      "paste_position": [
+        7,
+        9
+      ]
+    },
+    {
+      "grid": [
+        1,
+        1
+      ],
+      "source_box": [
+        512,
+        512,
+        1024,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 112,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        68,
+        82,
+        418,
+        413
+      ],
+      "edge_touch": false,
+      "output_size": [
+        106,
+        101
+      ],
+      "paste_position": [
+        11,
+        13
+      ]
+    }
+  ],
+  "edge_touch_frames": []
+}

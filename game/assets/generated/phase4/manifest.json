@@ -1,0 +1,72 @@
+{
+  "version": "phase4",
+  "style": "project-native pixel-inspired attack card VFX",
+  "preferred_assets": {
+    "fx.card.attack.magic_wand": {
+      "sheet": "processed/magic_wand_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.knife": {
+      "sheet": "processed/knife_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.axe": {
+      "sheet": "processed/axe_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.cross": {
+      "sheet": "processed/cross_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.fire_wand": {
+      "sheet": "processed/fire_wand_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.runetracer": {
+      "sheet": "processed/runetracer_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.peachone": {
+      "sheet": "processed/peachone_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.ebony_wings": {
+      "sheet": "processed/ebony_wings_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.song_of_mana": {
+      "sheet": "processed/song_of_mana_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.bone": {
+      "sheet": "processed/bone_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.card.attack.cherry_bomb": {
+      "sheet": "processed/cherry_bomb_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    }
+  }
+}

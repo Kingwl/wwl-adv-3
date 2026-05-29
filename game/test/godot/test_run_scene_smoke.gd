@@ -17,6 +17,7 @@ func _run_tests() -> void:
 	await process_frame
 
 	failed = not _test_run_scene_loads_stage_1(run_scene) or failed
+	failed = not _test_run_scene_loads_attack_card_fx_assets(run_scene) or failed
 	failed = not _test_run_scene_non_adjacent_click_only_selects(run_scene) or failed
 	_reset_run_scene(run_scene)
 	await process_frame
@@ -71,6 +72,37 @@ func _test_run_scene_loads_stage_1(run_scene) -> bool:
 	ok = _assert_eq(map_grid.get_child_count(), 160, "run scene map cell count") and ok
 	ok = _assert_eq(action_button.disabled, true, "action button starts disabled") and ok
 	ok = _assert_eq(_visible_text_has_english(run_scene), false, "exploration visible text uses Chinese") and ok
+	return ok
+
+
+func _test_run_scene_loads_attack_card_fx_assets(run_scene) -> bool:
+	var attack_fx_cards := [
+		"whip",
+		"magic_wand",
+		"knife",
+		"axe",
+		"cross",
+		"king_bible",
+		"fire_wand",
+		"garlic",
+		"santa_water",
+		"runetracer",
+		"lightning_ring",
+		"pentagram",
+		"peachone",
+		"ebony_wings",
+		"song_of_mana",
+		"bone",
+		"cherry_bomb",
+	]
+	var ok := true
+	for card_id in attack_fx_cards:
+		for frame_index in range(4):
+			var texture: Texture2D = run_scene.visual_assets.card_attack_fx_texture(card_id, frame_index)
+			ok = _assert_ne(texture, null, "attack card fx texture %s frame %s" % [card_id, frame_index]) and ok
+			if texture != null:
+				ok = _assert_eq(texture.get_width() > 0, true, "attack card fx width %s frame %s" % [card_id, frame_index]) and ok
+				ok = _assert_eq(texture.get_height() > 0, true, "attack card fx height %s frame %s" % [card_id, frame_index]) and ok
 	return ok
 
 

@@ -1338,17 +1338,17 @@ func _play_card_use_vfx(card, result: Dictionary, context: Dictionary) -> void:
 		hand_center = source_center
 
 	var tint := _card_vfx_color(card)
-	_spawn_card_fx_burst("single_impact", source_center, Vector2(94, 86), tint, 0.0, 0.22, 0.82)
+	_spawn_card_fx_burst("single_impact", source_center, Vector2(94, 86), tint, 0.0, 0.22, 0.82, card.id)
 
 	if card.base_damage > 0:
 		var target_points := _card_vfx_target_points(result, context)
 		_play_attack_card_vfx(card, source_center, target_points, tint, context)
 	if card.block > 0:
 		_spawn_card_icon_pulse(card, player_center, Vector2(76, 76), Color(1.0, 1.0, 1.0, 0.92), 0.02)
-		_spawn_card_fx_burst("single_impact", player_center, Vector2(152, 126), Color(0.38, 0.86, 0.72, 0.82), 0.06, 0.42, 0.82)
+		_spawn_card_fx_burst("single_impact", player_center, Vector2(152, 126), Color(0.38, 0.86, 0.72, 0.82), 0.06, 0.42, 0.82, card.id)
 	if card.draw_count > 0:
 		_spawn_card_icon_pulse(card, hand_center, Vector2(76, 76), Color(1.0, 1.0, 1.0, 0.90), 0.04)
-		_spawn_card_fx_burst("bounce_projectile", hand_center, Vector2(132, 102), Color(0.78, 0.88, 1.00, 0.80), 0.08, 0.38, 0.80)
+		_spawn_card_fx_burst("bounce_projectile", hand_center, Vector2(132, 102), Color(0.78, 0.88, 1.00, 0.80), 0.08, 0.38, 0.80, card.id)
 
 
 func _play_attack_card_vfx(card, source_center: Vector2, target_points: Array, tint: Color, context: Dictionary) -> void:
@@ -1359,8 +1359,8 @@ func _play_attack_card_vfx(card, source_center: Vector2, target_points: Array, t
 		var sweep_center := _points_center(target_points)
 		var sweep_size := _points_span_size(target_points, Vector2(250, 104), Vector2(170, 84))
 		_spawn_card_icon_pulse(card, sweep_center, Vector2(78, 78), Color(1.0, 1.0, 1.0, 0.92), 0.02)
-		_spawn_card_fx_burst("front_row_sweep", sweep_center, sweep_size, tint, 0.04, 0.34, 0.88)
-		_spawn_target_impacts(target_points, tint, 0.20)
+		_spawn_card_fx_burst("front_row_sweep", sweep_center, sweep_size, tint, 0.04, 0.34, 0.88, card.id)
+		_spawn_target_impacts(target_points, tint, 0.20, card.id)
 		return
 
 	if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
@@ -1368,14 +1368,14 @@ func _play_attack_card_vfx(card, source_center: Vector2, target_points: Array, t
 		var burst_center := stage_rect.get_center() if stage_rect.size != Vector2.ZERO else _points_center(target_points)
 		var burst_size := Vector2(maxf(stage_rect.size.x * 0.86, 320.0), maxf(stage_rect.size.y * 0.70, 170.0))
 		_spawn_card_icon_pulse(card, burst_center, Vector2(90, 90), Color(1.0, 1.0, 1.0, 0.92), 0.02)
-		_spawn_card_fx_burst("all_screen_burst", burst_center, burst_size, tint, 0.04, 0.48, 0.88)
-		_spawn_target_impacts(target_points, tint, 0.26)
+		_spawn_card_fx_burst("all_screen_burst", burst_center, burst_size, tint, 0.04, 0.48, 0.88, card.id)
+		_spawn_target_impacts(target_points, tint, 0.26, card.id)
 		return
 
 	if card.target_mode == CardDefinition.TargetMode.RANDOM_ENEMIES:
 		for i in range(target_points.size()):
 			_spawn_card_icon_echo(card, source_center, target_points[i], 0.02 + float(i) * 0.08, 0.20, Color(1.0, 1.0, 1.0, 0.90))
-			_spawn_card_fx_burst("random_strike", target_points[i], Vector2(132, 112), tint, 0.08 + float(i) * 0.08, 0.32, 0.88)
+			_spawn_card_fx_burst("random_strike", target_points[i], Vector2(132, 112), tint, 0.08 + float(i) * 0.08, 0.32, 0.88, card.id)
 		return
 
 	if card.target_mode == CardDefinition.TargetMode.BOUNCE:
@@ -1384,14 +1384,14 @@ func _play_attack_card_vfx(card, source_center: Vector2, target_points: Array, t
 			var target_point: Vector2 = target_points[i]
 			var delay := float(i) * 0.13
 			_spawn_card_icon_echo(card, previous_point, target_point, delay, 0.18, Color(1.0, 1.0, 1.0, 0.88))
-			_spawn_card_fx_projectile("bounce_projectile", previous_point, target_point, tint, delay, 0.18)
-			_spawn_card_fx_burst("single_impact", target_point, Vector2(126, 104), tint, delay + 0.17, 0.22, 0.82)
+			_spawn_card_fx_projectile("bounce_projectile", previous_point, target_point, tint, delay, 0.18, card.id)
+			_spawn_card_fx_burst("single_impact", target_point, Vector2(126, 104), tint, delay + 0.17, 0.22, 0.82, card.id)
 			previous_point = target_point
 		return
 
 	_spawn_card_icon_echo(card, source_center, target_points[0], 0.02, 0.24, Color(1.0, 1.0, 1.0, 0.90))
-	_spawn_card_fx_projectile(_card_projectile_action(card), source_center, target_points[0], tint, 0.04, 0.24)
-	_spawn_target_impacts([target_points[0]], tint, 0.28)
+	_spawn_card_fx_projectile(_card_projectile_action(card), source_center, target_points[0], tint, 0.04, 0.24, card.id)
+	_spawn_target_impacts([target_points[0]], tint, 0.28, card.id)
 
 
 func _card_vfx_target_points(result: Dictionary, context: Dictionary) -> Array:
@@ -1410,9 +1410,9 @@ func _card_vfx_target_points(result: Dictionary, context: Dictionary) -> Array:
 	return target_points
 
 
-func _spawn_target_impacts(target_points: Array, tint: Color, base_delay: float) -> void:
+func _spawn_target_impacts(target_points: Array, tint: Color, base_delay: float, card_id: String = "") -> void:
 	for i in range(target_points.size()):
-		_spawn_card_fx_burst("single_impact", target_points[i], Vector2(126, 104), tint, base_delay + float(i) * 0.03, 0.24, 0.84)
+		_spawn_card_fx_burst("single_impact", target_points[i], Vector2(126, 104), tint, base_delay + float(i) * 0.03, 0.24, 0.84, card_id)
 
 
 func _spawn_card_fx_projectile(
@@ -1421,9 +1421,10 @@ func _spawn_card_fx_projectile(
 	end_center: Vector2,
 	tint: Color,
 	delay: float,
-	duration: float
+	duration: float,
+	card_id: String = ""
 ) -> void:
-	var sprite := _create_card_fx_sprite(action, start_center, Vector2(104, 78), tint)
+	var sprite := _create_card_fx_sprite(action, start_center, Vector2(104, 78), tint, card_id)
 	if sprite == null:
 		return
 	sprite.rotation = (end_center - start_center).angle()
@@ -1506,11 +1507,12 @@ func _spawn_card_fx_burst(
 	tint: Color,
 	delay: float,
 	duration: float,
-	alpha: float
+	alpha: float,
+	card_id: String = ""
 ) -> void:
 	var burst_tint := tint
 	burst_tint.a = alpha
-	var sprite := _create_card_fx_sprite(action, center, size, burst_tint)
+	var sprite := _create_card_fx_sprite(action, center, size, burst_tint, card_id)
 	if sprite == null:
 		return
 	sprite.visible = delay <= 0.0
@@ -1525,10 +1527,12 @@ func _spawn_card_fx_burst(
 	tween.tween_callback(Callable(sprite, "queue_free"))
 
 
-func _create_card_fx_sprite(action: String, center: Vector2, size: Vector2, tint: Color) -> TextureRect:
+func _create_card_fx_sprite(action: String, center: Vector2, size: Vector2, tint: Color, card_id: String = "") -> TextureRect:
 	if combat_fx_layer == null:
 		return null
-	var texture := visual_assets.card_fx_texture(action, animation_frame)
+	var texture := visual_assets.card_attack_fx_texture(card_id, animation_frame)
+	if texture == null:
+		texture = visual_assets.card_fx_texture(action, animation_frame)
 	if texture == null:
 		return null
 
@@ -1546,7 +1550,7 @@ func _create_card_fx_sprite(action: String, center: Vector2, size: Vector2, tint
 	sprite.z_index = 400 + combat_fx_serial % 50
 	sprite.modulate = tint
 	sprite.position = _fx_layer_position_for_center(center, size)
-	_apply_texture_animation(sprite, ANIMATION_CARD_FX, "", action)
+	_apply_texture_animation(sprite, ANIMATION_CARD_FX, card_id, action)
 	combat_fx_layer.add_child(sprite)
 	return sprite
 
@@ -2544,6 +2548,10 @@ func _animation_texture_for(node: Object) -> Texture2D:
 	if animation_type == ANIMATION_CARD_FX:
 		if action == "":
 			action = "single_impact"
+		if asset_id != "":
+			var card_fx := visual_assets.card_attack_fx_texture(asset_id, animation_frame)
+			if card_fx != null:
+				return card_fx
 		return visual_assets.card_fx_texture(action, animation_frame)
 	return null
 
