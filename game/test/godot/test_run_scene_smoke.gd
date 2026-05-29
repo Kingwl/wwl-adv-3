@@ -442,7 +442,8 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(rear_cards.get_child_count(), 1, "rear row has separate enemy card") and ok
 	var target_state: Label = front_cards.get_child(0).find_child("EnemyStateLabel", true, false)
 	var rear_state: Label = rear_cards.get_child(0).find_child("EnemyStateLabel", true, false)
-	ok = _assert_eq(target_state.text, "当前目标", "single-target card auto target is marked") and ok
+	ok = _assert_eq(target_state.text.contains("当前目标"), true, "single-target card auto target is marked") and ok
+	ok = _assert_eq(target_state.text.contains("意图：攻击 4"), true, "front enemy shows attack intent") and ok
 	ok = _assert_eq(rear_state.text, "待命", "rear row is waiting") and ok
 	ok = _assert_eq(player_state_panel, null, "combat has no player state panel") and ok
 	ok = _assert_eq(_visible_text_has_english(combat_hand_row), false, "combat hand text uses Chinese") and ok

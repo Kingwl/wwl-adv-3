@@ -13,6 +13,7 @@ func _init() -> void:
 	failed = not _test_combo_requires_next_cost_step() or failed
 	failed = not _test_deck_shuffle_is_seeded() or failed
 	failed = not _test_combat_applies_combo_damage_and_block() or failed
+	failed = not _test_enemy_guard_block_is_personal_and_refreshes() or failed
 	failed = not _test_enemy_rows_only_front_attacks_and_rear_waits_after_advancing() or failed
 	failed = not _test_primary_target_prioritizes_ready_attacker() or failed
 	failed = not _test_enemy_rows_are_capped_at_five_enemies() or failed
@@ -78,6 +79,50 @@ func _test_combat_applies_combo_damage_and_block() -> bool:
 	ok = _assert_eq(strike_result.damage_requested, 12, "second combo card scales strike") and ok
 	ok = _assert_eq(bolt_result.damage_requested, 27, "third combo card scales bolt") and ok
 	ok = _assert_eq(combat.enemies[0].health, 11, "enemy loses scaled damage") and ok
+	return ok
+
+
+func _test_enemy_guard_block_is_personal_and_refreshes() -> bool:
+	var combat := CombatState.new()
+	combat.setup(
+		CombatantState.new("hero", "英雄", 40, 0),
+		[],
+		[[
+			CombatantState.new("guard", "盾卫", 20, 2, -1, 5),
+			CombatantState.new("striker", "敌人", 20, 4),
+		]],
+		21,
+		3,
+		0
+	)
+
+	var first_damage := combat.end_player_turn()
+	var second_damage := combat.end_player_turn()
+	var guard_block_after_guard_turn: int = combat.enemies[0].block
+	var guard_intent := combat.enemy_intent_for(combat.enemies[0])
+	var striker_intent := combat.enemy_intent_for(combat.enemies[1])
+	combat.deck.hand = [
+		CardDefinition.new("poke", "轻击", 1, 2, 0, 0, CardDefinition.TargetMode.SINGLE_ENEMY),
+	]
+	combat.mana = 3
+	var poke_result = combat.play_card(0, 0)
+	var guard_block_after_poke: int = combat.enemies[0].block
+	var striker_block_after_poke: int = combat.enemies[1].block
+	var guard_health_after_poke: int = combat.enemies[0].health
+	var third_damage := combat.end_player_turn()
+
+	var ok := true
+	ok = _assert_eq(first_damage, 6, "shield enemy attacks on its first ready turn") and ok
+	ok = _assert_eq(second_damage, 4, "shield enemy guards instead of attacking on alternating turn") and ok
+	ok = _assert_eq(guard_block_after_guard_turn, 5, "shield enemy gains its own block") and ok
+	ok = _assert_eq(combat.enemies[0].block, 0, "enemy block refreshes at the next enemy turn") and ok
+	ok = _assert_eq(third_damage, 6, "shield enemy attacks again after guard turn") and ok
+	ok = _assert_eq(str(guard_intent.get("type", "")), CombatState.ENEMY_INTENT_ATTACK, "guard intends to attack after guarding") and ok
+	ok = _assert_eq(str(striker_intent.get("type", "")), CombatState.ENEMY_INTENT_ATTACK, "non-shield enemy intends to attack") and ok
+	ok = _assert_eq(poke_result.damage_dealt, 0, "target shield absorbs small damage") and ok
+	ok = _assert_eq(guard_block_after_poke, 3, "target shield is reduced by damage") and ok
+	ok = _assert_eq(striker_block_after_poke, 0, "other enemies do not share the target shield") and ok
+	ok = _assert_eq(guard_health_after_poke, 20, "shield prevents health damage") and ok
 	return ok
 
 

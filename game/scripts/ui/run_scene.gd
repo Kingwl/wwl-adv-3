@@ -896,7 +896,7 @@ func _add_empty_enemy_row() -> void:
 func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = "EnemyCard_%s" % enemy.id
-	card.custom_minimum_size = Vector2(150, 118)
+	card.custom_minimum_size = Vector2(150, 134)
 	_style_enemy_card(card, row_index, is_target)
 
 	var content := VBoxContainer.new()
@@ -939,10 +939,21 @@ func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) 
 
 
 func _enemy_state_text(enemy: CombatantState, is_target: bool) -> String:
+	var parts: Array = []
 	if is_target:
-		return "当前目标"
-	if active_combat.can_enemy_attack(enemy):
-		return "可攻击"
+		parts.append("当前目标")
+	parts.append(_enemy_intent_text(enemy))
+	return "\n".join(parts)
+
+
+func _enemy_intent_text(enemy: CombatantState) -> String:
+	var intent := active_combat.enemy_intent_for(enemy)
+	var intent_type := str(intent.get("type", CombatState.ENEMY_INTENT_WAIT))
+	var amount := int(intent.get("amount", 0))
+	if intent_type == CombatState.ENEMY_INTENT_ATTACK:
+		return "意图：攻击 %s" % amount
+	if intent_type == CombatState.ENEMY_INTENT_GUARD:
+		return "意图：护甲 +%s" % amount
 	return "待命"
 
 

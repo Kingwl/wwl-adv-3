@@ -255,7 +255,7 @@ func create_enemy_for_tile(tile: DungeonTile) -> CombatantState:
 	if tile.tile_type == DungeonTile.TileType.ELITE:
 		return CombatantState.new("%s_front" % tile.occupant_id, "精英", 24, 5)
 	if tile.tile_type == DungeonTile.TileType.BOSS:
-		return CombatantState.new("%s_guard" % tile.occupant_id, "首领护卫", 18, 4)
+		return CombatantState.new("%s_guard" % tile.occupant_id, "首领护卫", 18, 4, -1, 5)
 	return CombatantState.new("%s_front" % tile.occupant_id, "敌人", 12, 4)
 
 
@@ -264,7 +264,7 @@ func create_enemy_rows_for_tile(tile: DungeonTile) -> Array:
 		return [
 			[
 				CombatantState.new("%s_front_a" % tile.occupant_id, "精英", 24, 5),
-				CombatantState.new("%s_front_b" % tile.occupant_id, "护卫", 14, 3),
+				CombatantState.new("%s_front_b" % tile.occupant_id, "护卫", 14, 3, -1, 4),
 			],
 			[
 				CombatantState.new("%s_rear" % tile.occupant_id, "后援", 16, 4),
@@ -273,8 +273,8 @@ func create_enemy_rows_for_tile(tile: DungeonTile) -> Array:
 	if tile.tile_type == DungeonTile.TileType.BOSS:
 		return [
 			[
-				CombatantState.new("%s_guard_a" % tile.occupant_id, "首领护卫", 18, 4),
-				CombatantState.new("%s_guard_b" % tile.occupant_id, "首领护卫", 18, 4),
+				CombatantState.new("%s_guard_a" % tile.occupant_id, "首领护卫", 18, 4, -1, 5),
+				CombatantState.new("%s_guard_b" % tile.occupant_id, "首领护卫", 18, 4, -1, 5),
 			],
 			[
 				CombatantState.new("%s_boss" % tile.occupant_id, "首领", 42, 8),

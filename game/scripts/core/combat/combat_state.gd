@@ -8,6 +8,9 @@ const CombatantState = preload("res://scripts/core/combat/combatant_state.gd")
 const CardPlayResult = preload("res://scripts/core/combat/card_play_result.gd")
 
 const MAX_ENEMIES_PER_ROW := 5
+const ENEMY_INTENT_ATTACK := "attack"
+const ENEMY_INTENT_GUARD := "guard"
+const ENEMY_INTENT_WAIT := "wait"
 
 var player: CombatantState
 var enemies: Array = []
@@ -88,8 +91,14 @@ func end_player_turn() -> int:
 	if is_victory() or player == null:
 		return damage_taken
 
-	for enemy in active_attackers():
-		damage_taken += player.take_damage(enemy.attack_damage)
+	_clear_enemy_blocks()
+	for enemy in front_row_enemies():
+		var intent := enemy_intent_for(enemy)
+		var intent_type := str(intent.get("type", ENEMY_INTENT_WAIT))
+		if intent_type == ENEMY_INTENT_ATTACK:
+			damage_taken += player.take_damage(int(intent.get("amount", 0)))
+		elif intent_type == ENEMY_INTENT_GUARD:
+			enemy.gain_block(int(intent.get("amount", 0)))
 
 	if not player.is_defeated():
 		start_player_turn()
@@ -112,10 +121,28 @@ func active_attackers() -> Array:
 	return attackers
 
 
+func enemy_intent_for(enemy: CombatantState) -> Dictionary:
+	if enemy == null or enemy.is_defeated():
+		return {"type": ENEMY_INTENT_WAIT, "amount": 0}
+	if not front_row_enemies().has(enemy):
+		return {"type": ENEMY_INTENT_WAIT, "amount": 0}
+	if not _enemy_is_ready(enemy):
+		return {"type": ENEMY_INTENT_WAIT, "amount": 0}
+	if _enemy_should_guard(enemy):
+		return {"type": ENEMY_INTENT_GUARD, "amount": enemy.guard_block}
+	return {"type": ENEMY_INTENT_ATTACK, "amount": enemy.attack_damage}
+
+
 func can_enemy_attack(enemy: CombatantState) -> bool:
 	if enemy == null or enemy.is_defeated():
 		return false
-	return front_row_enemies().has(enemy) and _enemy_front_turn(enemy) < turn
+	return front_row_enemies().has(enemy) and _enemy_is_ready(enemy) and not _enemy_should_guard(enemy)
+
+
+func can_enemy_guard(enemy: CombatantState) -> bool:
+	if enemy == null or enemy.is_defeated():
+		return false
+	return front_row_enemies().has(enemy) and _enemy_is_ready(enemy) and _enemy_should_guard(enemy)
 
 
 func primary_target_index() -> int:
@@ -262,8 +289,25 @@ func _enemy_front_turn(enemy: CombatantState) -> int:
 	return int(enemy_front_turns.get(_enemy_key(enemy), turn - 1))
 
 
+func _enemy_is_ready(enemy: CombatantState) -> bool:
+	return _enemy_front_turn(enemy) < turn
+
+
+func _enemy_front_age(enemy: CombatantState) -> int:
+	return max(turn - _enemy_front_turn(enemy), 0)
+
+
+func _enemy_should_guard(enemy: CombatantState) -> bool:
+	return enemy.guard_block > 0 and _enemy_front_age(enemy) % 2 == 0
+
+
 func _enemy_key(enemy: CombatantState) -> int:
 	return enemy.get_instance_id()
+
+
+func _clear_enemy_blocks() -> void:
+	for enemy in living_enemies():
+		enemy.clear_block()
 
 
 func _living_enemies_in_row(row: Array) -> Array:

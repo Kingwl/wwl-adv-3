@@ -7,6 +7,7 @@ var max_health: int
 var health: int
 var block: int
 var attack_damage: int
+var guard_block: int
 
 
 func _init(
@@ -14,12 +15,14 @@ func _init(
 	p_display_name: String = "",
 	p_max_health: int = 1,
 	p_attack_damage: int = 0,
-	p_health: int = -1
+	p_health: int = -1,
+	p_guard_block: int = 0
 ) -> void:
 	id = p_id
 	display_name = p_display_name
 	max_health = max(p_max_health, 1)
 	attack_damage = max(p_attack_damage, 0)
+	guard_block = max(p_guard_block, 0)
 	block = 0
 
 	if p_health < 0:
@@ -29,7 +32,7 @@ func _init(
 
 
 func duplicate_state():
-	var copy = get_script().new(id, display_name, max_health, attack_damage, health)
+	var copy = get_script().new(id, display_name, max_health, attack_damage, health, guard_block)
 	copy.block = block
 	return copy
 
