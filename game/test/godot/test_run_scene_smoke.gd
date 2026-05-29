@@ -394,7 +394,8 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	var ok := true
 	ok = _assert_eq(run_scene.selected_hand_index, 0, "combat starts with first card selected") and ok
 	ok = _assert_eq(run_scene.combat_focus, "hand", "combat starts focused on hand") and ok
-	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）", "combat hand title is compact") and ok
+	ok = _assert_eq(combat_hand_title_label.text.contains("手牌（5）"), true, "combat hand title shows hand count") and ok
+	ok = _assert_eq(combat_hand_title_label.text.contains("抽牌堆"), true, "combat hand title shows draw pile") and ok
 	ok = _assert_eq(combat_selected_label.text.contains("已选：%s" % selected_card_name), true, "combat hud shows selected card") and ok
 	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 0, "selected card floats up") and ok
 	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), CARD_SELECTED_LIFT, "unselected card stays lower") and ok
@@ -424,6 +425,9 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 		var attack_button := _card_button(combat_hand_row, attack_index)
 		ok = _assert_eq(attack_button.tooltip_text.contains("预览总伤害："), true, "attack card keeps preview damage details") and ok
 		ok = _assert_eq(_node_text_contains(attack_button, "倍率 100%"), true, "card shows base multiplier") and ok
+		run_scene.selected_hand_index = attack_index
+		run_scene._refresh()
+		ok = _assert_eq(_node_text_contains(run_scene, "预览命中") or _node_text_contains(run_scene, "可能命中"), true, "selected attack card marks preview targets") and ok
 		run_scene.active_combat.combo.chain = 1
 		run_scene.active_combat.combo.last_cost = 0
 		run_scene._refresh()
@@ -442,6 +446,8 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 			ok = _assert_eq(_node_text_contains(skipped_cost_button, "倍率 100%"), true, "skipped cost does not gain combo multiplier") and ok
 			ok = _assert_eq(skipped_cost_style.border_color, Color(0.08, 0.09, 0.10), "skipped cost does not highlight card") and ok
 		run_scene.active_combat.combo.reset()
+		run_scene.selected_hand_index = 0
+		run_scene.combat_focus = "hand"
 		run_scene._refresh()
 
 	_press_key(run_scene, KEY_RIGHT)
@@ -499,6 +505,9 @@ func _test_run_scene_supports_end_turn_keyboard_selection(run_scene) -> bool:
 	run_scene.selected_hand_index = 0
 	run_scene.combat_focus = "hand"
 	run_scene._refresh()
+	var unaffordable_button := _card_button(run_scene.find_child("CombatHandRow", true, false), 0)
+	ok = _assert_eq(unaffordable_button.disabled, false, "unaffordable card remains clickable for feedback") and ok
+	ok = _assert_eq(_node_text_contains(unaffordable_button, "法力不足"), true, "unaffordable card shows reason") and ok
 	var turn_before_auto_end: int = run_scene.active_combat.turn
 	var fx_count_before_auto_end := card_use_fx_layer.get_child_count() if card_use_fx_layer != null else 0
 	_press_key(run_scene, KEY_SPACE)
@@ -557,13 +566,15 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(status_label.text, "遭遇已开始。", "combat start does not leak internal id") and ok
 	ok = _assert_eq(combat_panel.visible, true, "combat panel visible") and ok
 	var selected_card_summary: String = run_scene._selected_card_summary()
-	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）", "combat hand title") and ok
+	ok = _assert_eq(combat_hand_title_label.text.contains("手牌（5）"), true, "combat hand title") and ok
+	ok = _assert_eq(combat_hand_title_label.text.contains("弃牌堆"), true, "combat hand title shows discard pile") and ok
 	ok = _assert_eq(combat_selected_label.text, "已选：%s" % selected_card_summary, "combat selected hud") and ok
 	ok = _assert_eq(combat_mana_label.text, "法力 3/3", "combat mana hud") and ok
 	ok = _assert_eq(combat_combo_label.text, "连击 0", "combat combo hud") and ok
 	ok = _assert_eq(combat_hand_row.get_child_count(), 5, "combat hand buttons") and ok
 	ok = _assert_eq(combat_title_label.text, "遭遇：走卒", "combat title") and ok
 	ok = _assert_eq(combat_enemy_label.text, "战斗阵列", "combat enemy panel title") and ok
+	ok = _assert_ne(card_use_fx_layer.find_child("CombatTransitionFx_*", true, false), null, "combat start plays transition overlay") and ok
 	ok = _assert_ne(combat_stage_floor, null, "combat has stage floor strip") and ok
 	if combat_stage_floor != null:
 		ok = _assert_eq(combat_stage_floor.get_child_count(), 20, "stage floor uses repeated tiles") and ok

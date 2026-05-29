@@ -762,7 +762,7 @@ func _refresh_combat() -> void:
 		combat_enemy_label.text = "战斗阵列"
 		_add_empty_enemy_row()
 		_refresh_combat_stage_floor()
-		combat_hand_title_label.text = "手牌"
+		combat_hand_title_label.text = _combat_hand_title_text()
 		combat_log_label.text = combat_log
 		end_turn_button.disabled = true
 		_style_end_turn_button(false)
@@ -790,7 +790,7 @@ func _refresh_combat() -> void:
 	combat_enemy_label.text = "战斗阵列"
 	_refresh_enemy_rows()
 	_refresh_combat_stage_floor()
-	combat_hand_title_label.text = "手牌（%s）" % active_combat.deck.hand.size()
+	combat_hand_title_label.text = _combat_hand_title_text()
 	if combat_mana_label != null:
 		combat_mana_label.text = "法力 %s/%s" % [active_combat.mana, active_combat.max_mana]
 	if combat_combo_label != null:
@@ -822,12 +822,13 @@ func _create_hand_card_button(card, hand_index: int, has_combo_multiplier: bool,
 	button.custom_minimum_size = CARD_SIZE
 	button.clip_contents = true
 	button.text = ""
-	button.tooltip_text = _card_button_text(card)
+	var unavailable_reason := _card_unavailable_reason(card)
+	button.tooltip_text = _card_button_text(card, unavailable_reason)
 	button.focus_mode = Control.FOCUS_NONE
-	button.disabled = card.cost > active_combat.mana or active_combat.is_victory() or active_combat.is_defeat()
+	button.disabled = active_combat.is_victory() or active_combat.is_defeat()
 	button.mouse_entered.connect(_on_card_hovered.bind(hand_index))
 	button.pressed.connect(_on_card_pressed.bind(hand_index))
-	_style_card_button(button, card, has_combo_multiplier, is_selected)
+	_style_card_button(button, card, has_combo_multiplier, is_selected, unavailable_reason != "")
 
 	var content := MarginContainer.new()
 	content.name = "CardVisualContent"
@@ -879,6 +880,15 @@ func _create_hand_card_button(card, hand_index: int, has_combo_multiplier: bool,
 	if has_combo_multiplier:
 		multiplier_label.add_theme_color_override("font_color", COLOR_COMBO_HIGHLIGHT)
 	stack.add_child(multiplier_label)
+
+	if unavailable_reason != "":
+		var unavailable_label := Label.new()
+		unavailable_label.name = "CardUnavailableLabel"
+		unavailable_label.text = unavailable_reason
+		unavailable_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		unavailable_label.add_theme_font_size_override("font_size", 11)
+		unavailable_label.add_theme_color_override("font_color", Color(1.0, 0.58, 0.42))
+		stack.add_child(unavailable_label)
 
 	_set_mouse_filter_recursive(content, Control.MOUSE_FILTER_IGNORE)
 	return button
@@ -1051,6 +1061,7 @@ func _set_status_message(message: String) -> void:
 func _try_move(direction: Vector2i) -> void:
 	var result := controller.move_player(direction)
 	_sync_from_controller()
+	var transition_text := ""
 	if result.has("to"):
 		selected_position = result["to"]
 	elif result.has("position"):
@@ -1061,6 +1072,7 @@ func _try_move(direction: Vector2i) -> void:
 		combat_focus = COMBAT_FOCUS_HAND
 		_set_status_message("遭遇已开始。")
 		combat_log = "遭遇开始。"
+		transition_text = "遭遇开始"
 	elif result["type"] == RunController.EVENT_STAGE_ADVANCED:
 		selected_position = run_state.dungeon_map.player_position
 		selected_hand_index = -1
@@ -1076,6 +1088,8 @@ func _try_move(direction: Vector2i) -> void:
 	elif result["type"] == DungeonMapState.EVENT_MOVED:
 		_set_status_message("探索中。")
 	_refresh()
+	if transition_text != "":
+		_play_combat_transition(transition_text)
 
 
 func _on_cell_activated(position: Vector2i) -> void:
@@ -1156,6 +1170,7 @@ func _on_action_pressed() -> void:
 	combat_log = "遭遇开始。"
 	_set_status_message("遭遇已开始。")
 	_refresh()
+	_play_combat_transition("遭遇开始")
 
 
 func _on_card_pressed(hand_index: int) -> void:
@@ -1176,6 +1191,7 @@ func _on_card_pressed(hand_index: int) -> void:
 		_clamp_selected_hand_index()
 		combat_log = "无法出牌：%s" % _card_play_failure_reason(result["reason"])
 		_refresh()
+		_play_card_reject_feedback(str(result["reason"]))
 		combat_animation_locked = false
 		return
 
@@ -1200,6 +1216,7 @@ func _on_card_pressed(hand_index: int) -> void:
 		_set_status_message(_combat_victory_summary(result))
 		combat_log = ""
 		_refresh()
+		_play_combat_transition("战斗胜利")
 		combat_animation_locked = false
 		return
 	_mark_pending_enemy_entries(_enemy_entry_ids_after_front_advance(front_enemy_ids_before))
@@ -1225,6 +1242,24 @@ func _card_play_failure_reason(reason: String) -> String:
 	if reason == "invalid_target":
 		return "目标无效"
 	return "未知原因"
+
+
+func _play_card_reject_feedback(reason: String) -> void:
+	var feedback_text := _card_play_failure_reason(reason)
+	var center := _safe_control_center(combat_mana_label)
+	if center == Vector2.ZERO:
+		center = _safe_control_center(combat_selected_label)
+	if center == Vector2.ZERO:
+		center = _fallback_vfx_center()
+	_spawn_floating_text(feedback_text, center + Vector2(0, -26), Color(1.0, 0.54, 0.36, 1.0), 0.0, 18)
+	if combat_mana_label == null:
+		return
+	var original_scale := combat_mana_label.scale
+	var tween := create_tween()
+	tween.tween_property(combat_mana_label, "scale", original_scale * 1.10, 0.08).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(combat_mana_label, "modulate", Color(1.0, 0.58, 0.42, 1.0), 0.08)
+	tween.tween_property(combat_mana_label, "scale", original_scale, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(combat_mana_label, "modulate", Color.WHITE, 0.16)
 
 
 func _combat_victory_summary(result: Dictionary) -> String:
@@ -1266,6 +1301,53 @@ func _current_target_enemy() -> CombatantState:
 	return active_combat.enemies[target_index]
 
 
+func _selected_card_preview_targets(card_override = null) -> Dictionary:
+	var preview_targets := {}
+	if active_combat == null:
+		return preview_targets
+	var card = card_override if card_override != null else _selected_card()
+	if card == null or card.base_damage <= 0:
+		return preview_targets
+
+	if card.target_mode == CardDefinition.TargetMode.SINGLE_ENEMY:
+		var target_enemy := _current_target_enemy()
+		if target_enemy != null:
+			preview_targets[target_enemy.id] = "exact"
+		return preview_targets
+
+	if card.target_mode == CardDefinition.TargetMode.FRONT_ROW:
+		for enemy in active_combat.front_row_enemies():
+			if enemy != null:
+				preview_targets[enemy.id] = "exact"
+		return preview_targets
+
+	if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
+		for enemy in active_combat.living_enemies():
+			if enemy != null:
+				preview_targets[enemy.id] = "exact"
+		return preview_targets
+
+	if card.target_mode == CardDefinition.TargetMode.BOUNCE:
+		var living := active_combat.living_enemies()
+		if living.is_empty():
+			return preview_targets
+		var start_enemy := _current_target_enemy()
+		var start_index := living.find(start_enemy)
+		if start_index < 0:
+			start_index = 0
+		for i in range(min(card.hit_count, living.size())):
+			var enemy: CombatantState = living[(start_index + i) % living.size()]
+			if enemy != null:
+				preview_targets[enemy.id] = "exact"
+		return preview_targets
+
+	if card.target_mode == CardDefinition.TargetMode.RANDOM_ENEMIES:
+		for enemy in active_combat.living_enemies():
+			if enemy != null:
+				preview_targets[enemy.id] = "possible"
+	return preview_targets
+
+
 func _refresh_enemy_rows() -> void:
 	var rows := active_combat.living_enemy_rows()
 	if rows.is_empty():
@@ -1274,6 +1356,7 @@ func _refresh_enemy_rows() -> void:
 		return
 
 	var target_enemy := _current_target_enemy()
+	var preview_targets := _selected_card_preview_targets()
 	for display_index in range(rows.size()):
 		var row_index := rows.size() - 1 - display_index
 		var row: Array = rows[row_index]
@@ -1297,7 +1380,8 @@ func _refresh_enemy_rows() -> void:
 		enemy_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 		enemy_cards.add_theme_constant_override("separation", 4)
 		for enemy in row:
-			var enemy_card := _create_enemy_card(enemy, row_index, enemy == target_enemy)
+			var preview_kind := str(preview_targets.get(enemy.id, ""))
+			var enemy_card := _create_enemy_card(enemy, row_index, enemy == target_enemy, preview_kind)
 			enemy_cards.add_child(enemy_card)
 			if pending_enemy_entry_ids.has(enemy.id):
 				_play_enemy_entry_animation(enemy_card)
@@ -1749,6 +1833,43 @@ func _play_card_result_feedback(card, result: Dictionary, context: Dictionary, p
 		_spawn_floating_text("+%s 抽牌" % cards_drawn, hand_center + Vector2(0, -42), Color(0.78, 0.88, 1.0, 1.0), 0.22, 18)
 
 
+func _play_combat_transition(text: String) -> void:
+	if combat_fx_layer == null or text == "":
+		return
+	combat_fx_serial += 1
+	var overlay := ColorRect.new()
+	overlay.name = "CombatTransitionFx_%03d" % combat_fx_serial
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.z_index = 560 + combat_fx_serial % 30
+	overlay.color = Color(0.02, 0.02, 0.02, 0.0)
+	combat_fx_layer.add_child(overlay)
+
+	var label := Label.new()
+	label.name = "CombatTransitionLabel"
+	label.text = text
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 36)
+	label.add_theme_color_override("font_color", Color(1.0, 0.86, 0.46, 1.0))
+	label.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.02, 0.96))
+	label.add_theme_constant_override("outline_size", 4)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.modulate.a = 0.0
+	label.scale = Vector2(0.92, 0.92)
+	overlay.add_child(label)
+
+	var tween := create_tween()
+	tween.tween_property(overlay, "color", Color(0.02, 0.02, 0.02, 0.34), 0.08)
+	tween.parallel().tween_property(label, "modulate:a", 1.0, 0.12)
+	tween.parallel().tween_property(label, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(0.22)
+	tween.tween_property(overlay, "color", Color(0.02, 0.02, 0.02, 0.0), 0.18)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.18)
+	tween.tween_callback(Callable(overlay, "queue_free"))
+
+
 func _spawn_floating_text(text: String, center: Vector2, color: Color, delay: float = 0.0, font_size: int = 22) -> void:
 	if combat_fx_layer == null or text == "":
 		return
@@ -2179,11 +2300,11 @@ func _fx_layer_position_for_center(center: Vector2, size: Vector2) -> Vector2:
 	return combat_fx_layer.get_global_transform().affine_inverse() * center - size * 0.5
 
 
-func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) -> PanelContainer:
+func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool, preview_kind: String = "") -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = "EnemyCard_%s" % enemy.id
 	card.custom_minimum_size = ENEMY_CARD_SIZE
-	_style_enemy_card(card, row_index, is_target)
+	_style_enemy_card(card, row_index, is_target, preview_kind)
 
 	var content := VBoxContainer.new()
 	content.name = "EnemyCardContent_%s" % enemy.id
@@ -2238,18 +2359,27 @@ func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) 
 
 	var state_label := Label.new()
 	state_label.name = "EnemyStateLabel"
-	state_label.text = _enemy_state_text(enemy, is_target)
+	state_label.text = _enemy_state_text(enemy, is_target, preview_kind)
 	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	state_label.add_theme_font_size_override("font_size", 12)
-	state_label.add_theme_color_override("font_color", COLOR_SELECTED if is_target else Color(0.92, 0.88, 0.82))
+	var state_color := COLOR_SELECTED if is_target else Color(0.92, 0.88, 0.82)
+	if preview_kind == "exact":
+		state_color = Color(1.0, 0.72, 0.30)
+	elif preview_kind == "possible":
+		state_color = Color(0.62, 0.84, 1.0)
+	state_label.add_theme_color_override("font_color", state_color)
 	content.add_child(state_label)
 	return card
 
 
-func _enemy_state_text(enemy: CombatantState, is_target: bool) -> String:
+func _enemy_state_text(enemy: CombatantState, is_target: bool, preview_kind: String = "") -> String:
 	var parts: Array = []
 	if is_target:
 		parts.append("当前目标")
+	if preview_kind == "exact":
+		parts.append("预览命中")
+	elif preview_kind == "possible":
+		parts.append("可能命中")
 	parts.append(_enemy_intent_text(enemy))
 	return " · ".join(parts)
 
@@ -2307,6 +2437,8 @@ func _end_turn_with_log(prefix: String, manage_lock: bool = true) -> void:
 	else:
 		_mark_all_hand_entry_indices()
 	_refresh()
+	if result["type"] == RunController.EVENT_COMBAT_LOST:
+		_play_combat_transition("冒险结束")
 	if result["type"] != RunController.EVENT_COMBAT_LOST:
 		await _wait_for_combat_vfx_to_finish()
 	if manage_lock:
@@ -2324,6 +2456,8 @@ func _finish_combat_victory() -> void:
 		combat_focus = COMBAT_FOCUS_HAND
 		selected_reward_index = 0
 	_refresh()
+	if result["type"] == RunController.EVENT_COMBAT_WON:
+		_play_combat_transition("战斗胜利")
 
 
 func _move_card_selection(delta: int) -> void:
@@ -2485,11 +2619,38 @@ func _selected_card_summary() -> String:
 	var multiplier_percent := _preview_card_multiplier_basis_points(card)
 	if card.base_damage <= 0:
 		return "%s | 无伤害 | 倍率 %s%%" % [card.display_name, multiplier_percent]
-	return "%s | 预览伤害 %s | 倍率 %s%%" % [
+	return "%s | 预览伤害 %s | %s | 倍率 %s%%" % [
 		card.display_name,
 		_preview_card_damage(card),
+		_selected_card_target_summary(card),
 		multiplier_percent,
 	]
+
+
+func _combat_hand_title_text() -> String:
+	if active_combat == null:
+		return "手牌"
+	return "手牌（%s）  抽牌堆 %s  弃牌堆 %s" % [
+		active_combat.deck.hand.size(),
+		active_combat.deck.draw_pile.size(),
+		active_combat.deck.discard_pile.size(),
+	]
+
+
+func _selected_card_target_summary(card) -> String:
+	if card == null or active_combat == null or card.base_damage <= 0:
+		return "目标 自身"
+	var preview_targets := _selected_card_preview_targets(card)
+	var exact_count := 0
+	var possible_count := 0
+	for enemy_id in preview_targets.keys():
+		if str(preview_targets[enemy_id]) == "possible":
+			possible_count += 1
+		else:
+			exact_count += 1
+	if possible_count > 0:
+		return "可能目标 %s" % possible_count
+	return "目标 %s" % exact_count
 
 
 func _clear_combat_hand() -> void:
@@ -2518,7 +2679,7 @@ func _clear_reward_choices() -> void:
 		child.queue_free()
 
 
-func _card_button_text(card) -> String:
+func _card_button_text(card, unavailable_reason: String = "") -> String:
 	var parts := [
 		card.display_name,
 		"",
@@ -2546,6 +2707,9 @@ func _card_button_text(card) -> String:
 		parts.append("")
 		parts.append("连击 → %s" % active_combat.combo.preview_chain_for(card))
 		parts.append("倍率：%s%%" % _preview_card_multiplier_basis_points(card))
+	if unavailable_reason != "":
+		parts.append("")
+		parts.append("不可用：%s" % unavailable_reason)
 	return "\n".join(parts)
 
 
@@ -2666,11 +2830,23 @@ func _preview_card_damage(card) -> int:
 	return int((card.base_damage * _preview_card_multiplier_basis_points(card)) / 100)
 
 
+func _card_unavailable_reason(card) -> String:
+	if active_combat == null or card == null:
+		return ""
+	if active_combat.is_victory() or active_combat.is_defeat():
+		return "战斗已结束"
+	if card.cost > active_combat.mana:
+		return "法力不足"
+	if card.base_damage > 0 and _selected_card_preview_targets(card).is_empty():
+		return "没有目标"
+	return ""
+
+
 func _has_playable_card() -> bool:
 	if active_combat == null:
 		return false
 	for card in active_combat.deck.hand:
-		if card.cost <= active_combat.mana:
+		if _card_unavailable_reason(card) == "":
 			return true
 	return false
 
@@ -2751,7 +2927,13 @@ func _card_fan_rotation(hand_index: int, hand_size: int, is_selected: bool) -> f
 	)
 
 
-func _style_card_button(button: Button, card, has_combo_multiplier: bool = false, is_selected: bool = false) -> void:
+func _style_card_button(
+	button: Button,
+	card,
+	has_combo_multiplier: bool = false,
+	is_selected: bool = false,
+	is_unavailable: bool = false
+) -> void:
 	var color := Color(0.18, 0.20, 0.24)
 	if card.base_damage > 0:
 		color = Color(0.42, 0.16, 0.14)
@@ -2759,11 +2941,15 @@ func _style_card_button(button: Button, card, has_combo_multiplier: bool = false
 		color = Color(0.15, 0.28, 0.44)
 	elif card.draw_count > 0:
 		color = Color(0.20, 0.36, 0.26)
+	if is_unavailable:
+		color = Color(0.20, 0.18, 0.18)
 
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = color.lightened(0.08) if has_combo_multiplier else color
 	if has_combo_multiplier:
 		normal.border_color = COLOR_COMBO_HIGHLIGHT
+	elif is_unavailable:
+		normal.border_color = Color(0.58, 0.34, 0.30)
 	elif is_selected:
 		normal.border_color = COLOR_SELECTED
 	else:
@@ -2799,15 +2985,24 @@ func _style_card_button(button: Button, card, has_combo_multiplier: bool = false
 	button.add_theme_color_override("font_disabled_color", Color(0.58, 0.58, 0.58))
 
 
-func _style_enemy_card(card: PanelContainer, row_index: int, is_target: bool) -> void:
+func _style_enemy_card(card: PanelContainer, row_index: int, is_target: bool, preview_kind: String = "") -> void:
 	var color := COLOR_ENEMY_PANEL if row_index == 0 else COLOR_ENEMY_PANEL.darkened(0.14)
+	var is_preview := preview_kind != ""
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = color.lightened(0.10) if is_target else Color(color.r, color.g, color.b, 0.38)
-	normal.border_color = COLOR_SELECTED if is_target else Color(0.24, 0.24, 0.24, 0.55)
-	normal.border_width_left = 2 if is_target else 1
-	normal.border_width_top = 2 if is_target else 1
-	normal.border_width_right = 2 if is_target else 1
-	normal.border_width_bottom = 2 if is_target else 1
+	normal.bg_color = color.lightened(0.10) if is_target or is_preview else Color(color.r, color.g, color.b, 0.38)
+	if is_target:
+		normal.border_color = COLOR_SELECTED
+	elif preview_kind == "exact":
+		normal.border_color = Color(1.0, 0.58, 0.18)
+	elif preview_kind == "possible":
+		normal.border_color = Color(0.42, 0.66, 1.0)
+	else:
+		normal.border_color = Color(0.24, 0.24, 0.24, 0.55)
+	var border_width := 2 if is_target or is_preview else 1
+	normal.border_width_left = border_width
+	normal.border_width_top = border_width
+	normal.border_width_right = border_width
+	normal.border_width_bottom = border_width
 	normal.corner_radius_top_left = 6
 	normal.corner_radius_top_right = 6
 	normal.corner_radius_bottom_left = 6
