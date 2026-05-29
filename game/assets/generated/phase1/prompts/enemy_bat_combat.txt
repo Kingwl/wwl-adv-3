@@ -1,0 +1,5 @@
+Compact enemy combat sprite sheet for a thorn-wing cave bat.
+Exact layout: 3 rows by 4 columns, 12 equal cells. Row 1 idle hover flap loop, row 2 hurt reaction, row 3 death fall. Each row is a 4-frame sequence.
+Enemy identity: sharp-winged cave bat, angular wings, glowing small eyes, dark violet body, red wing membranes. Same enemy in every frame.
+Style: top-down 3/4 pixel-inspired roguelite combat sprite, crisp outline, saturated dungeon palette.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no labels; no text; no UI; no shadow. Enemy centered in each cell, same scale in every frame, full body contained with safe wing padding, nothing touches or crosses cell edges.

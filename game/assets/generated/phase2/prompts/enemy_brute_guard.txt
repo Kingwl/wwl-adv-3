@@ -1,0 +1,5 @@
+Pixel-inspired top-down roguelite guard/block animation sheet matching the Phase 1 armored brute design.
+Exact layout: 2 rows by 2 columns, 4 equal cells. One continuous 4-frame defensive guard animation: lower stance, cross armor and club, absorb impact, return to guarded stance.
+Character identity: same bulky heavy soldier from Phase 1, thick dark iron armor, rust accents, oversized club, broad shoulders. Same character and same scale in every frame.
+Style: crisp 16-bit pixel-inspired combat sprite, dark outline, saturated dungeon palette.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no text; no labels; no UI; no shadow. Full body centered inside each cell, club contained, no detached shield FX, nothing touches or crosses cell edges.

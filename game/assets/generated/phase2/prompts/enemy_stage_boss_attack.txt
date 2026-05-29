@@ -1,0 +1,5 @@
+Pixel-inspired top-down roguelite boss attack animation sheet matching the Phase 1 ancient well lich design.
+Exact layout: 2 rows by 3 columns, 6 equal cells. One continuous 6-frame boss attack animation: ominous charge, raise staff/soul flame, cast forward, strongest soul-fire strike pose, recoil, return to idle.
+Boss identity: same ancient well lich from Phase 1, skeletal robed warlord, cracked stone crown, pale blue soul fire, grave moss and bone ornaments. Same boss and same scale in every frame.
+Style: crisp 16-bit pixel-inspired combat sprite, dark outline, saturated dungeon palette.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no text; no labels; no UI; no shadow. Boss centered inside each cell with generous padding, effects stay attached and contained, no large detached projectile, nothing touches or crosses cell edges.

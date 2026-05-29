@@ -1,0 +1,5 @@
+Top-down 3/4 16-bit pixel-inspired RPG sprite sheet for a brave young dungeon adventurer hero.
+Exact layout: 4 rows by 4 columns, 16 equal cells. Row 1 walking down, row 2 walking left, row 3 walking right, row 4 walking up. Each row is a smooth 4-frame walk loop.
+Hero identity: blue travel tunic, short dark hair, red scarf, small satchel, compact boots, simple short sword at the hip. Same character in every frame.
+Style: crisp pixel-inspired game sprite, strong readable silhouette, saturated but not neon, dark dungeon roguelite palette, clean outlines.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no labels; no text; no UI; no shadow. Character centered in each cell, full body visible, same scale in every frame, feet anchored consistently, nothing touches or crosses cell edges.

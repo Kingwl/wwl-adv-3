@@ -8,6 +8,7 @@ var health: int
 var block: int
 var attack_damage: int
 var guard_block: int
+var visual_id: String
 
 
 func _init(
@@ -34,6 +35,7 @@ func _init(
 func duplicate_state():
 	var copy = get_script().new(id, display_name, max_health, attack_damage, health, guard_block)
 	copy.block = block
+	copy.visual_id = visual_id
 	return copy
 
 

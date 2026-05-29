@@ -1,0 +1,5 @@
+Pixel-inspired top-down roguelite enemy attack animation sheet matching the Phase 1 grunt design.
+Exact layout: 2 rows by 3 columns, 6 equal cells. One continuous 6-frame attack animation: wind-up, step forward, dagger slash, strongest strike pose, recoil, return to stance.
+Character identity: same ragged cave grunt from Phase 1, greenish goblin-like skin, hunched body, patched leather, rusty dagger, dull red cloth scraps. Same character and same scale in every frame.
+Style: crisp 16-bit pixel-inspired combat sprite, dark outline, saturated dungeon palette.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no text; no labels; no UI; no shadow. Full body centered inside each cell with generous magenta padding, feet anchored consistently, dagger kept close to body, no detached slash FX, nothing touches or crosses cell edges.

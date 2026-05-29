@@ -1,0 +1,5 @@
+Compact top-down RPG icon prop pack for dungeon exploration.
+Exact layout: 3 rows by 3 columns, 9 equal cells.
+Cell order row-major: treasure chest, healing potion, blue experience gem, forge anvil, stone shrine altar, floor spike hazard, locked exit gate, open exit gate with warm light, entrance stairs.
+Style: crisp pixel-inspired game icons, top-down 3/4 view, strong outlines, saturated dungeon palette, each prop readable at small size.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no labels; no text; no UI; no shadows. One centered prop per cell, full prop contained, same approximate visual scale, nothing touches or crosses cell edges.

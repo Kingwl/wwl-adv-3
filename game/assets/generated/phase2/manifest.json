@@ -1,0 +1,91 @@
+{
+  "version": "phase2",
+  "style": "pixel-inspired top-down roguelite",
+  "preferred_assets": {
+    "enemy.grunt.attack": {
+      "sheet": "processed/enemy_grunt_attack/sheet-transparent.png",
+      "rows": 2,
+      "cols": 3,
+      "actions": {
+        "attack": [1, 2, 3, 4, 5, 6]
+      }
+    },
+    "enemy.bat.attack": {
+      "sheet": "processed/enemy_bat_attack/sheet-transparent.png",
+      "rows": 2,
+      "cols": 3,
+      "actions": {
+        "attack": [1, 2, 3, 4, 5, 6]
+      }
+    },
+    "enemy.guard.attack": {
+      "sheet": "processed/enemy_guard_attack/sheet-transparent.png",
+      "rows": 2,
+      "cols": 3,
+      "actions": {
+        "attack": [1, 2, 3, 4, 5, 6]
+      }
+    },
+    "enemy.brute.attack": {
+      "sheet": "processed/enemy_brute_attack/sheet-transparent.png",
+      "rows": 2,
+      "cols": 3,
+      "actions": {
+        "attack": [1, 2, 3, 4, 5, 6]
+      }
+    },
+    "enemy.boss_guard.attack": {
+      "sheet": "processed/enemy_boss_guard_attack/sheet-transparent.png",
+      "rows": 2,
+      "cols": 3,
+      "actions": {
+        "attack": [1, 2, 3, 4, 5, 6]
+      }
+    },
+    "enemy.stage_boss.attack": {
+      "sheet": "processed/enemy_stage_boss_attack/sheet-transparent.png",
+      "rows": 2,
+      "cols": 3,
+      "actions": {
+        "attack": [1, 2, 3, 4, 5, 6]
+      }
+    },
+    "enemy.guard.guard": {
+      "sheet": "processed/enemy_guard_guard/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "actions": {
+        "guard": [1, 2, 3, 4]
+      }
+    },
+    "enemy.brute.guard": {
+      "sheet": "processed/enemy_brute_guard/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "actions": {
+        "guard": [1, 2, 3, 4]
+      }
+    },
+    "enemy.boss_guard.guard": {
+      "sheet": "processed/enemy_boss_guard_guard/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "actions": {
+        "guard": [1, 2, 3, 4]
+      }
+    },
+    "fx.card.dedicated": {
+      "sheet": "processed/dedicated_card_fx_atlas/sheet-transparent.png",
+      "rows": 6,
+      "cols": 4,
+      "actions": {
+        "whip_sweep": [1, 2, 3, 4],
+        "king_bible_orbit": [5, 6, 7, 8],
+        "garlic_aura": [9, 10, 11, 12],
+        "santa_water_splash": [13, 14, 15, 16],
+        "pentagram_burst": [17, 18, 19, 20],
+        "lightning_ring_strike": [21, 22, 23, 24]
+      }
+    }
+  }
+}

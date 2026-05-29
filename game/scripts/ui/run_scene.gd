@@ -8,6 +8,7 @@ const RunState = preload("res://scripts/core/run/run_state.gd")
 const CardDefinition = preload("res://scripts/core/cards/card_definition.gd")
 const CombatState = preload("res://scripts/core/combat/combat_state.gd")
 const CombatantState = preload("res://scripts/core/combat/combatant_state.gd")
+const VisualAssetCatalog = preload("res://scripts/visual/visual_asset_catalog.gd")
 
 const CELL_SIZE := Vector2(48, 48)
 const COLOR_WALL := Color(0.12, 0.13, 0.15)
@@ -34,6 +35,7 @@ const COMBAT_FOCUS_HAND := "hand"
 const COMBAT_FOCUS_END_TURN := "end_turn"
 
 var controller: RunController = RunController.new()
+var visual_assets: VisualAssetCatalog = VisualAssetCatalog.new()
 var run_state: RunState = RunState.new()
 var selected_position: Vector2i = Vector2i.ZERO
 var mode: String = "exploration"
@@ -543,6 +545,7 @@ func _refresh_combat() -> void:
 		button.add_theme_font_size_override("font_size", 16)
 		button.focus_mode = Control.FOCUS_NONE
 		button.disabled = card.cost > active_combat.mana or active_combat.is_victory() or active_combat.is_defeat()
+		_apply_button_icon(button, visual_assets.card_texture(card.id), 58)
 		button.mouse_entered.connect(_on_card_hovered.bind(i))
 		button.pressed.connect(_on_card_pressed.bind(i))
 		_style_card_button(button, card, has_combo_multiplier)
@@ -577,6 +580,7 @@ func _refresh_reward() -> void:
 		button.text = _reward_choice_text(choice)
 		button.add_theme_font_size_override("font_size", 18)
 		button.focus_mode = Control.FOCUS_NONE
+		_apply_button_icon(button, visual_assets.card_texture(str(choice.get("card_id", ""))), 74)
 		button.mouse_entered.connect(_on_reward_choice_hovered.bind(i))
 		button.pressed.connect(_on_reward_choice_pressed.bind(i))
 		_style_reward_choice_button(button, choice, i == selected_reward_index)
@@ -607,6 +611,7 @@ func _refresh_cell(position: Vector2i) -> void:
 	var map: DungeonMapState = run_state.dungeon_map
 	var tile: DungeonTile = map.get_tile(position)
 	button.text = _cell_text(position, tile)
+	_apply_button_icon(button, _cell_texture(position, tile), 30)
 	button.tooltip_text = _tile_description(tile)
 	button.disabled = tile.tile_type == DungeonTile.TileType.WALL
 
@@ -897,7 +902,7 @@ func _add_empty_enemy_row() -> void:
 func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = "EnemyCard_%s" % enemy.id
-	card.custom_minimum_size = Vector2(150, 134)
+	card.custom_minimum_size = Vector2(160, 190)
 	_style_enemy_card(card, row_index, is_target)
 
 	var content := VBoxContainer.new()
@@ -911,6 +916,17 @@ func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) 
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 15)
 	content.add_child(name_label)
+
+	var portrait_texture := visual_assets.enemy_texture(_enemy_visual_id(enemy))
+	if portrait_texture != null:
+		var portrait := TextureRect.new()
+		portrait.name = "EnemyPortrait"
+		portrait.texture = portrait_texture
+		portrait.custom_minimum_size = Vector2(116, 58)
+		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		content.add_child(portrait)
 
 	var health_label := Label.new()
 	health_label.name = "EnemyHealth"
@@ -1460,6 +1476,38 @@ func _tile_color(tile: DungeonTile) -> Color:
 	if tile.is_pickup_tile():
 		return COLOR_PICKUP
 	return COLOR_FLOOR
+
+
+func _cell_texture(position: Vector2i, tile: DungeonTile) -> Texture2D:
+	if position == run_state.dungeon_map.player_position:
+		return visual_assets.player_map_texture()
+	return visual_assets.tile_texture(tile.tile_type, run_state.dungeon_map.is_exit_unlocked())
+
+
+func _enemy_visual_id(enemy: CombatantState) -> String:
+	if enemy == null:
+		return ""
+	if enemy.visual_id != "":
+		return enemy.visual_id
+	if enemy.display_name == "刺蝠":
+		return "bat"
+	if enemy.display_name == "盾卫":
+		return "guard"
+	if enemy.display_name == "重甲兵":
+		return "brute"
+	if enemy.display_name == "首领护卫":
+		return "boss_guard"
+	if enemy.display_name == "首领":
+		return "stage_boss"
+	return "grunt"
+
+
+func _apply_button_icon(button: Button, texture: Texture2D, max_width: int) -> void:
+	button.icon = texture
+	button.add_theme_constant_override("icon_max_width", max_width)
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	button.expand_icon = false
 
 
 func _set_button_color(button: Button, color: Color, is_selected: bool = false) -> void:

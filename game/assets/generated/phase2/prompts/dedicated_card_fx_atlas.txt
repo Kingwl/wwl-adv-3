@@ -1,0 +1,10 @@
+Pixel-inspired roguelite dedicated card FX animation atlas for the Phase 2 combat pass.
+Exact layout: 6 rows by 4 columns, 24 equal cells. Each row is a separate 4-frame animation sequence.
+Row 1: whip horizontal strike, a white-red leather whip crack sweeping across the target area.
+Row 2: king bible orbit, golden holy book pages circling as a defensive ring.
+Row 3: garlic aura, pale green circular stink cloud pulse around the caster.
+Row 4: santa water splash, blue holy-water puddle eruption with droplets rising and falling.
+Row 5: pentagram clear burst, violet-gold five-point sigil flash expanding then fading.
+Row 6: lightning ring strike, bright yellow lightning bolt impact with electric sparks.
+Style: crisp 16-bit pixel-inspired VFX, high contrast, readable over dark dungeon UI, no characters.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no labels; no text; no UI. Each effect centered in its cell, same scale within each row, strong alpha-ready silhouette, nothing touches or crosses cell edges.

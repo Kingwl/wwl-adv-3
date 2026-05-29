@@ -6,6 +6,7 @@
 build/
 ci-artifacts/
 game/tools/out/
+wwl-adv-3-*-assets.zip
 
 # Python
 __pycache__/

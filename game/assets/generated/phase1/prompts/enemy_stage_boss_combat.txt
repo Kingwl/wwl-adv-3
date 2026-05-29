@@ -1,0 +1,5 @@
+Large boss combat sprite sheet for the first prototype stage boss.
+Exact layout: 3 rows by 4 columns, 12 equal cells. Row 1 ominous idle loop, row 2 hurt reaction, row 3 death dissolve. Each row is a 4-frame sequence.
+Boss identity: ancient well lich, tall skeletal robed warlord, cracked stone crown, pale blue soul fire, graveyard moss and bone ornaments, imposing but readable silhouette. Same boss in every frame.
+Style: top-down 3/4 pixel-inspired roguelite combat sprite, crisp outline, saturated dungeon palette.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no labels; no text; no UI; no shadow. Boss centered in each cell, same scale in every frame, full body contained with safe padding, no particles crossing cell edges.

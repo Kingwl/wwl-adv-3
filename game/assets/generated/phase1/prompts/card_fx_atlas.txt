@@ -1,0 +1,10 @@
+Pixel-inspired roguelite card-combat FX animation atlas.
+Exact layout: 6 rows by 4 columns, 24 equal cells. Each row is a separate 4-frame animation sequence.
+Row 1: compact blue magic projectile flying forward.
+Row 2: small yellow-white hit impact burst.
+Row 3: red crescent front-row slash sweep.
+Row 4: violet random lightning strike and splash impact.
+Row 5: green bouncing rune orb loop.
+Row 6: golden full-screen burst condensed into a centered magical explosion symbol.
+Style: crisp 16-bit pixel-inspired VFX, high contrast, readable over dark dungeon UI, no characters.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no labels; no text; no UI. Each effect centered in its cell, same scale within each row, strong alpha-ready silhouette, nothing touches or crosses cell edges.

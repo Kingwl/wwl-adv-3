@@ -1,0 +1,5 @@
+Pixel-inspired top-down roguelite enemy attack animation sheet matching the Phase 1 shield guard design.
+Exact layout: 2 rows by 3 columns, 6 equal cells. One continuous 6-frame attack animation: brace shield, pull spear back, thrust spear forward, strongest hit pose, recover spear, return to stance.
+Character identity: same armored shield guard from Phase 1, squat iron helmet, muted blue-gray armor, large cracked round shield, short spear. Same character and same scale in every frame.
+Style: crisp 16-bit pixel-inspired combat sprite, dark outline, saturated dungeon palette.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no text; no labels; no UI; no shadow. Full body centered inside each cell with generous padding, shield and spear remain inside the cell, no detached slash FX, nothing touches or crosses cell edges.

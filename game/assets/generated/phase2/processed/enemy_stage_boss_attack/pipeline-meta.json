@@ -1,0 +1,228 @@
+{
+  "target": "creature",
+  "mode": "enemy_stage_boss_attack",
+  "prompt": "",
+  "role": "",
+  "input": "game/assets/generated/phase2/raw/enemy_stage_boss_attack_raw.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 90,
+  "rows": 2,
+  "cols": 3,
+  "cell_size": 128,
+  "fit_scale": 0.82,
+  "trim_border": 4,
+  "edge_clean_depth": 3,
+  "align": "feet",
+  "shared_scale": true,
+  "component_mode": "all",
+  "component_padding": 0,
+  "min_component_area": 1,
+  "edge_touch_margin": 0,
+  "frame_labels": [
+    "enemy_stage_boss_attack-1",
+    "enemy_stage_boss_attack-2",
+    "enemy_stage_boss_attack-3",
+    "enemy_stage_boss_attack-4",
+    "enemy_stage_boss_attack-5",
+    "enemy_stage_boss_attack-6"
+  ],
+  "frames": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "source_box": [
+        0,
+        0,
+        512,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 1,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        150,
+        88,
+        426,
+        420
+      ],
+      "edge_touch": false,
+      "output_size": [
+        59,
+        71
+      ],
+      "paste_position": [
+        34,
+        46
+      ]
+    },
+    {
+      "grid": [
+        0,
+        1
+      ],
+      "source_box": [
+        512,
+        0,
+        1024,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 13,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        20,
+        67,
+        504,
+        419
+      ],
+      "edge_touch": false,
+      "output_size": [
+        104,
+        76
+      ],
+      "paste_position": [
+        12,
+        41
+      ]
+    },
+    {
+      "grid": [
+        0,
+        2
+      ],
+      "source_box": [
+        1024,
+        0,
+        1536,
+        512
+      ],
+      "component_mode": "all",
+      "component_count": 9,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        0,
+        138,
+        444,
+        424
+      ],
+      "edge_touch": true,
+      "output_size": [
+        96,
+        62
+      ],
+      "paste_position": [
+        16,
+        55
+      ]
+    },
+    {
+      "grid": [
+        1,
+        0
+      ],
+      "source_box": [
+        0,
+        512,
+        512,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 17,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        94,
+        44,
+        504,
+        381
+      ],
+      "edge_touch": false,
+      "output_size": [
+        88,
+        73
+      ],
+      "paste_position": [
+        20,
+        44
+      ]
+    },
+    {
+      "grid": [
+        1,
+        1
+      ],
+      "source_box": [
+        512,
+        512,
+        1024,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 21,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        0,
+        22,
+        376,
+        383
+      ],
+      "edge_touch": true,
+      "output_size": [
+        81,
+        78
+      ],
+      "paste_position": [
+        23,
+        39
+      ]
+    },
+    {
+      "grid": [
+        1,
+        2
+      ],
+      "source_box": [
+        1024,
+        512,
+        1536,
+        1024
+      ],
+      "component_mode": "all",
+      "component_count": 2,
+      "selected_component_area": null,
+      "selected_component_bbox": null,
+      "crop_bbox": [
+        73,
+        52,
+        350,
+        381
+      ],
+      "edge_touch": false,
+      "output_size": [
+        60,
+        71
+      ],
+      "paste_position": [
+        34,
+        46
+      ]
+    }
+  ],
+  "edge_touch_frames": [
+    [
+      0,
+      2
+    ],
+    [
+      1,
+      1
+    ]
+  ]
+}

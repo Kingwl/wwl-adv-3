@@ -1,0 +1,5 @@
+Compact enemy combat sprite sheet for a shield guard.
+Exact layout: 3 rows by 4 columns, 12 equal cells. Row 1 idle loop, row 2 hurt reaction, row 3 death collapse. Each row is a 4-frame sequence.
+Enemy identity: armored shield guard, squat stance, large cracked round shield, short spear, iron helmet, muted blue-gray armor. Same enemy in every frame.
+Style: top-down 3/4 pixel-inspired roguelite combat sprite, crisp outline, saturated dungeon palette.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no labels; no text; no UI; no shadow. Enemy centered in each cell, same scale in every frame, full body contained, shield stays inside the cell, nothing touches or crosses cell edges.

@@ -28,6 +28,7 @@
 - 奖励 UI：战斗胜利触发升级、探索拾取宝箱或经验宝石升级时显示 3 个卡牌奖励选项，支持鼠标 hover/点击、左右/A/D 切换和空格/回车确认，选择后加入牌组并回到探索。
 - Run 结束 UI：战斗失败会进入“冒险结束”，第 2 关出口会进入“原型通关”，并提供重新开始按钮。
 - Web/UI 中文字体资源：内置 Noto Sans CJK SC，避免 Web 导出环境缺少中文字体导致文字乱码。
+- 生成素材接入 UI 第一版：通过 `VisualAssetCatalog` 从 `game/assets/generated` 运行时加载 PNG 图集，地图格、战斗敌人卡片、战斗手牌和奖励卡牌可显示第一/二期生成素材；敌人状态携带 `visual_id` 以便规则 ID 与表现资源稳定对应。
 - Godot headless 规则测试草案：`game/test/godot/test_card_combat_core.gd`。
 - Godot headless 奖励规则测试：`game/test/godot/test_reward_core.gd`。
 - Godot headless 地牢规则测试：`game/test/godot/test_dungeon_core.gd`。

@@ -1,0 +1,5 @@
+Pixel-inspired top-down roguelite enemy attack animation sheet matching the Phase 1 armored brute design.
+Exact layout: 2 rows by 3 columns, 6 equal cells. One continuous 6-frame heavy club attack: heavy wind-up, lift club, overhead swing, strongest smash pose, recoil, return to stance.
+Character identity: same bulky heavy soldier from Phase 1, thick dark iron armor, rust accents, oversized club, broad shoulders. Same character and same scale in every frame.
+Style: crisp 16-bit pixel-inspired combat sprite, dark outline, saturated dungeon palette.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no text; no labels; no UI; no shadow. Full body centered inside each cell with generous padding, club kept inside the cell, no detached shockwave FX, nothing touches or crosses cell edges.

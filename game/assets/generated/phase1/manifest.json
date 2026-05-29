@@ -1,0 +1,106 @@
+{
+  "version": "phase1",
+  "style": "pixel-inspired top-down roguelite",
+  "preferred_assets": {
+    "actor.hero.walk_4dir": {
+      "sheet": "processed/hero_walk_4dir_v2/sheet-transparent.png",
+      "rows": 4,
+      "cols": 4,
+      "actions": {
+        "walk_down": [1, 2, 3, 4],
+        "walk_left": [5, 6, 7, 8],
+        "walk_right": [9, 10, 11, 12],
+        "walk_up": [13, 14, 15, 16]
+      }
+    },
+    "enemy.grunt.combat": {
+      "sheet": "processed/enemy_grunt_combat/sheet-transparent.png",
+      "rows": 3,
+      "cols": 4,
+      "actions": {
+        "idle": [1, 2, 3, 4],
+        "hurt": [5, 6, 7, 8],
+        "death": [9, 10, 11, 12]
+      }
+    },
+    "enemy.bat.combat": {
+      "sheet": "processed/enemy_bat_combat/sheet-transparent.png",
+      "rows": 3,
+      "cols": 4,
+      "actions": {
+        "idle": [1, 2, 3, 4],
+        "hurt": [5, 6, 7, 8],
+        "death": [9, 10, 11, 12]
+      }
+    },
+    "enemy.guard.combat": {
+      "sheet": "processed/enemy_guard_combat/sheet-transparent.png",
+      "rows": 3,
+      "cols": 4,
+      "actions": {
+        "idle": [1, 2, 3, 4],
+        "hurt": [5, 6, 7, 8],
+        "death": [9, 10, 11, 12]
+      }
+    },
+    "enemy.brute.combat": {
+      "sheet": "processed/enemy_brute_combat/sheet-transparent.png",
+      "rows": 3,
+      "cols": 4,
+      "actions": {
+        "idle": [1, 2, 3, 4],
+        "hurt": [5, 6, 7, 8],
+        "death": [9, 10, 11, 12]
+      }
+    },
+    "enemy.boss_guard.combat": {
+      "sheet": "processed/enemy_boss_guard_combat/sheet-transparent.png",
+      "rows": 3,
+      "cols": 4,
+      "actions": {
+        "idle": [1, 2, 3, 4],
+        "hurt": [5, 6, 7, 8],
+        "death": [9, 10, 11, 12]
+      }
+    },
+    "enemy.stage_boss.combat": {
+      "sheet": "processed/enemy_stage_boss_combat/sheet-transparent.png",
+      "rows": 3,
+      "cols": 4,
+      "actions": {
+        "idle": [1, 2, 3, 4],
+        "hurt": [5, 6, 7, 8],
+        "death": [9, 10, 11, 12]
+      }
+    },
+    "fx.card.shared": {
+      "sheet": "processed/card_fx_atlas/sheet-transparent.png",
+      "rows": 6,
+      "cols": 4,
+      "actions": {
+        "single_projectile": [1, 2, 3, 4],
+        "single_impact": [5, 6, 7, 8],
+        "front_row_sweep": [9, 10, 11, 12],
+        "random_strike": [13, 14, 15, 16],
+        "bounce_projectile": [17, 18, 19, 20],
+        "all_screen_burst": [21, 22, 23, 24]
+      }
+    },
+    "map.pickups_exit_pack": {
+      "sheet": "processed/pickups_exit_pack/sheet-transparent.png",
+      "rows": 3,
+      "cols": 3,
+      "cells": {
+        "treasure": 1,
+        "healing": 2,
+        "xp_gem": 3,
+        "forge": 4,
+        "shrine": 5,
+        "hazard": 6,
+        "exit_locked": 7,
+        "exit_open": 8,
+        "entrance": 9
+      }
+    }
+  }
+}

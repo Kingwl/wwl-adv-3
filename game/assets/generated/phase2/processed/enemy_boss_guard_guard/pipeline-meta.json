@@ -1,0 +1,175 @@
+{
+  "target": "creature",
+  "mode": "enemy_boss_guard_guard",
+  "prompt": "",
+  "role": "",
+  "input": "game/assets/generated/phase2/raw/enemy_boss_guard_guard_raw.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 110,
+  "rows": 2,
+  "cols": 2,
+  "cell_size": 128,
+  "fit_scale": 0.82,
+  "trim_border": 4,
+  "edge_clean_depth": 3,
+  "align": "feet",
+  "shared_scale": true,
+  "component_mode": "largest",
+  "component_padding": 0,
+  "min_component_area": 1,
+  "edge_touch_margin": 0,
+  "frame_labels": [
+    "enemy_boss_guard_guard-1",
+    "enemy_boss_guard_guard-2",
+    "enemy_boss_guard_guard-3",
+    "enemy_boss_guard_guard-4"
+  ],
+  "frames": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "source_box": [
+        0,
+        0,
+        627,
+        627
+      ],
+      "component_mode": "largest",
+      "component_count": 1,
+      "selected_component_area": 111192,
+      "selected_component_bbox": [
+        147,
+        79,
+        544,
+        531
+      ],
+      "crop_bbox": [
+        147,
+        79,
+        544,
+        531
+      ],
+      "edge_touch": false,
+      "output_size": [
+        92,
+        104
+      ],
+      "paste_position": [
+        18,
+        13
+      ]
+    },
+    {
+      "grid": [
+        0,
+        1
+      ],
+      "source_box": [
+        627,
+        0,
+        1254,
+        627
+      ],
+      "component_mode": "largest",
+      "component_count": 1,
+      "selected_component_area": 101797,
+      "selected_component_bbox": [
+        79,
+        89,
+        445,
+        523
+      ],
+      "crop_bbox": [
+        79,
+        89,
+        445,
+        523
+      ],
+      "edge_touch": false,
+      "output_size": [
+        84,
+        100
+      ],
+      "paste_position": [
+        22,
+        17
+      ]
+    },
+    {
+      "grid": [
+        1,
+        0
+      ],
+      "source_box": [
+        0,
+        627,
+        627,
+        1254
+      ],
+      "component_mode": "largest",
+      "component_count": 7,
+      "selected_component_area": 103956,
+      "selected_component_bbox": [
+        153,
+        45,
+        516,
+        484
+      ],
+      "crop_bbox": [
+        153,
+        45,
+        516,
+        484
+      ],
+      "edge_touch": false,
+      "output_size": [
+        84,
+        101
+      ],
+      "paste_position": [
+        22,
+        16
+      ]
+    },
+    {
+      "grid": [
+        1,
+        1
+      ],
+      "source_box": [
+        627,
+        627,
+        1254,
+        1254
+      ],
+      "component_mode": "largest",
+      "component_count": 1,
+      "selected_component_area": 110099,
+      "selected_component_bbox": [
+        73,
+        54,
+        480,
+        498
+      ],
+      "crop_bbox": [
+        73,
+        54,
+        480,
+        498
+      ],
+      "edge_touch": false,
+      "output_size": [
+        94,
+        103
+      ],
+      "paste_position": [
+        17,
+        14
+      ]
+    }
+  ],
+  "edge_touch_frames": []
+}

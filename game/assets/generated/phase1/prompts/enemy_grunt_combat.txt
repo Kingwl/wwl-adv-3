@@ -1,0 +1,5 @@
+Compact enemy combat sprite sheet for a small dungeon grunt.
+Exact layout: 3 rows by 4 columns, 12 equal cells. Row 1 idle loop, row 2 hurt reaction, row 3 death collapse. Each row is a 4-frame sequence.
+Enemy identity: ragged cave minion, hunched stance, patched leather, rusty dagger, dull red cloth scraps, readable hostile silhouette. Same enemy in every frame.
+Style: top-down 3/4 pixel-inspired roguelite combat sprite, crisp outline, saturated dungeon palette.
+Rules: solid flat magenta #FF00FF background only; no grid lines; no borders; no labels; no text; no UI; no shadow. Enemy centered in each cell, same scale in every frame, full body contained, nothing touches or crosses cell edges.
