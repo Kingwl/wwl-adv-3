@@ -85,6 +85,7 @@ var combat_player_health_bar: ProgressBar
 var combat_title_label: Label
 var combat_enemy_panel: PanelContainer
 var combat_enemy_label: Label
+var combat_enemy_scroll: ScrollContainer
 var combat_enemy_rows: BoxContainer
 var combat_mana_label: Label
 var combat_combo_label: Label
@@ -325,7 +326,7 @@ func _build_combat_panel(parent: Control) -> void:
 
 	var player_hud := _create_combat_panel_frame(
 		"PlayerHudPanel",
-		Vector2(166, 242),
+		Vector2(166, 342),
 		COLOR_COMBAT_HUD,
 		COLOR_COMBAT_HUD_BORDER,
 		2
@@ -370,7 +371,7 @@ func _build_combat_panel(parent: Control) -> void:
 
 	combat_enemy_panel = _create_combat_panel_frame(
 		"EnemyStatePanel",
-		Vector2(690, 242),
+		Vector2(690, 342),
 		COLOR_COMBAT_STAGE,
 		COLOR_COMBAT_STAGE_BORDER,
 		2
@@ -391,14 +392,27 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_enemy_label.add_theme_font_size_override("font_size", 16)
 	enemy_content.add_child(combat_enemy_label)
 
+	combat_enemy_scroll = ScrollContainer.new()
+	combat_enemy_scroll.name = "EnemyRowsScroll"
+	combat_enemy_scroll.custom_minimum_size = Vector2(640, 302)
+	combat_enemy_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	combat_enemy_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	combat_enemy_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	combat_enemy_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	enemy_content.add_child(combat_enemy_scroll)
+
 	combat_enemy_rows = VBoxContainer.new()
 	combat_enemy_rows.name = "EnemyRows"
+	combat_enemy_rows.custom_minimum_size = Vector2(620, 296)
+	combat_enemy_rows.alignment = BoxContainer.ALIGNMENT_CENTER
+	combat_enemy_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	combat_enemy_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	combat_enemy_rows.add_theme_constant_override("separation", 4)
-	enemy_content.add_child(combat_enemy_rows)
+	combat_enemy_scroll.add_child(combat_enemy_rows)
 
 	var action_hud := _create_combat_panel_frame(
 		"CombatActionHud",
-		Vector2(176, 242),
+		Vector2(176, 342),
 		COLOR_COMBAT_HUD,
 		COLOR_COMBAT_HUD_BORDER,
 		2
@@ -1198,7 +1212,8 @@ func _refresh_enemy_rows() -> void:
 		return
 
 	var target_enemy := _current_target_enemy()
-	for row_index in range(rows.size()):
+	for display_index in range(rows.size()):
+		var row_index := rows.size() - 1 - display_index
 		var row: Array = rows[row_index]
 		var row_box := HBoxContainer.new()
 		row_box.name = "EnemyRow_%02d" % row_index
@@ -1207,7 +1222,7 @@ func _refresh_enemy_rows() -> void:
 
 		var row_label := Label.new()
 		row_label.name = "EnemyRowLabel_%02d" % row_index
-		var row_name := "前排" if row_index == 0 else "后排%s" % row_index
+		var row_name := _enemy_row_name(row_index)
 		row_label.text = "%s\n%s/%s" % [row_name, row.size(), CombatState.MAX_ENEMIES_PER_ROW]
 		row_label.custom_minimum_size = Vector2(48, 1)
 		row_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1223,6 +1238,22 @@ func _refresh_enemy_rows() -> void:
 			enemy_cards.add_child(_create_enemy_card(enemy, row_index, enemy == target_enemy))
 		row_box.add_child(enemy_cards)
 		combat_enemy_rows.add_child(row_box)
+	call_deferred("_scroll_enemy_rows_to_front")
+
+
+func _enemy_row_name(row_index: int) -> String:
+	if row_index <= 0:
+		return "前排"
+	return "第%s排" % [row_index + 1]
+
+
+func _scroll_enemy_rows_to_front() -> void:
+	if combat_enemy_scroll == null:
+		return
+	var vertical_bar := combat_enemy_scroll.get_v_scroll_bar()
+	if vertical_bar == null:
+		return
+	combat_enemy_scroll.scroll_vertical = int(vertical_bar.max_value)
 
 
 func _add_empty_enemy_row() -> void:

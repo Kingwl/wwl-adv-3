@@ -481,8 +481,11 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(combat_title_label.text, "遭遇：走卒", "combat title") and ok
 	ok = _assert_eq(combat_enemy_label.text, "战斗阵列", "combat enemy panel title") and ok
 	ok = _assert_eq(enemy_rows.get_child_count(), 2, "combat enemy panel splits rows") and ok
-	var front_cards: HBoxContainer = enemy_rows.get_child(0).find_child("EnemyCards_00", true, false)
-	var rear_cards: HBoxContainer = enemy_rows.get_child(1).find_child("EnemyCards_01", true, false)
+	ok = _assert_eq(enemy_rows.get_child(0).name, "EnemyRow_01", "rear row renders above front row") and ok
+	ok = _assert_eq(enemy_rows.get_child(1).name, "EnemyRow_00", "front row renders at the bottom") and ok
+	ok = _assert_eq(run_scene._enemy_row_name(2), "第3排", "enemy row labels support more than two rows") and ok
+	var rear_cards: HBoxContainer = enemy_rows.get_child(0).find_child("EnemyCards_01", true, false)
+	var front_cards: HBoxContainer = enemy_rows.get_child(1).find_child("EnemyCards_00", true, false)
 	ok = _assert_eq(front_cards.get_child_count(), 1, "front row has separate enemy card") and ok
 	ok = _assert_eq(rear_cards.get_child_count(), 1, "rear row has separate enemy card") and ok
 	var target_state: Label = front_cards.get_child(0).find_child("EnemyStateLabel", true, false)
