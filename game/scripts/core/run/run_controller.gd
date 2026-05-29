@@ -612,6 +612,7 @@ func _add_play_result_fields(event: Dictionary, card: CardDefinition, play_resul
 	event["card_id"] = card.id if card != null else ""
 	event["target_id"] = play_result.target_id
 	event["target_ids"] = play_result.target_ids.duplicate()
+	event["hit_events"] = play_result.hit_events.duplicate(true)
 	event["damage_dealt"] = play_result.damage_dealt
 	event["block_gained"] = play_result.block_gained
 	event["cards_drawn"] = play_result.cards_drawn

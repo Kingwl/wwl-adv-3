@@ -11,6 +11,7 @@ var multiplier_basis_points: int = 100
 var mana_spent: int = 0
 var damage_requested: int = 0
 var damage_dealt: int = 0
+var hit_events: Array = []
 var block_gained: int = 0
 var cards_drawn: int = 0
 var defeated_enemy_ids: Array = []

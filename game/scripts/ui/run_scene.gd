@@ -94,6 +94,7 @@ var combat_enemy_panel: PanelContainer
 var combat_enemy_label: Label
 var combat_enemy_scroll: ScrollContainer
 var combat_enemy_rows: BoxContainer
+var combat_stage_floor: HBoxContainer
 var combat_mana_label: Label
 var combat_combo_label: Label
 var combat_selected_label: Label
@@ -414,7 +415,7 @@ func _build_combat_panel(parent: Control) -> void:
 
 	combat_enemy_scroll = ScrollContainer.new()
 	combat_enemy_scroll.name = "EnemyRowsScroll"
-	combat_enemy_scroll.custom_minimum_size = Vector2(640, 302)
+	combat_enemy_scroll.custom_minimum_size = Vector2(640, 274)
 	combat_enemy_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	combat_enemy_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	combat_enemy_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -423,12 +424,19 @@ func _build_combat_panel(parent: Control) -> void:
 
 	combat_enemy_rows = VBoxContainer.new()
 	combat_enemy_rows.name = "EnemyRows"
-	combat_enemy_rows.custom_minimum_size = Vector2(620, 296)
+	combat_enemy_rows.custom_minimum_size = Vector2(620, 268)
 	combat_enemy_rows.alignment = BoxContainer.ALIGNMENT_CENTER
 	combat_enemy_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	combat_enemy_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	combat_enemy_rows.add_theme_constant_override("separation", 4)
 	combat_enemy_scroll.add_child(combat_enemy_rows)
+
+	combat_stage_floor = HBoxContainer.new()
+	combat_stage_floor.name = "CombatStageFloor"
+	combat_stage_floor.custom_minimum_size = Vector2(640, 24)
+	combat_stage_floor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	combat_stage_floor.add_theme_constant_override("separation", 0)
+	enemy_content.add_child(combat_stage_floor)
 
 	var action_hud := _create_combat_panel_frame(
 		"CombatActionHud",
@@ -745,6 +753,7 @@ func _refresh_combat() -> void:
 		combat_title_label.text = "战斗"
 		combat_enemy_label.text = "战斗阵列"
 		_add_empty_enemy_row()
+		_refresh_combat_stage_floor()
 		combat_hand_title_label.text = "手牌"
 		combat_log_label.text = combat_log
 		end_turn_button.disabled = true
@@ -772,6 +781,7 @@ func _refresh_combat() -> void:
 	combat_title_label.text = "遭遇：%s" % (target_enemy.display_name if target_enemy != null else "敌人")
 	combat_enemy_label.text = "战斗阵列"
 	_refresh_enemy_rows()
+	_refresh_combat_stage_floor()
 	combat_hand_title_label.text = "手牌（%s）" % active_combat.deck.hand.size()
 	if combat_mana_label != null:
 		combat_mana_label.text = "法力 %s/%s" % [active_combat.mana, active_combat.max_mana]
@@ -1297,6 +1307,29 @@ func _add_empty_enemy_row() -> void:
 	combat_enemy_rows.add_child(empty_label)
 
 
+func _refresh_combat_stage_floor() -> void:
+	if combat_stage_floor == null:
+		return
+	for child in combat_stage_floor.get_children():
+		combat_stage_floor.remove_child(child)
+		child.queue_free()
+
+	var stage_id := ""
+	if run_state != null and run_state.current_stage != null:
+		stage_id = run_state.current_stage.id
+	for i in range(20):
+		var tile := TextureRect.new()
+		tile.name = "CombatStageTile_%02d" % i
+		tile.custom_minimum_size = Vector2(32, 24)
+		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tile.texture = visual_assets.tile_texture(DungeonTile.TileType.FLOOR, false, animation_frame + i, stage_id)
+		tile.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tile.stretch_mode = TextureRect.STRETCH_SCALE
+		tile.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		combat_stage_floor.add_child(tile)
+
+
 func _capture_card_vfx_context(hand_index: int, card) -> Dictionary:
 	return {
 		"source_center": _card_vfx_source_center(hand_index, card),
@@ -1393,6 +1426,7 @@ func _play_card_use_vfx(card, result: Dictionary, context: Dictionary) -> void:
 	if card.draw_count > 0:
 		_spawn_card_icon_pulse(card, hand_center, Vector2(76, 76), Color(1.0, 1.0, 1.0, 0.90), 0.04)
 		_spawn_card_fx_burst("bounce_projectile", hand_center, Vector2(132, 102), Color(0.78, 0.88, 1.00, 0.80), 0.08, 0.38, 0.80, card.id)
+	_play_card_result_feedback(card, result, context, player_center, hand_center)
 
 
 func _play_attack_card_vfx(card, source_center: Vector2, target_points: Array, tint: Color, context: Dictionary) -> void:
@@ -1457,6 +1491,67 @@ func _card_vfx_target_points(result: Dictionary, context: Dictionary) -> Array:
 func _spawn_target_impacts(target_points: Array, tint: Color, base_delay: float, card_id: String = "") -> void:
 	for i in range(target_points.size()):
 		_spawn_card_fx_burst("single_impact", target_points[i], Vector2(126, 104), tint, base_delay + float(i) * 0.03, 0.24, 0.84, card_id)
+
+
+func _play_card_result_feedback(card, result: Dictionary, context: Dictionary, player_center: Vector2, hand_center: Vector2) -> void:
+	var enemy_centers: Dictionary = context.get("enemy_centers", {})
+	var hit_events: Array = result.get("hit_events", [])
+	for i in range(hit_events.size()):
+		var hit: Dictionary = hit_events[i]
+		var target_id := str(hit.get("target_id", ""))
+		var center: Vector2 = _enemy_stage_center(context)
+		if enemy_centers.has(target_id):
+			center = enemy_centers[target_id]
+		var damage := int(hit.get("damage", 0))
+		var delay := 0.24 + float(i % 5) * 0.04
+		if damage > 0:
+			_spawn_floating_text("-%s" % damage, center + Vector2(0, -34), Color(1.0, 0.27, 0.18, 1.0), delay, 24)
+		else:
+			_spawn_floating_text("格挡", center + Vector2(0, -34), Color(0.64, 0.84, 1.0, 1.0), delay, 20)
+		if bool(hit.get("defeated", false)):
+			_spawn_floating_text("击破", center + Vector2(0, -60), COLOR_SELECTED, delay + 0.10, 20)
+
+	var block_gained := int(result.get("block_gained", 0))
+	if block_gained > 0:
+		_spawn_floating_text("+%s 护甲" % block_gained, player_center + Vector2(0, -54), Color(0.38, 0.92, 0.72, 1.0), 0.20, 18)
+
+	var cards_drawn := int(result.get("cards_drawn", 0))
+	if cards_drawn > 0:
+		_spawn_floating_text("+%s 抽牌" % cards_drawn, hand_center + Vector2(0, -42), Color(0.78, 0.88, 1.0, 1.0), 0.22, 18)
+
+
+func _spawn_floating_text(text: String, center: Vector2, color: Color, delay: float = 0.0, font_size: int = 22) -> void:
+	if combat_fx_layer == null or text == "":
+		return
+
+	combat_fx_serial += 1
+	var label := Label.new()
+	label.name = "CombatFloatingText_%03d" % combat_fx_serial
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.custom_minimum_size = Vector2(112, 30)
+	label.size = Vector2(112, 30)
+	label.pivot_offset = label.size * 0.5
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.z_index = 520 + combat_fx_serial % 50
+	label.modulate = Color(1.0, 1.0, 1.0, 0.0 if delay > 0.0 else 1.0)
+	label.position = _fx_layer_position_for_center(center, label.size)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.02, 0.95))
+	label.add_theme_constant_override("outline_size", 3)
+	combat_fx_layer.add_child(label)
+
+	var end_position := label.position + Vector2(0, -28)
+	var tween := create_tween()
+	if delay > 0.0:
+		tween.tween_interval(delay)
+		tween.tween_property(label, "modulate:a", 1.0, 0.04)
+	tween.tween_property(label, "position", end_position, 0.44).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(label, "scale", Vector2(1.12, 1.12), 0.18)
+	tween.tween_property(label, "modulate:a", 0.0, 0.16)
+	tween.tween_callback(Callable(label, "queue_free"))
 
 
 func _spawn_card_fx_projectile(
@@ -1622,6 +1717,11 @@ func _play_enemy_turn_vfx(context: Dictionary, damage_taken: int) -> void:
 		_spawn_enemy_attack_fx_burst(visual_id, source_center, Vector2(124, 102), tint, delay, 0.22, 0.82)
 		_spawn_enemy_attack_fx_projectile(visual_id, source_center, player_center, tint, delay + 0.08, 0.22)
 		_spawn_player_hit_fx(player_center, damage_taken > 0, delay + 0.28 + float(i) * 0.02)
+	var result_delay := 0.38 + float(maxi(attackers.size() - 1, 0)) * 0.14
+	if damage_taken > 0:
+		_spawn_floating_text("-%s" % damage_taken, player_center + Vector2(0, -58), Color(1.0, 0.24, 0.18, 1.0), result_delay, 24)
+	else:
+		_spawn_floating_text("格挡", player_center + Vector2(0, -58), Color(0.64, 0.84, 1.0, 1.0), result_delay, 20)
 
 
 func _spawn_enemy_attack_fx_projectile(

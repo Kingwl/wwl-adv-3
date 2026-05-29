@@ -201,6 +201,11 @@ func _test_enemy_rows_only_front_attacks_and_rear_waits_after_advancing() -> boo
 
 	var ok := true
 	ok = _assert_eq(play_result.defeated_enemy_ids, ["front"], "front enemy is defeated first") and ok
+	ok = _assert_eq(play_result.hit_events.size(), 1, "front kill records one hit event") and ok
+	if play_result.hit_events.size() > 0:
+		ok = _assert_eq(play_result.hit_events[0]["target_id"], "front", "hit event records defeated target") and ok
+		ok = _assert_eq(play_result.hit_events[0]["damage"], 3, "hit event records actual damage dealt") and ok
+		ok = _assert_eq(play_result.hit_events[0]["defeated"], true, "hit event records defeat") and ok
 	ok = _assert_eq(front_after_kill.size(), 1, "rear advances into front row") and ok
 	if front_after_kill.size() > 0:
 		ok = _assert_eq(front_after_kill[0].id, "rear", "rear is now the front target") and ok
@@ -378,6 +383,7 @@ func _test_reward_cards_resolve_core_effects() -> bool:
 	var ok := true
 	ok = _assert_eq(whip_result.damage_dealt, 12, "whip hits the front row") and ok
 	ok = _assert_eq(whip_result.target_ids, ["enemy_a", "enemy_b"], "whip records front-row vfx targets") and ok
+	ok = _assert_eq(whip_result.hit_events.size(), 2, "whip records per-target hit feedback") and ok
 	ok = _assert_eq(axe_result.damage_dealt, 48, "axe bounces through three enemies with combo") and ok
 	ok = _assert_eq(axe_result.target_ids, ["enemy_a", "enemy_b", "enemy_c"], "axe records bounce vfx targets") and ok
 	ok = _assert_eq(pentagram_result.damage_dealt, 90, "pentagram hits all enemies with combo") and ok

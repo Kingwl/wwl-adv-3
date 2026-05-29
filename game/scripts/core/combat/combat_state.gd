@@ -271,8 +271,16 @@ func _deal_damage_to_targets(targets: Array, damage: int, result: CardPlayResult
 		if target == null or target.is_defeated():
 			continue
 		result.target_ids.append(target.id)
-		result.damage_dealt += target.take_damage(damage)
-		if target.is_defeated() and not defeated_ids.has(target.id):
+		var damage_dealt := target.take_damage(damage)
+		result.damage_dealt += damage_dealt
+		var defeated := target.is_defeated()
+		result.hit_events.append({
+			"target_id": target.id,
+			"requested": damage,
+			"damage": damage_dealt,
+			"defeated": defeated,
+		})
+		if defeated and not defeated_ids.has(target.id):
 			result.defeated_enemy_ids.append(target.id)
 			defeated_ids[target.id] = true
 

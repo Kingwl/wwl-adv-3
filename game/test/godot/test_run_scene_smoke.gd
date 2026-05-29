@@ -540,6 +540,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var combat_title_label: Label = run_scene.find_child("CombatTitleLabel", true, false)
 	var combat_enemy_label: Label = run_scene.find_child("EnemyState", true, false)
 	var enemy_rows: BoxContainer = run_scene.find_child("EnemyRows", true, false)
+	var combat_stage_floor: HBoxContainer = run_scene.find_child("CombatStageFloor", true, false)
 	var card_use_fx_layer: Control = run_scene.find_child("CardUseFxLayer", true, false)
 	var player_state_panel: PanelContainer = run_scene.find_child("PlayerStatePanel", true, false)
 	var player_hud_panel: PanelContainer = run_scene.find_child("PlayerHudPanel", true, false)
@@ -560,6 +561,11 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(combat_hand_row.get_child_count(), 5, "combat hand buttons") and ok
 	ok = _assert_eq(combat_title_label.text, "遭遇：走卒", "combat title") and ok
 	ok = _assert_eq(combat_enemy_label.text, "战斗阵列", "combat enemy panel title") and ok
+	ok = _assert_ne(combat_stage_floor, null, "combat has stage floor strip") and ok
+	if combat_stage_floor != null:
+		ok = _assert_eq(combat_stage_floor.get_child_count(), 20, "stage floor uses repeated tiles") and ok
+		var first_stage_tile := combat_stage_floor.get_child(0) as TextureRect
+		ok = _assert_ne(first_stage_tile.texture, null, "stage floor tile loads texture") and ok
 	ok = _assert_ne(card_use_fx_layer, null, "combat has card use vfx layer") and ok
 	ok = _assert_eq(enemy_rows.get_child_count(), 2, "combat enemy panel splits rows") and ok
 	ok = _assert_eq(enemy_rows.get_child(0).name, "EnemyRow_01", "rear row renders above front row") and ok
@@ -588,6 +594,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 
 	ok = _assert_eq(run_scene.combat_animation_locked, true, "card press waits for combat vfx before final refresh") and ok
 	ok = _assert_eq(card_use_fx_layer.get_child_count() > 0, true, "playing a card spawns vfx nodes") and ok
+	ok = _assert_ne(card_use_fx_layer.find_child("CombatFloatingText_*", true, false), null, "playing a card spawns floating feedback text") and ok
 	await _wait_for_combat_animation(run_scene)
 	ok = _assert_eq(run_scene.active_combat.mana, 2, "playing first card spends mana") and ok
 	ok = _assert_eq(run_scene.active_combat.deck.hand.size(), 4, "playing first card removes hand card") and ok
