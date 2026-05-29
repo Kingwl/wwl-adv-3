@@ -319,12 +319,17 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	var animated_card_icon := animated_card_button.icon
 	var animated_enemy_portrait: TextureRect = run_scene.find_child("EnemyPortrait", true, false)
 	var animated_enemy_texture := animated_enemy_portrait.texture if animated_enemy_portrait != null else null
+	var animated_player_portrait: TextureRect = run_scene.find_child("PlayerCombatPortrait", true, false)
+	var animated_player_texture := animated_player_portrait.texture if animated_player_portrait != null else null
 	run_scene._process(0.20)
 	ok = _assert_ne(animated_card_icon, null, "combat card has generated icon") and ok
 	ok = _assert_eq(animated_card_button.icon != animated_card_icon, true, "combat card icon advances animation frame") and ok
 	ok = _assert_ne(animated_enemy_portrait, null, "combat enemy has generated portrait") and ok
 	if animated_enemy_portrait != null:
 		ok = _assert_eq(animated_enemy_portrait.texture != animated_enemy_texture, true, "combat enemy portrait advances animation frame") and ok
+	ok = _assert_ne(animated_player_portrait, null, "combat player has generated portrait") and ok
+	if animated_player_portrait != null:
+		ok = _assert_eq(animated_player_portrait.texture != animated_player_texture, true, "combat player portrait advances animation frame") and ok
 
 	var attack_index := _first_attack_card_index(run_scene.active_combat.deck.hand)
 	ok = _assert_eq(attack_index >= 0, true, "combat hand has attack card") and ok

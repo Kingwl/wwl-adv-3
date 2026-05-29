@@ -1,0 +1,90 @@
+{
+  "version": "phase3",
+  "style": "pixel-inspired top-down roguelite",
+  "preferred_assets": {
+    "map.tileset.core": {
+      "sheet": "processed/map_tileset_core/sheet-transparent.png",
+      "rows": 4,
+      "cols": 4,
+      "cells": {
+        "stage_1_floor": 1,
+        "stage_1_wall": 2,
+        "stage_1_wall_corner": 3,
+        "stage_1_pit": 4,
+        "stage_1_exit_locked": 5,
+        "stage_1_exit_open": 6,
+        "stage_1_entrance": 7,
+        "stage_1_old_well": 8,
+        "stage_2_floor": 9,
+        "stage_2_wall": 10,
+        "stage_2_wall_corner": 11,
+        "stage_2_tombstone": 12,
+        "stage_2_bone_pile": 13,
+        "stage_2_exit_locked": 14,
+        "stage_2_exit_open": 15,
+        "stage_2_entrance": 16
+      }
+    },
+    "card.icons.a": {
+      "sheet": "processed/card_icon_atlas_a/sheet-transparent.png",
+      "rows": 7,
+      "cols": 4,
+      "frames_per_card": 4,
+      "cards": ["whip", "magic_wand", "laurel", "empty_tome", "knife", "axe", "cross"]
+    },
+    "card.icons.b": {
+      "sheet": "processed/card_icon_atlas_b/sheet-transparent.png",
+      "rows": 7,
+      "cols": 4,
+      "frames_per_card": 4,
+      "cards": ["king_bible", "fire_wand", "garlic", "santa_water", "runetracer", "lightning_ring", "pentagram"]
+    },
+    "card.icons.c": {
+      "sheet": "processed/card_icon_atlas_c/sheet-transparent.png",
+      "rows": 7,
+      "cols": 4,
+      "frames_per_card": 4,
+      "cards": ["peachone", "ebony_wings", "song_of_mana", "bone", "cherry_bomb", "spellbinder", "duplicator"]
+    },
+    "actor.hero.combat": {
+      "actions": {
+        "idle": {
+          "sheet": "processed/hero_combat_idle/sheet-transparent.png",
+          "rows": 2,
+          "cols": 2,
+          "frames": [1, 2, 3, 4]
+        },
+        "attack": {
+          "sheet": "processed/hero_combat_attack/sheet-transparent.png",
+          "rows": 2,
+          "cols": 3,
+          "frames": [1, 2, 3, 4, 5, 6]
+        },
+        "cast": {
+          "sheet": "processed/hero_combat_cast/sheet-transparent.png",
+          "rows": 2,
+          "cols": 3,
+          "frames": [1, 2, 3, 4, 5, 6]
+        },
+        "guard": {
+          "sheet": "processed/hero_combat_guard/sheet-transparent.png",
+          "rows": 2,
+          "cols": 2,
+          "frames": [1, 2, 3, 4]
+        },
+        "hurt": {
+          "sheet": "processed/hero_combat_hurt/sheet-transparent.png",
+          "rows": 2,
+          "cols": 2,
+          "frames": [1, 2, 3, 4]
+        },
+        "death": {
+          "sheet": "processed/hero_combat_death/sheet-transparent.png",
+          "rows": 3,
+          "cols": 3,
+          "frames": [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        }
+      }
+    }
+  }
+}

@@ -7,12 +7,29 @@ const HERO_WALK_SHEET := "res://assets/generated/phase1/processed/hero_walk_4dir
 const PICKUPS_EXIT_SHEET := "res://assets/generated/phase1/processed/pickups_exit_pack/sheet-transparent.png"
 const SHARED_CARD_FX_SHEET := "res://assets/generated/phase1/processed/card_fx_atlas/sheet-transparent.png"
 const DEDICATED_CARD_FX_SHEET := "res://assets/generated/phase2/processed/dedicated_card_fx_atlas/sheet-transparent.png"
+const MAP_TILESET_CORE_SHEET := "res://assets/generated/phase3/processed/map_tileset_core/sheet-transparent.png"
+const CARD_ICON_ATLAS_A_SHEET := "res://assets/generated/phase3/processed/card_icon_atlas_a/sheet-transparent.png"
+const CARD_ICON_ATLAS_B_SHEET := "res://assets/generated/phase3/processed/card_icon_atlas_b/sheet-transparent.png"
+const CARD_ICON_ATLAS_C_SHEET := "res://assets/generated/phase3/processed/card_icon_atlas_c/sheet-transparent.png"
+const HERO_COMBAT_IDLE_SHEET := "res://assets/generated/phase3/processed/hero_combat_idle/sheet-transparent.png"
+const HERO_COMBAT_ATTACK_SHEET := "res://assets/generated/phase3/processed/hero_combat_attack/sheet-transparent.png"
+const HERO_COMBAT_CAST_SHEET := "res://assets/generated/phase3/processed/hero_combat_cast/sheet-transparent.png"
+const HERO_COMBAT_GUARD_SHEET := "res://assets/generated/phase3/processed/hero_combat_guard/sheet-transparent.png"
+const HERO_COMBAT_HURT_SHEET := "res://assets/generated/phase3/processed/hero_combat_hurt/sheet-transparent.png"
+const HERO_COMBAT_DEATH_SHEET := "res://assets/generated/phase3/processed/hero_combat_death/sheet-transparent.png"
 const HERO_WALK_DOWN_FRAMES := [1, 2, 3, 4]
+const HERO_COMBAT_IDLE_FRAMES := [1, 2, 3, 4]
+const HERO_COMBAT_ATTACK_FRAMES := [1, 2, 3, 4, 5, 6]
+const HERO_COMBAT_CAST_FRAMES := [1, 2, 3, 4, 5, 6]
+const HERO_COMBAT_GUARD_FRAMES := [1, 2, 3, 4]
+const HERO_COMBAT_HURT_FRAMES := [1, 2, 3, 4]
+const HERO_COMBAT_DEATH_FRAMES := [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const ENEMY_IDLE_FRAMES := [1, 2, 3, 4]
 const ENEMY_HURT_FRAMES := [5, 6, 7, 8]
 const ENEMY_DEATH_FRAMES := [9, 10, 11, 12]
 const ENEMY_ATTACK_FRAMES := [1, 2, 3, 4, 5, 6]
 const ENEMY_GUARD_FRAMES := [1, 2, 3, 4]
+const CARD_ICON_FRAMES_PER_CARD := 4
 
 const ENEMY_COMBAT_SHEETS := {
 	"grunt": "res://assets/generated/phase1/processed/enemy_grunt_combat/sheet-transparent.png",
@@ -38,6 +55,30 @@ const ENEMY_GUARD_SHEETS := {
 	"boss_guard": "res://assets/generated/phase2/processed/enemy_boss_guard_guard/sheet-transparent.png",
 }
 
+const CARD_ICON_ROWS := {
+	"whip": [CARD_ICON_ATLAS_A_SHEET, 0],
+	"magic_wand": [CARD_ICON_ATLAS_A_SHEET, 1],
+	"laurel": [CARD_ICON_ATLAS_A_SHEET, 2],
+	"empty_tome": [CARD_ICON_ATLAS_A_SHEET, 3],
+	"knife": [CARD_ICON_ATLAS_A_SHEET, 4],
+	"axe": [CARD_ICON_ATLAS_A_SHEET, 5],
+	"cross": [CARD_ICON_ATLAS_A_SHEET, 6],
+	"king_bible": [CARD_ICON_ATLAS_B_SHEET, 0],
+	"fire_wand": [CARD_ICON_ATLAS_B_SHEET, 1],
+	"garlic": [CARD_ICON_ATLAS_B_SHEET, 2],
+	"santa_water": [CARD_ICON_ATLAS_B_SHEET, 3],
+	"runetracer": [CARD_ICON_ATLAS_B_SHEET, 4],
+	"lightning_ring": [CARD_ICON_ATLAS_B_SHEET, 5],
+	"pentagram": [CARD_ICON_ATLAS_B_SHEET, 6],
+	"peachone": [CARD_ICON_ATLAS_C_SHEET, 0],
+	"ebony_wings": [CARD_ICON_ATLAS_C_SHEET, 1],
+	"song_of_mana": [CARD_ICON_ATLAS_C_SHEET, 2],
+	"bone": [CARD_ICON_ATLAS_C_SHEET, 3],
+	"cherry_bomb": [CARD_ICON_ATLAS_C_SHEET, 4],
+	"spellbinder": [CARD_ICON_ATLAS_C_SHEET, 5],
+	"duplicator": [CARD_ICON_ATLAS_C_SHEET, 6],
+}
+
 var _base_texture_cache: Dictionary = {}
 var _region_texture_cache: Dictionary = {}
 
@@ -46,7 +87,26 @@ func player_map_texture(frame_index: int = 0) -> Texture2D:
 	return _sheet_frame_from_sequence(HERO_WALK_SHEET, 4, 4, HERO_WALK_DOWN_FRAMES, frame_index)
 
 
-func tile_texture(tile_type: int, exit_unlocked: bool = false, frame_index: int = 0) -> Texture2D:
+func player_combat_texture(action: String = "idle", frame_index: int = 0) -> Texture2D:
+	if action == "attack":
+		return _sheet_frame_from_sequence(HERO_COMBAT_ATTACK_SHEET, 2, 3, HERO_COMBAT_ATTACK_FRAMES, frame_index)
+	if action == "cast":
+		return _sheet_frame_from_sequence(HERO_COMBAT_CAST_SHEET, 2, 3, HERO_COMBAT_CAST_FRAMES, frame_index)
+	if action == "guard":
+		return _sheet_frame_from_sequence(HERO_COMBAT_GUARD_SHEET, 2, 2, HERO_COMBAT_GUARD_FRAMES, frame_index)
+	if action == "hurt":
+		return _sheet_frame_from_sequence(HERO_COMBAT_HURT_SHEET, 2, 2, HERO_COMBAT_HURT_FRAMES, frame_index)
+	if action == "death":
+		return _sheet_frame_from_sequence(HERO_COMBAT_DEATH_SHEET, 3, 3, HERO_COMBAT_DEATH_FRAMES, frame_index)
+	return _sheet_frame_from_sequence(HERO_COMBAT_IDLE_SHEET, 2, 2, HERO_COMBAT_IDLE_FRAMES, frame_index)
+
+
+func tile_texture(tile_type: int, exit_unlocked: bool = false, frame_index: int = 0, stage_id: String = "") -> Texture2D:
+	var is_graveyard := stage_id == "stage_2"
+	if tile_type == DungeonTile.TileType.FLOOR:
+		return _sheet_frame(MAP_TILESET_CORE_SHEET, 4, 4, 9 if is_graveyard else 1)
+	if tile_type == DungeonTile.TileType.WALL:
+		return _sheet_frame(MAP_TILESET_CORE_SHEET, 4, 4, 10 if is_graveyard else 2)
 	if tile_type == DungeonTile.TileType.TREASURE:
 		return _sheet_frame(PICKUPS_EXIT_SHEET, 3, 3, 1)
 	if tile_type == DungeonTile.TileType.HEALING:
@@ -60,9 +120,11 @@ func tile_texture(tile_type: int, exit_unlocked: bool = false, frame_index: int 
 	if tile_type == DungeonTile.TileType.HAZARD:
 		return _sheet_frame(PICKUPS_EXIT_SHEET, 3, 3, 6)
 	if tile_type == DungeonTile.TileType.EXIT:
-		return _sheet_frame(PICKUPS_EXIT_SHEET, 3, 3, 8 if exit_unlocked else 7)
+		if is_graveyard:
+			return _sheet_frame(MAP_TILESET_CORE_SHEET, 4, 4, 15 if exit_unlocked else 14)
+		return _sheet_frame(MAP_TILESET_CORE_SHEET, 4, 4, 6 if exit_unlocked else 5)
 	if tile_type == DungeonTile.TileType.ENTRANCE:
-		return _sheet_frame(PICKUPS_EXIT_SHEET, 3, 3, 9)
+		return _sheet_frame(MAP_TILESET_CORE_SHEET, 4, 4, 16 if is_graveyard else 7)
 	if tile_type == DungeonTile.TileType.ENEMY:
 		return enemy_texture("grunt", "idle", frame_index)
 	if tile_type == DungeonTile.TileType.ELITE:
@@ -93,6 +155,10 @@ func enemy_texture(visual_id: String, action: String = "idle", frame_index: int 
 
 
 func card_texture(card_id: String, frame_index: int = 0) -> Texture2D:
+	var card_icon := _card_icon_texture(card_id, frame_index)
+	if card_icon != null:
+		return card_icon
+
 	if card_id == "whip":
 		return _sheet_frame_from_sequence(DEDICATED_CARD_FX_SHEET, 6, 4, [1, 2, 3, 4], frame_index)
 	if card_id == "king_bible":
@@ -118,6 +184,22 @@ func card_texture(card_id: String, frame_index: int = 0) -> Texture2D:
 	if card_id == "empty_tome" or card_id == "duplicator":
 		return _sheet_frame_from_sequence(SHARED_CARD_FX_SHEET, 6, 4, [17, 18, 19, 20], frame_index)
 	return null
+
+
+func _card_icon_texture(card_id: String, frame_index: int) -> Texture2D:
+	if not CARD_ICON_ROWS.has(card_id):
+		return null
+	var card_info: Array = CARD_ICON_ROWS[card_id]
+	var sheet_path := str(card_info[0])
+	var row_index := int(card_info[1])
+	var first_frame := row_index * CARD_ICON_FRAMES_PER_CARD + 1
+	return _sheet_frame_from_sequence(
+		sheet_path,
+		7,
+		CARD_ICON_FRAMES_PER_CARD,
+		[first_frame, first_frame + 1, first_frame + 2, first_frame + 3],
+		frame_index
+	)
 
 
 func _sheet_frame_from_sequence(path: String, rows: int, cols: int, frames: Array, frame_index: int) -> Texture2D:

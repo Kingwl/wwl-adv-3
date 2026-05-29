@@ -1,0 +1,9 @@
+Pixel-inspired controllable hero guard animation for "wwl adventure 3".
+Exact grid: 2 rows x 2 columns, 4 equal cells, one continuous defensive loop.
+Solid flat #FF00FF background fills all space outside the hero and between cells.
+No visible borders, no grid lines, no labels, no numbers, no words, no letters, no UI.
+Same hero identity in every frame: small adventurer, warm red scarf, dark travel coat, short dark hair, compact sword kept close, leather boots, readable friendly heroic silhouette.
+3/4 battle-view full body, crisp dark outline, clean modern pixel-art-inspired style matching the existing generated monsters.
+Guard body action with a small close shield glint only; no wide aura, no detached barrier, no screen-space effect.
+The body stays centered and the feet/bottom anchor line stays stable in every cell. Same height and width in every frame. Leave magenta margin on all sides.
+Frames: raise guard, brace, shield glint, settle guard.

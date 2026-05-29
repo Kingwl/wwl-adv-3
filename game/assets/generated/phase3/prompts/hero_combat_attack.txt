@@ -1,0 +1,9 @@
+Pixel-inspired controllable hero compact melee attack body animation for "wwl adventure 3".
+Exact grid: 2 rows x 3 columns, 6 equal cells, one continuous attack sequence.
+Solid flat #FF00FF background fills all space outside the hero and between cells.
+No visible borders, no grid lines, no labels, no numbers, no words, no letters, no UI.
+Same hero identity in every frame: small adventurer, warm red scarf, dark travel coat, short dark hair, compact sword kept close, leather boots, readable friendly heroic silhouette.
+3/4 battle-view full body, crisp dark outline, clean modern pixel-art-inspired style matching the existing generated monsters.
+Body-only attack: no detached slash arc, no wide weapon trail, no projectile, no impact burst, no dust cloud. Sword remains close enough that the body bbox matches idle scale.
+The body stays centered and the feet/bottom anchor line stays stable in every cell. Same height and width in every frame. Leave magenta margin on all sides.
+Frames: ready, wind-up, strike, follow-through, recovery, return stance.

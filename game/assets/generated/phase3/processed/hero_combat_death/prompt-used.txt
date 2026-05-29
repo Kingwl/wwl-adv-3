@@ -1,0 +1,9 @@
+Pixel-inspired controllable hero defeat animation for "wwl adventure 3".
+Exact grid: 3 rows x 3 columns, 9 equal cells, one readable non-gory collapse sequence.
+Solid flat #FF00FF background fills all space outside the hero and between cells.
+No visible borders, no grid lines, no labels, no numbers, no words, no letters, no UI.
+Same hero identity in every frame: small adventurer, warm red scarf, dark travel coat, short dark hair, compact sword kept close, leather boots, readable friendly heroic silhouette.
+3/4 battle-view full body, crisp dark outline, clean modern pixel-art-inspired style matching the existing generated monsters.
+Non-gory defeat: collapse and fade posture only, no blood, no gore, no detached large effects.
+Keep the body contained inside each cell with magenta margin on all sides. Same visual scale across frames.
+Frames: falter, drop to knee, lose balance, fall, hit ground, settle, dim, still, final still.

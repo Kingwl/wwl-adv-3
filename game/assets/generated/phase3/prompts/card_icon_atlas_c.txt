@@ -1,0 +1,15 @@
+Pixel-inspired roguelite card icon animation atlas for "wwl adventure 3".
+Exact grid: 7 rows x 4 columns, 28 equal cells, one card per row, four subtle loop frames per card.
+Solid flat #FF00FF background fills all space outside icons and between cells.
+No visible borders, no grid lines, no labels, no numbers, no words, no letters, no UI card frames.
+Every icon is centered, readable at small size, high contrast, crisp dark outline, same icon identity across the four frames in its row, with only a tiny pulse, sparkle, glow shift, or pose change between frames.
+Keep each icon inside the central safe area with magenta margin on all sides.
+
+Rows:
+1 Peachone: pale celestial wing-feather sigil with small star shots, four-frame sparkle pulse.
+2 Ebony Wings: dark violet wing-feather sigil with shadow shots, four-frame shadow pulse.
+3 Song of Mana: vertical blue sound wave rune with music-like energy, four-frame wave pulse.
+4 Bone: curved pale bone projectile with small motion glint, four-frame tumble.
+5 Cherry Bomb: round red cherry bomb with fuse spark, four-frame fuse flicker.
+6 Spellbinder: silver binding scroll and chain sigil, four-frame binding glow.
+7 Duplicator: twin mirrored crystal cores with duplicate echo, four-frame echo pulse.

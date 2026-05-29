@@ -1,0 +1,15 @@
+Pixel-inspired roguelite card icon animation atlas for "wwl adventure 3".
+Exact grid: 7 rows x 4 columns, 28 equal cells, one card per row, four subtle loop frames per card.
+Solid flat #FF00FF background fills all space outside icons and between cells.
+No visible borders, no grid lines, no labels, no numbers, no words, no letters, no UI card frames.
+Every icon is centered, readable at small size, high contrast, crisp dark outline, same icon identity across the four frames in its row, with only a tiny pulse, sparkle, glow shift, or pose change between frames.
+Keep each icon inside the central safe area with magenta margin on all sides.
+
+Rows:
+1 Whip: leather whip sweep curl with brass handle, four-frame subtle lash motion.
+2 Magic Wand: blue-gold wand firing a small arcane bolt, four-frame glow pulse.
+3 Laurel: protective green laurel wreath shield, four-frame defensive shimmer.
+4 Empty Tome: open pale spellbook with blank glowing pages, four-frame page shimmer.
+5 Knife: silver throwing knife with red ribbon accent, four-frame forward flick.
+6 Axe: heavy crescent axe with steel blade, four-frame spin glint.
+7 Cross: bright silver cross boomerang, four-frame holy glimmer.

@@ -1,0 +1,24 @@
+Pixel-inspired top-down roguelite map tileset atlas for "wwl adventure 3".
+Exact grid: 4 rows x 4 columns, 16 equal square cells, row-major order.
+Solid flat #FF00FF background fills all space outside the tile art and between cells.
+No visible borders, no grid lines, no labels, no numbers, no letters, no UI, no icons with text.
+Each cell contains one centered square tile or compact map object, consistent camera angle, crisp readable silhouette, dark outline, saturated but restrained dungeon palette, clean modern pixel-art-inspired style.
+Tiles may fill most of the cell; keep the tile's main detail inside the cell without crossing into neighboring cells.
+
+Cell order:
+1 old well stone floor tile, damp gray-blue cobblestones.
+2 old well wall block tile, dark mossy stacked stone.
+3 old well wall corner tile, mossy stone corner with shadow.
+4 old well dark water or pit tile, black-blue water in stone rim.
+5 old well locked exit door tile, heavy wooden gate with small golden lock.
+6 old well open exit door tile, same wooden gate opened with warm light behind it.
+7 old well entrance stair tile, descending stone stairs with cool shadow.
+8 old well landmark tile, small circular old well rim made of stone.
+9 graveyard cracked stone floor tile, cold slate path.
+10 graveyard wall block tile, broken graveyard masonry.
+11 graveyard wall corner tile, broken masonry corner with ivy.
+12 graveyard tombstone obstacle tile, compact upright tombstone.
+13 graveyard bone pile tile, small pale bone pile on dark ground.
+14 graveyard locked iron gate tile, black iron bars with lock.
+15 graveyard open iron gate tile, same iron gate opened with moonlit gap.
+16 graveyard entrance arch tile, small stone archway entrance.

@@ -39,6 +39,7 @@ const ANIMATION_META_ASSET_ID := "visual_animation_asset_id"
 const ANIMATION_META_ACTION := "visual_animation_action"
 const ANIMATION_META_MAX_WIDTH := "visual_animation_max_width"
 const ANIMATION_PLAYER := "player"
+const ANIMATION_PLAYER_COMBAT := "player_combat"
 const ANIMATION_ENEMY := "enemy"
 const ANIMATION_CARD := "card"
 
@@ -67,6 +68,7 @@ var stats_label: Label
 var selected_label: Label
 var status_label: Label
 var action_button: Button
+var combat_player_portrait: TextureRect
 var combat_title_label: Label
 var combat_enemy_panel: PanelContainer
 var combat_enemy_label: Label
@@ -284,10 +286,28 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_panel.visible = false
 	parent.add_child(combat_panel)
 
+	var combat_header := HBoxContainer.new()
+	combat_header.name = "CombatHeader"
+	combat_header.add_theme_constant_override("separation", 14)
+	combat_panel.add_child(combat_header)
+
+	combat_player_portrait = TextureRect.new()
+	combat_player_portrait.name = "PlayerCombatPortrait"
+	combat_player_portrait.custom_minimum_size = Vector2(76, 76)
+	combat_player_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	combat_player_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	combat_player_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	combat_header.add_child(combat_player_portrait)
+
+	var combat_header_text := VBoxContainer.new()
+	combat_header_text.name = "CombatHeaderText"
+	combat_header_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	combat_header.add_child(combat_header_text)
+
 	combat_title_label = Label.new()
 	combat_title_label.name = "CombatTitleLabel"
 	combat_title_label.add_theme_font_size_override("font_size", 28)
-	combat_panel.add_child(combat_title_label)
+	combat_header_text.add_child(combat_title_label)
 
 	combat_enemy_panel = _create_combat_state_panel("EnemyStatePanel", COLOR_ENEMY_PANEL, COLOR_ENEMY_BORDER)
 	var enemy_content := VBoxContainer.new()
@@ -524,6 +544,8 @@ func _refresh_combat() -> void:
 	if active_combat == null:
 		selected_hand_index = -1
 		combat_focus = COMBAT_FOCUS_HAND
+		if combat_player_portrait != null:
+			combat_player_portrait.visible = false
 		combat_title_label.text = "战斗"
 		combat_enemy_label.text = "敌方队列"
 		_add_empty_enemy_row()
@@ -535,6 +557,11 @@ func _refresh_combat() -> void:
 	_clamp_selected_hand_index()
 	var selected_card_summary := _selected_card_summary()
 	var target_enemy := _current_target_enemy()
+	var player_action := _player_combat_action()
+	if combat_player_portrait != null:
+		combat_player_portrait.visible = true
+		combat_player_portrait.texture = visual_assets.player_combat_texture(player_action, animation_frame)
+		_apply_texture_animation(combat_player_portrait, ANIMATION_PLAYER_COMBAT, "", player_action)
 	combat_title_label.text = "遭遇：%s" % (target_enemy.display_name if target_enemy != null else "敌人")
 	combat_enemy_label.text = "敌方队列"
 	_refresh_enemy_rows()
@@ -1166,14 +1193,20 @@ func _clamp_selected_reward_index() -> void:
 	selected_reward_index = clampi(selected_reward_index, 0, count - 1)
 
 
+func _selected_card():
+	if active_combat == null:
+		return null
+	if selected_hand_index < 0 or selected_hand_index >= active_combat.deck.hand.size():
+		return null
+	return active_combat.deck.hand[selected_hand_index]
+
+
 func _selected_card_summary() -> String:
 	if combat_focus == COMBAT_FOCUS_END_TURN:
 		return "结束回合"
-	if active_combat == null:
+	var card = _selected_card()
+	if card == null:
 		return "无"
-	if selected_hand_index < 0 or selected_hand_index >= active_combat.deck.hand.size():
-		return "无"
-	var card = active_combat.deck.hand[selected_hand_index]
 	var multiplier_percent := _preview_card_multiplier_basis_points(card)
 	if card.base_damage <= 0:
 		return "%s | 无伤害 | 倍率 %s%%" % [card.display_name, multiplier_percent]
@@ -1541,7 +1574,10 @@ func _apply_cell_icon(button: Button, position: Vector2i, tile: DungeonTile) -> 
 func _cell_texture(position: Vector2i, tile: DungeonTile, frame_index: int = 0) -> Texture2D:
 	if position == run_state.dungeon_map.player_position:
 		return visual_assets.player_map_texture(frame_index)
-	return visual_assets.tile_texture(tile.tile_type, run_state.dungeon_map.is_exit_unlocked(), frame_index)
+	var stage_id := ""
+	if run_state != null and run_state.current_stage != null:
+		stage_id = run_state.current_stage.id
+	return visual_assets.tile_texture(tile.tile_type, run_state.dungeon_map.is_exit_unlocked(), frame_index, stage_id)
 
 
 func _map_enemy_visual_id(tile_type: int) -> String:
@@ -1584,6 +1620,26 @@ func _enemy_animation_action(enemy: CombatantState) -> String:
 	return "idle"
 
 
+func _player_combat_action() -> String:
+	if active_combat == null or active_combat.player == null:
+		return "idle"
+	if active_combat.player.health <= 0:
+		return "death"
+
+	var selected_card = _selected_card()
+	if selected_card != null:
+		if selected_card.base_damage > 0:
+			return "attack"
+		if selected_card.block > 0:
+			return "guard"
+		if selected_card.draw_count > 0:
+			return "cast"
+
+	if active_combat.player.block > 0:
+		return "guard"
+	return "idle"
+
+
 func _apply_button_animation(
 	button: Button,
 	animation_type: String,
@@ -1621,6 +1677,10 @@ func _animation_texture_for(node: Object) -> Texture2D:
 	var action := str(node.get_meta(ANIMATION_META_ACTION, ""))
 	if animation_type == ANIMATION_PLAYER:
 		return visual_assets.player_map_texture(animation_frame)
+	if animation_type == ANIMATION_PLAYER_COMBAT:
+		if action == "":
+			action = "idle"
+		return visual_assets.player_combat_texture(action, animation_frame)
 	if animation_type == ANIMATION_ENEMY:
 		if action == "":
 			action = "idle"

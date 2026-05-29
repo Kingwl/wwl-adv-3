@@ -1,0 +1,175 @@
+{
+  "target": "player",
+  "mode": "hurt",
+  "prompt": "",
+  "role": "",
+  "input": "game/assets/generated/phase3/raw/hero_combat_hurt_raw.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 140,
+  "rows": 2,
+  "cols": 2,
+  "cell_size": 160,
+  "fit_scale": 0.9,
+  "trim_border": 0,
+  "edge_clean_depth": 1,
+  "align": "bottom",
+  "shared_scale": true,
+  "component_mode": "largest",
+  "component_padding": 8,
+  "min_component_area": 1,
+  "edge_touch_margin": 0,
+  "frame_labels": [
+    "hero_combat_hurt-1",
+    "hero_combat_hurt-2",
+    "hero_combat_hurt-3",
+    "hero_combat_hurt-4"
+  ],
+  "frames": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "source_box": [
+        0,
+        0,
+        627,
+        627
+      ],
+      "component_mode": "largest",
+      "component_count": 8,
+      "selected_component_area": 84272,
+      "selected_component_bbox": [
+        146,
+        120,
+        476,
+        563
+      ],
+      "crop_bbox": [
+        138,
+        112,
+        484,
+        571
+      ],
+      "edge_touch": false,
+      "output_size": [
+        105,
+        140
+      ],
+      "paste_position": [
+        27,
+        13
+      ]
+    },
+    {
+      "grid": [
+        0,
+        1
+      ],
+      "source_box": [
+        627,
+        0,
+        1254,
+        627
+      ],
+      "component_mode": "largest",
+      "component_count": 3,
+      "selected_component_area": 83438,
+      "selected_component_bbox": [
+        54,
+        116,
+        433,
+        559
+      ],
+      "crop_bbox": [
+        46,
+        108,
+        441,
+        567
+      ],
+      "edge_touch": false,
+      "output_size": [
+        120,
+        140
+      ],
+      "paste_position": [
+        20,
+        13
+      ]
+    },
+    {
+      "grid": [
+        1,
+        0
+      ],
+      "source_box": [
+        0,
+        627,
+        627,
+        1254
+      ],
+      "component_mode": "largest",
+      "component_count": 4,
+      "selected_component_area": 72373,
+      "selected_component_bbox": [
+        171,
+        87,
+        466,
+        511
+      ],
+      "crop_bbox": [
+        163,
+        79,
+        474,
+        519
+      ],
+      "edge_touch": false,
+      "output_size": [
+        95,
+        134
+      ],
+      "paste_position": [
+        32,
+        19
+      ]
+    },
+    {
+      "grid": [
+        1,
+        1
+      ],
+      "source_box": [
+        627,
+        627,
+        1254,
+        1254
+      ],
+      "component_mode": "largest",
+      "component_count": 1,
+      "selected_component_area": 76124,
+      "selected_component_bbox": [
+        105,
+        58,
+        399,
+        513
+      ],
+      "crop_bbox": [
+        97,
+        50,
+        407,
+        521
+      ],
+      "edge_touch": false,
+      "output_size": [
+        94,
+        144
+      ],
+      "paste_position": [
+        33,
+        9
+      ]
+    }
+  ],
+  "edge_touch_frames": []
+}
