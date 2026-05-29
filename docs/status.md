@@ -40,6 +40,7 @@
 - 战斗动画节奏修正：出牌、自动结束回合、手动结束回合和战斗胜利会锁定战斗输入，等待当前 VFX 层清空后再刷新到下一回合、失败或胜利状态。
 - 战斗反馈和场景感第一版：`CardPlayResult` 会记录每次命中的目标、实际伤害和击破状态；战斗 UI 会在 VFX 层播放伤害、格挡、击破、护甲和抽牌飘字，并在敌方阵列底部复用地图地砖形成战斗舞台地面。
 - 手牌退场动画第一版：成功出牌后被使用的手牌会先缩小、上抛、旋转并淡出，战斗流程会等待退场动画和卡牌 VFX 一起结束后再刷新手牌。
+- 战斗流程动画补强：击破怪物会先播放本体淡出/下沉再移除，后排补位到前排时会弹入落位；结束回合会先让剩余手牌弃牌淡出，新回合手牌再弹入。
 - Godot headless 规则测试草案：`game/test/godot/test_card_combat_core.gd`。
 - Godot headless 奖励规则测试：`game/test/godot/test_reward_core.gd`。
 - Godot headless 地牢规则测试：`game/test/godot/test_dungeon_core.gd`。

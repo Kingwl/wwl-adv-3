@@ -34,6 +34,9 @@ const CARD_SIZE := Vector2(148, 132)
 const CARD_SELECTED_LIFT := 12
 const CARD_SLOT_SIZE := Vector2(CARD_SIZE.x + 10, CARD_SIZE.y + CARD_SELECTED_LIFT + 12)
 const CARD_EXIT_ANIMATION_SECONDS := 0.34
+const HAND_TRANSITION_ANIMATION_SECONDS := 0.30
+const ENEMY_DEFEAT_ANIMATION_SECONDS := 0.48
+const ENEMY_ENTRY_ANIMATION_SECONDS := 0.28
 const HAND_FAN_SEPARATION := -12
 const HAND_FAN_ROTATION_STEP := 4.0
 const HAND_FAN_ROTATION_LIMIT := 9.0
@@ -75,6 +78,8 @@ var selected_reward_index: int = 0
 var combat_fx_serial: int = 0
 var player_hurt_until_msec: int = 0
 var combat_animation_locked: bool = false
+var pending_enemy_entry_ids: Dictionary = {}
+var pending_hand_entry_indices: Dictionary = {}
 
 var map_panel: VBoxContainer
 var side_panel: VBoxContainer
@@ -737,6 +742,8 @@ func _refresh_combat() -> void:
 	_clear_combat_hand()
 	_clear_enemy_rows()
 	if active_combat == null:
+		pending_enemy_entry_ids.clear()
+		pending_hand_entry_indices.clear()
 		selected_hand_index = -1
 		combat_focus = COMBAT_FOCUS_HAND
 		if combat_player_portrait != null:
@@ -805,6 +812,9 @@ func _refresh_combat() -> void:
 		var button := _create_hand_card_button(card, i, has_combo_multiplier, is_selected)
 		slot.add_child(button)
 		combat_hand_row.add_child(slot)
+		if pending_hand_entry_indices.has(i):
+			_play_hand_card_entry_animation(slot, i)
+	pending_hand_entry_indices.clear()
 
 func _create_hand_card_button(card, hand_index: int, has_combo_multiplier: bool, is_selected: bool) -> Button:
 	var button := Button.new()
@@ -1159,6 +1169,7 @@ func _on_card_pressed(hand_index: int) -> void:
 	combat_focus = COMBAT_FOCUS_HAND
 	var card = active_combat.deck.hand[hand_index]
 	var card_vfx_context := _capture_card_vfx_context(hand_index, card)
+	var front_enemy_ids_before := _current_front_enemy_ids()
 	var result := controller.play_card(hand_index)
 	if result["type"] == RunController.EVENT_COMMAND_REJECTED:
 		_sync_from_controller()
@@ -1175,6 +1186,7 @@ func _on_card_pressed(hand_index: int) -> void:
 		result["cards_drawn"],
 	]
 	_play_hand_card_exit_animation(hand_index, card)
+	_play_defeated_enemy_exit_animations(result)
 	_play_card_use_vfx(card, result, card_vfx_context)
 	await _wait_for_combat_vfx_to_finish()
 
@@ -1190,12 +1202,16 @@ func _on_card_pressed(hand_index: int) -> void:
 		_refresh()
 		combat_animation_locked = false
 		return
+	_mark_pending_enemy_entries(_enemy_entry_ids_after_front_advance(front_enemy_ids_before))
+	_mark_new_hand_entry_indices(int(result.get("cards_drawn", 0)))
 	if active_combat != null and not _has_playable_card():
 		_refresh()
+		await _wait_for_combat_vfx_to_finish()
 		await _end_turn_with_log("%s\n费用不足，自动结束回合。" % combat_log, false)
 		combat_animation_locked = false
 		return
 	_refresh()
+	await _wait_for_combat_vfx_to_finish()
 	combat_animation_locked = false
 
 
@@ -1254,6 +1270,7 @@ func _refresh_enemy_rows() -> void:
 	var rows := active_combat.living_enemy_rows()
 	if rows.is_empty():
 		_add_empty_enemy_row()
+		pending_enemy_entry_ids.clear()
 		return
 
 	var target_enemy := _current_target_enemy()
@@ -1280,9 +1297,13 @@ func _refresh_enemy_rows() -> void:
 		enemy_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 		enemy_cards.add_theme_constant_override("separation", 4)
 		for enemy in row:
-			enemy_cards.add_child(_create_enemy_card(enemy, row_index, enemy == target_enemy))
+			var enemy_card := _create_enemy_card(enemy, row_index, enemy == target_enemy)
+			enemy_cards.add_child(enemy_card)
+			if pending_enemy_entry_ids.has(enemy.id):
+				_play_enemy_entry_animation(enemy_card)
 		row_box.add_child(enemy_cards)
 		combat_enemy_rows.add_child(row_box)
+	pending_enemy_entry_ids.clear()
 	call_deferred("_scroll_enemy_rows_to_front")
 
 
@@ -1379,14 +1400,99 @@ func _play_hand_card_exit_animation(hand_index: int, card) -> void:
 		tween.parallel().tween_property(slot, "position", start_position + Vector2(direction * 18.0, -28.0), 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 		tween.parallel().tween_property(slot, "modulate:a", 0.0, 0.18)
 
+	_spawn_vfx_wait_sentinel("CardExitFx", CARD_EXIT_ANIMATION_SECONDS)
+
+
+func _play_hand_discard_animation() -> void:
+	if combat_hand_row == null or combat_hand_row.get_child_count() <= 0:
+		return
+	for i in range(combat_hand_row.get_child_count()):
+		var slot := combat_hand_row.get_child(i) as Control
+		if slot == null:
+			continue
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.pivot_offset = slot.size * 0.5
+		var button := _first_button_child(slot)
+		if button != null:
+			button.disabled = true
+			button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var direction := -1.0 if i % 2 == 0 else 1.0
+		var tween := create_tween()
+		tween.tween_property(slot, "scale", Vector2(0.86, 0.86), HAND_TRANSITION_ANIMATION_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		tween.parallel().tween_property(slot, "position", slot.position + Vector2(direction * 16.0, 30.0), HAND_TRANSITION_ANIMATION_SECONDS)
+		tween.parallel().tween_property(slot, "rotation_degrees", slot.rotation_degrees + direction * 7.0, HAND_TRANSITION_ANIMATION_SECONDS)
+		tween.parallel().tween_property(slot, "modulate:a", 0.0, HAND_TRANSITION_ANIMATION_SECONDS)
+	_spawn_vfx_wait_sentinel("HandDiscardFx", HAND_TRANSITION_ANIMATION_SECONDS)
+
+
+func _play_hand_card_entry_animation(slot: Control, hand_index: int) -> void:
+	if slot == null:
+		return
+	slot.pivot_offset = slot.size * 0.5
+	var target_rotation := slot.rotation_degrees
+	var direction := -1.0 if hand_index % 2 == 0 else 1.0
+	slot.scale = Vector2(0.86, 0.86)
+	slot.modulate.a = 0.0
+	slot.rotation_degrees = target_rotation + direction * 5.0
+	var tween := create_tween()
+	tween.tween_property(slot, "modulate:a", 1.0, HAND_TRANSITION_ANIMATION_SECONDS * 0.55)
+	tween.parallel().tween_property(slot, "scale", Vector2(1.04, 1.04), HAND_TRANSITION_ANIMATION_SECONDS * 0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(slot, "rotation_degrees", target_rotation, HAND_TRANSITION_ANIMATION_SECONDS * 0.55)
+	tween.tween_property(slot, "scale", Vector2.ONE, HAND_TRANSITION_ANIMATION_SECONDS * 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_spawn_vfx_wait_sentinel("HandDrawFx", HAND_TRANSITION_ANIMATION_SECONDS)
+
+
+func _play_defeated_enemy_exit_animations(result: Dictionary) -> void:
+	var defeated_ids := {}
+	var hit_events: Array = result.get("hit_events", [])
+	for raw_hit in hit_events:
+		var hit: Dictionary = raw_hit
+		if not bool(hit.get("defeated", false)):
+			continue
+		var enemy_id := str(hit.get("target_id", ""))
+		if enemy_id == "" or defeated_ids.has(enemy_id):
+			continue
+		defeated_ids[enemy_id] = true
+		var enemy_card := _enemy_card_control(enemy_id)
+		if enemy_card == null:
+			continue
+		enemy_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		enemy_card.pivot_offset = enemy_card.size * 0.5
+		enemy_card.z_index = 150
+		var tween := create_tween()
+		tween.tween_property(enemy_card, "scale", Vector2(1.08, 1.08), 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(enemy_card, "rotation_degrees", enemy_card.rotation_degrees - 3.0, 0.16)
+		tween.tween_property(enemy_card, "scale", Vector2(0.84, 0.84), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		tween.parallel().tween_property(enemy_card, "position", enemy_card.position + Vector2(0, 18), 0.32)
+		tween.parallel().tween_property(enemy_card, "modulate:a", 0.0, 0.32)
+	if not defeated_ids.is_empty():
+		_spawn_vfx_wait_sentinel("EnemyDefeatFx", ENEMY_DEFEAT_ANIMATION_SECONDS)
+
+
+func _play_enemy_entry_animation(enemy_card: Control) -> void:
+	if enemy_card == null:
+		return
+	enemy_card.pivot_offset = enemy_card.size * 0.5
+	enemy_card.scale = Vector2(0.88, 0.88)
+	enemy_card.modulate.a = 0.0
+	var tween := create_tween()
+	tween.tween_property(enemy_card, "modulate:a", 1.0, ENEMY_ENTRY_ANIMATION_SECONDS * 0.45)
+	tween.parallel().tween_property(enemy_card, "scale", Vector2(1.06, 1.06), ENEMY_ENTRY_ANIMATION_SECONDS * 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(enemy_card, "scale", Vector2.ONE, ENEMY_ENTRY_ANIMATION_SECONDS * 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_spawn_vfx_wait_sentinel("EnemyEntryFx", ENEMY_ENTRY_ANIMATION_SECONDS)
+
+
+func _spawn_vfx_wait_sentinel(prefix: String, duration: float) -> void:
+	if combat_fx_layer == null:
+		return
 	combat_fx_serial += 1
 	var sentinel := Control.new()
-	sentinel.name = "CardExitFx_%03d" % combat_fx_serial
+	sentinel.name = "%s_%03d" % [prefix, combat_fx_serial]
 	sentinel.visible = false
 	sentinel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	combat_fx_layer.add_child(sentinel)
 	var sentinel_tween := create_tween()
-	sentinel_tween.tween_interval(CARD_EXIT_ANIMATION_SECONDS)
+	sentinel_tween.tween_interval(duration)
 	sentinel_tween.tween_callback(Callable(sentinel, "queue_free"))
 
 
@@ -1401,6 +1507,79 @@ func _hand_card_button(hand_index: int, card) -> Button:
 	if slot == null:
 		return null
 	return slot.find_child("Card_%02d_%s" % [hand_index, card.id], true, false) as Button
+
+
+func _first_button_child(root: Node) -> Button:
+	if root == null:
+		return null
+	for child in root.get_children():
+		if child is Button:
+			return child
+		var nested := _first_button_child(child)
+		if nested != null:
+			return nested
+	return null
+
+
+func _enemy_card_control(enemy_id: String) -> Control:
+	if combat_enemy_rows == null or enemy_id == "":
+		return null
+	return combat_enemy_rows.find_child("EnemyCard_%s" % enemy_id, true, false) as Control
+
+
+func _current_front_enemy_ids() -> Array:
+	var ids: Array = []
+	if active_combat == null:
+		return ids
+	for enemy in active_combat.front_row_enemies():
+		if enemy != null:
+			ids.append(enemy.id)
+	return ids
+
+
+func _enemy_entry_ids_after_front_advance(front_enemy_ids_before: Array) -> Array:
+	var entered_ids: Array = []
+	if front_enemy_ids_before.is_empty() or active_combat == null:
+		return entered_ids
+	var front_enemy_ids_after := _current_front_enemy_ids()
+	if front_enemy_ids_after.is_empty():
+		return entered_ids
+	var has_previous_front_enemy := false
+	for raw_enemy_id in front_enemy_ids_after:
+		if front_enemy_ids_before.has(raw_enemy_id):
+			has_previous_front_enemy = true
+			break
+	if has_previous_front_enemy:
+		return entered_ids
+	for raw_enemy_id in front_enemy_ids_after:
+		entered_ids.append(str(raw_enemy_id))
+	return entered_ids
+
+
+func _mark_pending_enemy_entries(enemy_ids: Array) -> void:
+	pending_enemy_entry_ids.clear()
+	for raw_enemy_id in enemy_ids:
+		var enemy_id := str(raw_enemy_id)
+		if enemy_id != "":
+			pending_enemy_entry_ids[enemy_id] = true
+
+
+func _mark_new_hand_entry_indices(count: int) -> void:
+	pending_hand_entry_indices.clear()
+	if active_combat == null or count <= 0:
+		return
+	var hand_size := active_combat.deck.hand.size()
+	var start_index := maxi(hand_size - count, 0)
+	for i in range(start_index, hand_size):
+		pending_hand_entry_indices[i] = true
+
+
+func _mark_all_hand_entry_indices() -> void:
+	pending_hand_entry_indices.clear()
+	if active_combat == null:
+		return
+	for i in range(active_combat.deck.hand.size()):
+		pending_hand_entry_indices[i] = true
 
 
 func _capture_enemy_card_centers() -> Dictionary:
@@ -2110,6 +2289,7 @@ func _end_turn_with_log(prefix: String, manage_lock: bool = true) -> void:
 			return
 		combat_animation_locked = true
 	var enemy_vfx_context := _capture_enemy_turn_vfx_context()
+	_play_hand_discard_animation()
 	var result := controller.end_turn()
 	var damage_taken := int(result.get("damage_taken", 0))
 	if damage_taken > 0:
@@ -2124,7 +2304,11 @@ func _end_turn_with_log(prefix: String, manage_lock: bool = true) -> void:
 	if result["type"] == RunController.EVENT_COMBAT_LOST:
 		combat_log = "玩家倒下。"
 		_set_status_message(str(result.get("run_end_summary", "玩家倒下。")))
+	else:
+		_mark_all_hand_entry_indices()
 	_refresh()
+	if result["type"] != RunController.EVENT_COMBAT_LOST:
+		await _wait_for_combat_vfx_to_finish()
 	if manage_lock:
 		combat_animation_locked = false
 
@@ -2227,6 +2411,8 @@ func _on_reward_choice_pressed(choice_index: int) -> void:
 func _restart_run() -> void:
 	combat_animation_locked = false
 	_clear_combat_fx_layer()
+	pending_enemy_entry_ids.clear()
+	pending_hand_entry_indices.clear()
 	controller.setup(1001)
 	controller.start_stage_1()
 	_sync_from_controller()

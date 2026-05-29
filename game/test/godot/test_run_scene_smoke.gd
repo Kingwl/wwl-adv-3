@@ -507,6 +507,7 @@ func _test_run_scene_supports_end_turn_keyboard_selection(run_scene) -> bool:
 	ok = _assert_ne(card_use_fx_layer, null, "enemy turn has vfx layer") and ok
 	if card_use_fx_layer != null:
 		ok = _assert_eq(card_use_fx_layer.get_child_count() > fx_count_before_auto_end, true, "enemy turn spawns attack and player-hit vfx") and ok
+		ok = _assert_ne(card_use_fx_layer.find_child("HandDiscardFx_*", true, false), null, "auto end waits for hand discard animation") and ok
 	await _wait_for_combat_animation(run_scene)
 	ok = _assert_eq(run_scene.active_combat.turn, turn_before_auto_end + 1, "unaffordable selected card auto ends turn") and ok
 	ok = _assert_eq(run_scene.active_combat.mana, run_scene.active_combat.max_mana, "auto end starts next player turn") and ok
@@ -518,6 +519,8 @@ func _test_run_scene_supports_end_turn_keyboard_selection(run_scene) -> bool:
 	_press_key(run_scene, KEY_ENTER)
 	await process_frame
 	ok = _assert_eq(run_scene.combat_animation_locked, true, "manual end waits for enemy turn vfx") and ok
+	if card_use_fx_layer != null:
+		ok = _assert_ne(card_use_fx_layer.find_child("HandDiscardFx_*", true, false), null, "manual end waits for hand discard animation") and ok
 	await _wait_for_combat_animation(run_scene)
 	ok = _assert_eq(run_scene.active_combat.turn, turn_before_manual_end + 1, "enter confirms selected end turn") and ok
 	ok = _assert_eq(run_scene.combat_log.contains("手动结束回合"), true, "manual end turn log") and ok
@@ -600,6 +603,27 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(run_scene.active_combat.mana, 2, "playing first card spends mana") and ok
 	ok = _assert_eq(run_scene.active_combat.deck.hand.size(), 4, "playing first card removes hand card") and ok
 
+	var row_advance_attack_index := _first_attack_card_index(run_scene.active_combat.deck.hand)
+	ok = _assert_eq(row_advance_attack_index >= 0, true, "combat has a row-advance attack card") and ok
+	if row_advance_attack_index >= 0:
+		var front_ids_before: Array = run_scene._current_front_enemy_ids()
+		var row_advance_target_index: int = run_scene.active_combat.primary_target_index()
+		ok = _assert_eq(row_advance_target_index >= 0, true, "row advance has a target") and ok
+		if row_advance_target_index >= 0:
+			run_scene.active_combat.enemies[row_advance_target_index].health = 1
+		run_scene.active_combat.mana = 10
+		run_scene.selected_hand_index = row_advance_attack_index
+		run_scene.combat_focus = "hand"
+		run_scene._refresh()
+		run_scene._on_card_pressed(row_advance_attack_index)
+		await process_frame
+		ok = _assert_eq(run_scene.combat_animation_locked, true, "row advance waits for defeat and entry animation") and ok
+		ok = _assert_ne(card_use_fx_layer.find_child("EnemyDefeatFx_*", true, false), null, "defeated enemy plays exit animation") and ok
+		await _wait_for_combat_animation(run_scene)
+		var front_ids_after: Array = run_scene._current_front_enemy_ids()
+		if not front_ids_before.is_empty() and not front_ids_after.is_empty():
+			ok = _assert_eq(front_ids_after[0] != front_ids_before[0], true, "rear enemy advances after front defeat") and ok
+
 	var winning_attack_index := _first_attack_card_index(run_scene.active_combat.deck.hand)
 	ok = _assert_eq(winning_attack_index >= 0, true, "combat has a winning attack card") and ok
 	if winning_attack_index >= 0:
@@ -617,6 +641,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 		await process_frame
 		ok = _assert_eq(run_scene.combat_animation_locked, true, "combat victory waits for card vfx") and ok
 		ok = _assert_eq(run_scene.mode, "combat", "combat remains visible while victory vfx plays") and ok
+		ok = _assert_ne(card_use_fx_layer.find_child("EnemyDefeatFx_*", true, false), null, "victory waits for defeated enemy exit animation") and ok
 		await _wait_for_combat_animation(run_scene)
 	await process_frame
 
