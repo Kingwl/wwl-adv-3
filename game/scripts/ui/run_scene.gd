@@ -26,10 +26,14 @@ const COLOR_SELECTED := Color(0.92, 0.82, 0.38)
 const COLOR_ENEMY_PANEL := Color(0.24, 0.07, 0.07)
 const COLOR_ENEMY_BORDER := Color(0.76, 0.20, 0.18)
 const COLOR_COMBO_HIGHLIGHT := Color(0.95, 0.72, 0.20)
-const CARD_SIZE := Vector2(150, 170)
+const CARD_SIZE := Vector2(158, 158)
 const CARD_SELECTED_LIFT := 10
 const CARD_SLOT_SIZE := Vector2(CARD_SIZE.x, CARD_SIZE.y + CARD_SELECTED_LIFT)
 const REWARD_CHOICE_SIZE := Vector2(220, 240)
+const CARD_ART_SIZE := Vector2(108, 64)
+const REWARD_CARD_ART_SIZE := Vector2(138, 104)
+const ENEMY_CARD_SIZE := Vector2(178, 218)
+const ENEMY_PORTRAIT_SIZE := Vector2(142, 102)
 const UI_FONT_PATH := "res://assets/fonts/NotoSansCJKsc-Regular.otf"
 const COMBAT_FOCUS_HAND := "hand"
 const COMBAT_FOCUS_END_TURN := "end_turn"
@@ -72,7 +76,7 @@ var combat_player_portrait: TextureRect
 var combat_title_label: Label
 var combat_enemy_panel: PanelContainer
 var combat_enemy_label: Label
-var combat_enemy_rows: VBoxContainer
+var combat_enemy_rows: BoxContainer
 var combat_hand_title_label: Label
 var combat_hand_row: HBoxContainer
 var combat_log_label: Label
@@ -282,6 +286,7 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_panel = VBoxContainer.new()
 	combat_panel.name = "CombatPanel"
 	combat_panel.custom_minimum_size = Vector2(1120, 0)
+	combat_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	combat_panel.add_theme_constant_override("separation", 18)
 	combat_panel.visible = false
 	parent.add_child(combat_panel)
@@ -310,6 +315,7 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_header_text.add_child(combat_title_label)
 
 	combat_enemy_panel = _create_combat_state_panel("EnemyStatePanel", COLOR_ENEMY_PANEL, COLOR_ENEMY_BORDER)
+	combat_enemy_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var enemy_content := VBoxContainer.new()
 	enemy_content.name = "EnemyQueueContent"
 	enemy_content.add_theme_constant_override("separation", 10)
@@ -319,11 +325,12 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_enemy_label.text = "敌方队列"
 	combat_enemy_label.add_theme_font_size_override("font_size", 18)
 	enemy_content.add_child(combat_enemy_label)
-	combat_enemy_rows = VBoxContainer.new()
+	combat_enemy_rows = HBoxContainer.new()
 	combat_enemy_rows.name = "EnemyRows"
-	combat_enemy_rows.add_theme_constant_override("separation", 10)
+	combat_enemy_rows.add_theme_constant_override("separation", 14)
 	enemy_content.add_child(combat_enemy_rows)
 	combat_panel.add_child(combat_enemy_panel)
+	combat_enemy_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
 	combat_hand_title_label = Label.new()
 	combat_hand_title_label.name = "CombatHandTitleLabel"
@@ -355,6 +362,7 @@ func _build_reward_panel(parent: Control) -> void:
 	reward_panel = VBoxContainer.new()
 	reward_panel.name = "RewardPanel"
 	reward_panel.custom_minimum_size = Vector2(920, 0)
+	reward_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	reward_panel.add_theme_constant_override("separation", 18)
 	reward_panel.visible = false
 	parent.add_child(reward_panel)
@@ -587,19 +595,135 @@ func _refresh_combat() -> void:
 		slot.name = "CardSlot_%02d_%s" % [i, card.id]
 		slot.custom_minimum_size = CARD_SLOT_SIZE
 		_style_card_slot(slot, is_selected)
-		var button := Button.new()
-		button.name = "Card_%02d_%s" % [i, card.id]
-		button.custom_minimum_size = CARD_SIZE
-		button.text = _card_button_text(card)
-		button.add_theme_font_size_override("font_size", 16)
-		button.focus_mode = Control.FOCUS_NONE
-		button.disabled = card.cost > active_combat.mana or active_combat.is_victory() or active_combat.is_defeat()
-		_apply_button_animation(button, ANIMATION_CARD, card.id, 58)
-		button.mouse_entered.connect(_on_card_hovered.bind(i))
-		button.pressed.connect(_on_card_pressed.bind(i))
-		_style_card_button(button, card, has_combo_multiplier)
+		var button := _create_hand_card_button(card, i, has_combo_multiplier)
 		slot.add_child(button)
 		combat_hand_row.add_child(slot)
+
+
+func _create_hand_card_button(card, hand_index: int, has_combo_multiplier: bool) -> Button:
+	var button := Button.new()
+	button.name = "Card_%02d_%s" % [hand_index, card.id]
+	button.custom_minimum_size = CARD_SIZE
+	button.clip_contents = true
+	button.text = ""
+	button.tooltip_text = _card_button_text(card)
+	button.focus_mode = Control.FOCUS_NONE
+	button.disabled = card.cost > active_combat.mana or active_combat.is_victory() or active_combat.is_defeat()
+	button.mouse_entered.connect(_on_card_hovered.bind(hand_index))
+	button.pressed.connect(_on_card_pressed.bind(hand_index))
+	_style_card_button(button, card, has_combo_multiplier)
+
+	var content := MarginContainer.new()
+	content.name = "CardVisualContent"
+	content.set_anchors_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 10
+	content.offset_top = 8
+	content.offset_right = -10
+	content.offset_bottom = -8
+	button.add_child(content)
+
+	var stack := VBoxContainer.new()
+	stack.name = "CardVisualStack"
+	stack.add_theme_constant_override("separation", 5)
+	content.add_child(stack)
+
+	var header := HBoxContainer.new()
+	header.name = "CardHeader"
+	header.add_theme_constant_override("separation", 5)
+	stack.add_child(header)
+
+	header.add_child(_create_badge("费 %s" % card.cost, Color(0.11, 0.12, 0.14), Color(0.92, 0.76, 0.30), 13, Vector2(38, 24)))
+
+	var name_label := Label.new()
+	name_label.name = "CardNameLabel"
+	name_label.text = card.display_name
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(name_label)
+
+	var art := _create_card_art(card.id, CARD_ART_SIZE)
+	art.name = "CardArt"
+	stack.add_child(art)
+
+	var stat_row := HBoxContainer.new()
+	stat_row.name = "CardStatRow"
+	stat_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	stat_row.add_theme_constant_override("separation", 4)
+	stack.add_child(stat_row)
+	for badge_text in _card_stat_badge_texts(card):
+		stat_row.add_child(_create_badge(str(badge_text), Color(0.08, 0.09, 0.10), Color(0.40, 0.42, 0.46), 12, Vector2(38, 22)))
+
+	var multiplier_label := Label.new()
+	multiplier_label.name = "CardMultiplierLabel"
+	multiplier_label.text = "倍率 %s%%" % _preview_card_multiplier_basis_points(card)
+	multiplier_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	multiplier_label.add_theme_font_size_override("font_size", 12)
+	if has_combo_multiplier:
+		multiplier_label.add_theme_color_override("font_color", COLOR_COMBO_HIGHLIGHT)
+	stack.add_child(multiplier_label)
+
+	_set_mouse_filter_recursive(content, Control.MOUSE_FILTER_IGNORE)
+	return button
+
+
+func _create_reward_choice_button(choice: Dictionary, choice_index: int) -> Button:
+	var card_id := str(choice.get("card_id", ""))
+	var button := Button.new()
+	button.name = "RewardChoice_%02d_%s" % [choice_index, card_id]
+	button.custom_minimum_size = REWARD_CHOICE_SIZE
+	button.clip_contents = true
+	button.text = ""
+	button.tooltip_text = _reward_choice_text(choice)
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_entered.connect(_on_reward_choice_hovered.bind(choice_index))
+	button.pressed.connect(_on_reward_choice_pressed.bind(choice_index))
+	_style_reward_choice_button(button, choice, choice_index == selected_reward_index)
+
+	var content := MarginContainer.new()
+	content.name = "RewardVisualContent"
+	content.set_anchors_preset(Control.PRESET_FULL_RECT)
+	content.offset_left = 12
+	content.offset_top = 10
+	content.offset_right = -12
+	content.offset_bottom = -10
+	button.add_child(content)
+
+	var stack := VBoxContainer.new()
+	stack.name = "RewardVisualStack"
+	stack.add_theme_constant_override("separation", 6)
+	content.add_child(stack)
+
+	var title := Label.new()
+	title.name = "RewardCardNameLabel"
+	title.text = str(choice.get("display_name", "奖励"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 19)
+	stack.add_child(title)
+
+	var art := _create_card_art(card_id, REWARD_CARD_ART_SIZE)
+	art.name = "RewardCardArt"
+	stack.add_child(art)
+
+	var stat_row := HBoxContainer.new()
+	stat_row.name = "RewardStatRow"
+	stat_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	stat_row.add_theme_constant_override("separation", 5)
+	stack.add_child(stat_row)
+	for badge_text in _choice_stat_badge_texts(choice):
+		stat_row.add_child(_create_badge(str(badge_text), Color(0.08, 0.09, 0.10), Color(0.40, 0.42, 0.46), 13, Vector2(42, 24)))
+
+	var footer := HBoxContainer.new()
+	footer.name = "RewardFooter"
+	footer.alignment = BoxContainer.ALIGNMENT_CENTER
+	footer.add_theme_constant_override("separation", 6)
+	stack.add_child(footer)
+	footer.add_child(_create_badge(_reward_category_label(str(choice.get("category", ""))), Color(0.15, 0.16, 0.18), Color(0.45, 0.48, 0.52), 13, Vector2(62, 24)))
+	footer.add_child(_create_badge("加入", Color(0.18, 0.36, 0.26), Color(0.62, 0.86, 0.58), 13, Vector2(52, 24)))
+
+	_set_mouse_filter_recursive(content, Control.MOUSE_FILTER_IGNORE)
+	return button
 
 
 func _refresh_reward() -> void:
@@ -623,16 +747,7 @@ func _refresh_reward() -> void:
 
 	for i in range(choices.size()):
 		var choice: Dictionary = choices[i]
-		var button := Button.new()
-		button.name = "RewardChoice_%02d_%s" % [i, str(choice.get("card_id", ""))]
-		button.custom_minimum_size = REWARD_CHOICE_SIZE
-		button.text = _reward_choice_text(choice)
-		button.add_theme_font_size_override("font_size", 18)
-		button.focus_mode = Control.FOCUS_NONE
-		_apply_button_animation(button, ANIMATION_CARD, str(choice.get("card_id", "")), 74)
-		button.mouse_entered.connect(_on_reward_choice_hovered.bind(i))
-		button.pressed.connect(_on_reward_choice_pressed.bind(i))
-		_style_reward_choice_button(button, choice, i == selected_reward_index)
+		var button := _create_reward_choice_button(choice, i)
 		reward_choice_row.add_child(button)
 
 
@@ -951,19 +1066,19 @@ func _add_empty_enemy_row() -> void:
 func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = "EnemyCard_%s" % enemy.id
-	card.custom_minimum_size = Vector2(160, 190)
+	card.custom_minimum_size = ENEMY_CARD_SIZE
 	_style_enemy_card(card, row_index, is_target)
 
 	var content := VBoxContainer.new()
 	content.name = "EnemyCardContent_%s" % enemy.id
-	content.add_theme_constant_override("separation", 4)
+	content.add_theme_constant_override("separation", 6)
 	card.add_child(content)
 
 	var name_label := Label.new()
 	name_label.name = "EnemyName"
 	name_label.text = enemy.display_name
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.add_theme_font_size_override("font_size", 16)
 	content.add_child(name_label)
 
 	var visual_id := _enemy_visual_id(enemy)
@@ -973,36 +1088,47 @@ func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) 
 		var portrait := TextureRect.new()
 		portrait.name = "EnemyPortrait"
 		portrait.texture = portrait_texture
-		portrait.custom_minimum_size = Vector2(116, 58)
+		portrait.custom_minimum_size = ENEMY_PORTRAIT_SIZE
 		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_apply_texture_animation(portrait, ANIMATION_ENEMY, visual_id, animation_action)
 		content.add_child(portrait)
 
+	var safe_enemy_max := enemy.max_health
+	if safe_enemy_max < 1:
+		safe_enemy_max = 1
+	var health_bar := ProgressBar.new()
+	health_bar.name = "EnemyHealthBar"
+	health_bar.min_value = 0.0
+	health_bar.max_value = float(safe_enemy_max)
+	health_bar.value = float(clampi(enemy.health, 0, safe_enemy_max))
+	health_bar.show_percentage = false
+	health_bar.custom_minimum_size = Vector2(140, 12)
+	_style_progress_bar(health_bar, Color(0.70, 0.14, 0.12), Color(0.10, 0.04, 0.04))
+	content.add_child(health_bar)
+
 	var health_label := Label.new()
 	health_label.name = "EnemyHealth"
-	health_label.text = "生命 %s/%s\n%s" % [
-		enemy.health,
-		enemy.max_health,
-		_health_bar(enemy.health, enemy.max_health),
-	]
+	health_label.text = "%s/%s" % [enemy.health, enemy.max_health]
 	health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	health_label.add_theme_font_size_override("font_size", 13)
+	health_label.add_theme_font_size_override("font_size", 12)
 	content.add_child(health_label)
 
-	var stats_label := Label.new()
-	stats_label.name = "EnemyStats"
-	stats_label.text = "护甲 %s  攻击 %s" % [enemy.block, enemy.attack_damage]
-	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats_label.add_theme_font_size_override("font_size", 13)
-	content.add_child(stats_label)
+	var stats_row := HBoxContainer.new()
+	stats_row.name = "EnemyStats"
+	stats_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	stats_row.add_theme_constant_override("separation", 5)
+	stats_row.add_child(_create_badge("甲 %s" % enemy.block, Color(0.13, 0.20, 0.28), Color(0.38, 0.58, 0.78), 12, Vector2(46, 22)))
+	stats_row.add_child(_create_badge("攻 %s" % enemy.attack_damage, Color(0.30, 0.12, 0.10), Color(0.78, 0.34, 0.28), 12, Vector2(46, 22)))
+	content.add_child(stats_row)
 
 	var state_label := Label.new()
 	state_label.name = "EnemyStateLabel"
 	state_label.text = _enemy_state_text(enemy, is_target)
 	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	state_label.add_theme_font_size_override("font_size", 13)
+	state_label.add_theme_color_override("font_color", COLOR_SELECTED if is_target else Color(0.92, 0.88, 0.82))
 	content.add_child(state_label)
 	return card
 
@@ -1020,9 +1146,9 @@ func _enemy_intent_text(enemy: CombatantState) -> String:
 	var intent_type := str(intent.get("type", CombatState.ENEMY_INTENT_WAIT))
 	var amount := int(intent.get("amount", 0))
 	if intent_type == CombatState.ENEMY_INTENT_ATTACK:
-		return "意图：攻击 %s" % amount
+		return "攻 %s" % amount
 	if intent_type == CombatState.ENEMY_INTENT_GUARD:
-		return "意图：护甲 +%s" % amount
+		return "甲 +%s" % amount
 	return "待命"
 
 
@@ -1287,6 +1413,88 @@ func _reward_category_label(category: String) -> String:
 	return "卡牌"
 
 
+func _create_card_art(card_id: String, minimum_size: Vector2) -> TextureRect:
+	var art := TextureRect.new()
+	art.texture = visual_assets.card_texture(card_id, animation_frame)
+	art.custom_minimum_size = minimum_size
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_apply_texture_animation(art, ANIMATION_CARD, card_id, "")
+	return art
+
+
+func _create_badge(text: String, fill_color: Color, border_color: Color, font_size: int, minimum_size: Vector2) -> PanelContainer:
+	var badge := PanelContainer.new()
+	badge.custom_minimum_size = minimum_size
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill_color
+	style.border_color = border_color
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	style.content_margin_left = 5
+	style.content_margin_right = 5
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	badge.add_theme_stylebox_override("panel", style)
+
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", font_size)
+	badge.add_child(label)
+	return badge
+
+
+func _card_stat_badge_texts(card) -> Array:
+	var badges: Array = []
+	if card.base_damage > 0:
+		badges.append("攻 %s" % _preview_card_damage(card))
+	if card.block > 0:
+		badges.append("防 %s" % card.block)
+	if card.draw_count > 0:
+		badges.append("抽 %s" % card.draw_count)
+	if card.hit_count > 1:
+		badges.append("段 %s" % card.hit_count)
+	if badges.is_empty():
+		badges.append("技")
+	return badges
+
+
+func _choice_stat_badge_texts(choice: Dictionary) -> Array:
+	var badges: Array = []
+	var damage := int(choice.get("base_damage", 0))
+	var block := int(choice.get("block", 0))
+	var draw_count := int(choice.get("draw_count", 0))
+	var hit_count := int(choice.get("hit_count", 1))
+	if damage > 0:
+		badges.append("攻 %s" % damage)
+	if block > 0:
+		badges.append("防 %s" % block)
+	if draw_count > 0:
+		badges.append("抽 %s" % draw_count)
+	if hit_count > 1:
+		badges.append("段 %s" % hit_count)
+	if badges.is_empty():
+		badges.append("技")
+	return badges
+
+
+func _set_mouse_filter_recursive(node: Node, mouse_filter_value: int) -> void:
+	if node is Control:
+		var control := node as Control
+		control.mouse_filter = mouse_filter_value
+	for child in node.get_children():
+		_set_mouse_filter_recursive(child, mouse_filter_value)
+
+
 func _preview_card_multiplier_basis_points(card) -> int:
 	if active_combat == null or card == null:
 		return 100
@@ -1338,6 +1546,29 @@ func _style_end_turn_button(is_selected: bool) -> void:
 	end_turn_button.add_theme_color_override("font_hover_color", Color.WHITE)
 	end_turn_button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	end_turn_button.add_theme_color_override("font_disabled_color", Color(0.58, 0.58, 0.58))
+
+
+func _style_progress_bar(progress_bar: ProgressBar, fill_color: Color, background_color: Color) -> void:
+	var background := StyleBoxFlat.new()
+	background.bg_color = background_color
+	background.border_color = Color(0.04, 0.04, 0.05)
+	background.border_width_left = 1
+	background.border_width_top = 1
+	background.border_width_right = 1
+	background.border_width_bottom = 1
+	background.corner_radius_top_left = 2
+	background.corner_radius_top_right = 2
+	background.corner_radius_bottom_left = 2
+	background.corner_radius_bottom_right = 2
+
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = fill_color
+	fill.corner_radius_top_left = 2
+	fill.corner_radius_top_right = 2
+	fill.corner_radius_bottom_left = 2
+	fill.corner_radius_bottom_right = 2
+	progress_bar.add_theme_stylebox_override("background", background)
+	progress_bar.add_theme_stylebox_override("fill", fill)
 
 
 func _style_card_slot(slot: MarginContainer, is_selected: bool) -> void:

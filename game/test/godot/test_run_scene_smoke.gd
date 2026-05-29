@@ -184,7 +184,7 @@ func _test_run_scene_shows_level_reward_choices(run_scene) -> bool:
 	ok = _assert_eq(combat_panel.visible, false, "combat hidden during reward choice") and ok
 	ok = _assert_eq(reward_title_label.text.contains("升级奖励"), true, "reward title is Chinese") and ok
 	ok = _assert_eq(reward_choice_row.get_child_count(), 3, "reward shows three choices") and ok
-	ok = _assert_eq(first_choice_button.text.contains("加入牌组"), true, "reward choice adds to deck") and ok
+	ok = _assert_eq(_node_text_contains(first_choice_button, "加入"), true, "reward choice adds to deck") and ok
 	ok = _assert_eq(_visible_text_has_english(reward_panel), false, "reward visible text uses Chinese") and ok
 
 	_press_key(run_scene, KEY_RIGHT)
@@ -316,14 +316,17 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 0, "selected card floats up") and ok
 	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), 10, "unselected card stays lower") and ok
 	var animated_card_button := _card_button(combat_hand_row, 0)
-	var animated_card_icon := animated_card_button.icon
+	var animated_card_art: TextureRect = animated_card_button.find_child("CardArt", true, false)
+	var animated_card_texture := animated_card_art.texture if animated_card_art != null else null
 	var animated_enemy_portrait: TextureRect = run_scene.find_child("EnemyPortrait", true, false)
 	var animated_enemy_texture := animated_enemy_portrait.texture if animated_enemy_portrait != null else null
 	var animated_player_portrait: TextureRect = run_scene.find_child("PlayerCombatPortrait", true, false)
 	var animated_player_texture := animated_player_portrait.texture if animated_player_portrait != null else null
 	run_scene._process(0.20)
-	ok = _assert_ne(animated_card_icon, null, "combat card has generated icon") and ok
-	ok = _assert_eq(animated_card_button.icon != animated_card_icon, true, "combat card icon advances animation frame") and ok
+	ok = _assert_ne(animated_card_art, null, "combat card has generated art") and ok
+	if animated_card_art != null:
+		ok = _assert_ne(animated_card_texture, null, "combat card art has generated texture") and ok
+		ok = _assert_eq(animated_card_art.texture != animated_card_texture, true, "combat card art advances animation frame") and ok
 	ok = _assert_ne(animated_enemy_portrait, null, "combat enemy has generated portrait") and ok
 	if animated_enemy_portrait != null:
 		ok = _assert_eq(animated_enemy_portrait.texture != animated_enemy_texture, true, "combat enemy portrait advances animation frame") and ok
@@ -335,8 +338,8 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	ok = _assert_eq(attack_index >= 0, true, "combat hand has attack card") and ok
 	if attack_index >= 0:
 		var attack_button := _card_button(combat_hand_row, attack_index)
-		ok = _assert_eq(attack_button.text.contains("预览总伤害："), true, "attack card shows preview damage") and ok
-		ok = _assert_eq(attack_button.text.contains("倍率：100%"), true, "card shows base multiplier") and ok
+		ok = _assert_eq(attack_button.tooltip_text.contains("预览总伤害："), true, "attack card keeps preview damage details") and ok
+		ok = _assert_eq(_node_text_contains(attack_button, "倍率 100%"), true, "card shows base multiplier") and ok
 		run_scene.active_combat.combo.chain = 1
 		run_scene.active_combat.combo.last_cost = 0
 		run_scene._refresh()
@@ -344,15 +347,15 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 		var attack_card = run_scene.active_combat.deck.hand[attack_index]
 		var expected_preview_damage: int = run_scene._preview_card_damage(attack_card)
 		var combo_style: StyleBoxFlat = attack_button.get_theme_stylebox("normal") as StyleBoxFlat
-		ok = _assert_eq(attack_button.text.contains("预览总伤害：%s" % expected_preview_damage), true, "combo card shows scaled preview damage") and ok
-		ok = _assert_eq(attack_button.text.contains("倍率：200%"), true, "combo card shows combo multiplier") and ok
+		ok = _assert_eq(attack_button.tooltip_text.contains("预览总伤害：%s" % expected_preview_damage), true, "combo card keeps scaled preview damage details") and ok
+		ok = _assert_eq(_node_text_contains(attack_button, "倍率 200%"), true, "combo card shows combo multiplier") and ok
 		ok = _assert_eq(combo_style.border_color, Color(0.95, 0.72, 0.20), "combo multiplier highlights card") and ok
 		var skipped_cost_index := _first_card_cost_index(run_scene.active_combat.deck.hand, 2)
 		ok = _assert_eq(skipped_cost_index >= 0, true, "combat hand has a skipped cost card") and ok
 		if skipped_cost_index >= 0:
 			var skipped_cost_button := _card_button(combat_hand_row, skipped_cost_index)
 			var skipped_cost_style: StyleBoxFlat = skipped_cost_button.get_theme_stylebox("normal") as StyleBoxFlat
-			ok = _assert_eq(skipped_cost_button.text.contains("倍率：100%"), true, "skipped cost does not gain combo multiplier") and ok
+			ok = _assert_eq(_node_text_contains(skipped_cost_button, "倍率 100%"), true, "skipped cost does not gain combo multiplier") and ok
 			ok = _assert_eq(skipped_cost_style.border_color, Color(0.08, 0.09, 0.10), "skipped cost does not highlight card") and ok
 		run_scene.active_combat.combo.reset()
 		run_scene._refresh()
@@ -436,7 +439,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var combat_hand_title_label: Label = run_scene.find_child("CombatHandTitleLabel", true, false)
 	var combat_title_label: Label = run_scene.find_child("CombatTitleLabel", true, false)
 	var combat_enemy_label: Label = run_scene.find_child("EnemyState", true, false)
-	var enemy_rows: VBoxContainer = run_scene.find_child("EnemyRows", true, false)
+	var enemy_rows: BoxContainer = run_scene.find_child("EnemyRows", true, false)
 	var player_state_panel: PanelContainer = run_scene.find_child("PlayerStatePanel", true, false)
 	var stats_label: Label = run_scene.find_child("StatsLabel", true, false)
 
@@ -458,7 +461,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var target_state: Label = front_cards.get_child(0).find_child("EnemyStateLabel", true, false)
 	var rear_state: Label = rear_cards.get_child(0).find_child("EnemyStateLabel", true, false)
 	ok = _assert_eq(target_state.text.contains("当前目标"), true, "single-target card auto target is marked") and ok
-	ok = _assert_eq(target_state.text.contains("意图：攻击 4"), true, "front enemy shows attack intent") and ok
+	ok = _assert_eq(target_state.text.contains("攻 4"), true, "front enemy shows attack intent") and ok
 	ok = _assert_eq(rear_state.text, "待命", "rear row is waiting") and ok
 	ok = _assert_eq(player_state_panel, null, "combat has no player state panel") and ok
 	ok = _assert_eq(_visible_text_has_english(combat_hand_row), false, "combat hand text uses Chinese") and ok
@@ -542,6 +545,19 @@ func _assert_ne(actual, expected, label: String) -> bool:
 		push_error("%s: expected value different from %s" % [label, str(expected)])
 		return false
 	return true
+
+
+func _node_text_contains(node: Node, expected_text: String) -> bool:
+	if node is Button:
+		if (node as Button).text.contains(expected_text):
+			return true
+	if node is Label:
+		if (node as Label).text.contains(expected_text):
+			return true
+	for child in node.get_children():
+		if _node_text_contains(child, expected_text):
+			return true
+	return false
 
 
 func _visible_text_has_english(node: Node) -> bool:

@@ -31,6 +31,7 @@
 - 生成素材接入 UI 第一版：通过 `VisualAssetCatalog` 从 `game/assets/generated` 运行时加载 PNG 图集，地图格、战斗敌人卡片、战斗手牌和奖励卡牌可显示第一/二期生成素材；敌人状态携带 `visual_id` 以便规则 ID 与表现资源稳定对应。
 - 生成素材帧动画 UI 第一版：地图玩家/敌人格、战斗敌人头像、战斗手牌和奖励卡牌会按固定节奏刷新图集帧；敌人头像会根据当前意图优先播放攻击或护甲动作，缺失动作时回退 idle。
 - 第三期生成素材接入：新增旧井/墓园地图 tileset、21 张卡牌动态图标和玩家战斗动作包；地图墙/地面/入口/出口、手牌/奖励卡图标和战斗玩家头像会优先显示第三期素材。
+- 素材主导战斗 UI 第一版：敌方队列改为横向排布的大怪物卡，使用真实血条和数值徽标替代字符生命条；手牌和奖励改为动态图标主视觉卡面，详细结算文字收进 tooltip，保留费用、攻防抽牌和倍率等关键战斗信息。
 - Godot headless 规则测试草案：`game/test/godot/test_card_combat_core.gd`。
 - Godot headless 奖励规则测试：`game/test/godot/test_reward_core.gd`。
 - Godot headless 地牢规则测试：`game/test/godot/test_dungeon_core.gd`。
