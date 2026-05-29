@@ -81,16 +81,30 @@ func _test_run_scene_non_adjacent_click_only_selects(run_scene) -> bool:
 
 	var selected_button := _map_cell_button(run_scene, remote_pickup_position)
 	var player_button := _map_cell_button(run_scene, start_position)
+	var selected_glyph := _map_cell_glyph(selected_button)
+	var player_glyph := _map_cell_glyph(player_button)
+	var player_visual := _map_cell_visual(player_button)
 	var selected_style: StyleBoxFlat = selected_button.get_theme_stylebox("normal") as StyleBoxFlat
 	var player_style: StyleBoxFlat = player_button.get_theme_stylebox("normal") as StyleBoxFlat
 
 	var ok := true
 	ok = _assert_eq(run_scene.run_state.dungeon_map.player_position, start_position, "remote click does not move player") and ok
 	ok = _assert_eq(run_scene.selected_position, remote_pickup_position, "remote click only changes selected tile") and ok
-	ok = _assert_eq(selected_button.text, "宝", "remote selected pickup remains pickup text") and ok
+	ok = _assert_eq(selected_button.text, "", "map cell button text does not affect grid sizing") and ok
+	ok = _assert_eq(selected_button.icon, null, "map cell button icon does not affect grid sizing") and ok
+	ok = _assert_ne(selected_glyph, null, "remote selected pickup has fixed glyph layer") and ok
+	if selected_glyph != null:
+		ok = _assert_eq(selected_glyph.text, "宝", "remote selected pickup keeps pickup marker") and ok
 	ok = _assert_eq(selected_style.bg_color, Color(0.18, 0.50, 0.32), "remote selected pickup keeps tile color") and ok
 	ok = _assert_eq(selected_style.border_color, Color(0.92, 0.82, 0.38), "remote selected pickup uses selected border") and ok
-	ok = _assert_eq(player_button.text, "我", "player marker stays on actual player") and ok
+	ok = _assert_eq(player_button.text, "", "player cell button text stays empty") and ok
+	ok = _assert_ne(player_glyph, null, "player cell has fixed glyph layer") and ok
+	if player_glyph != null:
+		ok = _assert_eq(player_glyph.text, "我", "player marker stays on actual player") and ok
+	ok = _assert_ne(player_visual, null, "player cell has fixed visual layer") and ok
+	if player_visual != null:
+		ok = _assert_ne(player_visual.texture, null, "player marker uses generated map art") and ok
+	ok = _assert_eq(player_button.get_combined_minimum_size(), Vector2(48, 48), "player art does not resize map cell") and ok
 	ok = _assert_eq(player_style.bg_color, Color(0.18, 0.48, 0.82), "player keeps player color") and ok
 	_press_key(run_scene, KEY_RIGHT)
 	ok = _assert_eq(run_scene.run_state.dungeon_map.player_position, start_position + Vector2i.RIGHT, "keyboard moves from actual player position") and ok
@@ -314,7 +328,7 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	ok = _assert_eq(run_scene.combat_focus, "hand", "combat starts focused on hand") and ok
 	ok = _assert_eq(combat_hand_title_label.text.contains("已选：%s" % selected_card_name), true, "combat title shows selected card") and ok
 	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 0, "selected card floats up") and ok
-	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), 10, "unselected card stays lower") and ok
+	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), 8, "unselected card stays lower") and ok
 	var animated_card_button := _card_button(combat_hand_row, 0)
 	var animated_card_art: TextureRect = animated_card_button.find_child("CardArt", true, false)
 	var animated_card_texture := animated_card_art.texture if animated_card_art != null else null
@@ -363,7 +377,7 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	_press_key(run_scene, KEY_RIGHT)
 	ok = _assert_eq(run_scene.selected_hand_index, 1, "right key selects next card") and ok
 	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), 0, "right-selected card floats up") and ok
-	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 10, "previous card lowers after selection moves") and ok
+	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 8, "previous card lowers after selection moves") and ok
 	_press_key(run_scene, KEY_D)
 	ok = _assert_eq(run_scene.selected_hand_index, 2, "D key selects next card") and ok
 	_press_key(run_scene, KEY_LEFT)
@@ -522,6 +536,14 @@ func _defeat_all_active_enemies(run_scene) -> void:
 func _map_cell_button(run_scene, position: Vector2i) -> Button:
 	var map_grid: GridContainer = run_scene.find_child("MapGrid", true, false)
 	return map_grid.get_child(position.y * map_grid.columns + position.x) as Button
+
+
+func _map_cell_glyph(button: Button) -> Label:
+	return button.find_child("CellGlyph", false, false) as Label
+
+
+func _map_cell_visual(button: Button) -> TextureRect:
+	return button.find_child("CellVisual", false, false) as TextureRect
 
 
 func _stage_1_boss_id(map) -> String:

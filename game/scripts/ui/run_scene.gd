@@ -11,6 +11,7 @@ const CombatantState = preload("res://scripts/core/combat/combatant_state.gd")
 const VisualAssetCatalog = preload("res://scripts/visual/visual_asset_catalog.gd")
 
 const CELL_SIZE := Vector2(48, 48)
+const MAP_CELL_ICON_INSET := 5
 const COLOR_WALL := Color(0.12, 0.13, 0.15)
 const COLOR_FLOOR := Color(0.24, 0.25, 0.27)
 const COLOR_PLAYER := Color(0.18, 0.48, 0.82)
@@ -26,14 +27,14 @@ const COLOR_SELECTED := Color(0.92, 0.82, 0.38)
 const COLOR_ENEMY_PANEL := Color(0.24, 0.07, 0.07)
 const COLOR_ENEMY_BORDER := Color(0.76, 0.20, 0.18)
 const COLOR_COMBO_HIGHLIGHT := Color(0.95, 0.72, 0.20)
-const CARD_SIZE := Vector2(158, 158)
-const CARD_SELECTED_LIFT := 10
+const CARD_SIZE := Vector2(148, 132)
+const CARD_SELECTED_LIFT := 8
 const CARD_SLOT_SIZE := Vector2(CARD_SIZE.x, CARD_SIZE.y + CARD_SELECTED_LIFT)
-const REWARD_CHOICE_SIZE := Vector2(220, 240)
-const CARD_ART_SIZE := Vector2(108, 64)
-const REWARD_CARD_ART_SIZE := Vector2(138, 104)
-const ENEMY_CARD_SIZE := Vector2(178, 218)
-const ENEMY_PORTRAIT_SIZE := Vector2(142, 102)
+const REWARD_CHOICE_SIZE := Vector2(210, 226)
+const CARD_ART_SIZE := Vector2(96, 48)
+const REWARD_CARD_ART_SIZE := Vector2(132, 88)
+const ENEMY_CARD_SIZE := Vector2(160, 168)
+const ENEMY_PORTRAIT_SIZE := Vector2(124, 58)
 const UI_FONT_PATH := "res://assets/fonts/NotoSansCJKsc-Regular.otf"
 const COMBAT_FOCUS_HAND := "hand"
 const COMBAT_FOCUS_END_TURN := "end_turn"
@@ -287,18 +288,18 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_panel.name = "CombatPanel"
 	combat_panel.custom_minimum_size = Vector2(1120, 0)
 	combat_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	combat_panel.add_theme_constant_override("separation", 18)
+	combat_panel.add_theme_constant_override("separation", 10)
 	combat_panel.visible = false
 	parent.add_child(combat_panel)
 
 	var combat_header := HBoxContainer.new()
 	combat_header.name = "CombatHeader"
-	combat_header.add_theme_constant_override("separation", 14)
+	combat_header.add_theme_constant_override("separation", 10)
 	combat_panel.add_child(combat_header)
 
 	combat_player_portrait = TextureRect.new()
 	combat_player_portrait.name = "PlayerCombatPortrait"
-	combat_player_portrait.custom_minimum_size = Vector2(76, 76)
+	combat_player_portrait.custom_minimum_size = Vector2(62, 62)
 	combat_player_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	combat_player_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	combat_player_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -311,23 +312,23 @@ func _build_combat_panel(parent: Control) -> void:
 
 	combat_title_label = Label.new()
 	combat_title_label.name = "CombatTitleLabel"
-	combat_title_label.add_theme_font_size_override("font_size", 28)
+	combat_title_label.add_theme_font_size_override("font_size", 24)
 	combat_header_text.add_child(combat_title_label)
 
 	combat_enemy_panel = _create_combat_state_panel("EnemyStatePanel", COLOR_ENEMY_PANEL, COLOR_ENEMY_BORDER)
 	combat_enemy_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var enemy_content := VBoxContainer.new()
 	enemy_content.name = "EnemyQueueContent"
-	enemy_content.add_theme_constant_override("separation", 10)
+	enemy_content.add_theme_constant_override("separation", 6)
 	combat_enemy_panel.add_child(enemy_content)
 	combat_enemy_label = Label.new()
 	combat_enemy_label.name = "EnemyState"
 	combat_enemy_label.text = "敌方队列"
-	combat_enemy_label.add_theme_font_size_override("font_size", 18)
+	combat_enemy_label.add_theme_font_size_override("font_size", 16)
 	enemy_content.add_child(combat_enemy_label)
 	combat_enemy_rows = HBoxContainer.new()
 	combat_enemy_rows.name = "EnemyRows"
-	combat_enemy_rows.add_theme_constant_override("separation", 14)
+	combat_enemy_rows.add_theme_constant_override("separation", 10)
 	enemy_content.add_child(combat_enemy_rows)
 	combat_panel.add_child(combat_enemy_panel)
 	combat_enemy_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -336,18 +337,18 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_hand_title_label.name = "CombatHandTitleLabel"
 	combat_hand_title_label.text = "手牌"
 	combat_hand_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	combat_hand_title_label.add_theme_font_size_override("font_size", 22)
+	combat_hand_title_label.add_theme_font_size_override("font_size", 18)
 	combat_panel.add_child(combat_hand_title_label)
 
 	combat_hand_row = HBoxContainer.new()
 	combat_hand_row.name = "CombatHandRow"
-	combat_hand_row.add_theme_constant_override("separation", 12)
+	combat_hand_row.add_theme_constant_override("separation", 8)
 	combat_panel.add_child(combat_hand_row)
 
 	end_turn_button = Button.new()
 	end_turn_button.name = "EndTurnButton"
 	end_turn_button.text = "结束回合"
-	end_turn_button.custom_minimum_size = Vector2(180, 42)
+	end_turn_button.custom_minimum_size = Vector2(160, 36)
 	end_turn_button.focus_mode = Control.FOCUS_NONE
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	combat_panel.add_child(end_turn_button)
@@ -355,6 +356,7 @@ func _build_combat_panel(parent: Control) -> void:
 	combat_log_label = Label.new()
 	combat_log_label.name = "CombatLogLabel"
 	combat_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	combat_log_label.add_theme_font_size_override("font_size", 14)
 	combat_panel.add_child(combat_log_label)
 
 
@@ -441,7 +443,7 @@ func _build_run_end_panel(parent: Control) -> void:
 func _create_combat_state_panel(panel_name: String, fill_color: Color, border_color: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.name = panel_name
-	panel.custom_minimum_size = Vector2(620, 132)
+	panel.custom_minimum_size = Vector2(620, 104)
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill_color
 	style.border_color = border_color
@@ -453,10 +455,10 @@ func _create_combat_state_panel(panel_name: String, fill_color: Color, border_co
 	style.corner_radius_top_right = 8
 	style.corner_radius_bottom_left = 8
 	style.corner_radius_bottom_right = 8
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 12
-	style.content_margin_bottom = 12
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
 	panel.add_theme_stylebox_override("panel", style)
 	return panel
 
@@ -490,13 +492,48 @@ func _create_cells() -> void:
 	for y in range(run_state.dungeon_map.height):
 		for x in range(run_state.dungeon_map.width):
 			var position := Vector2i(x, y)
-			var button := Button.new()
-			button.name = "Cell_%02d_%02d" % [x, y]
-			button.custom_minimum_size = CELL_SIZE
-			button.focus_mode = Control.FOCUS_NONE
+			var button := _create_map_cell_button(position)
 			button.pressed.connect(_on_cell_activated.bind(position))
 			cell_buttons[position] = button
 			map_grid.add_child(button)
+
+
+func _create_map_cell_button(position: Vector2i) -> Button:
+	var button := Button.new()
+	button.name = "Cell_%02d_%02d" % [position.x, position.y]
+	button.custom_minimum_size = CELL_SIZE
+	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	button.clip_contents = true
+	button.text = ""
+	button.icon = null
+	button.focus_mode = Control.FOCUS_NONE
+	button.add_theme_constant_override("h_separation", 0)
+	button.add_theme_constant_override("icon_max_width", 0)
+
+	var visual := TextureRect.new()
+	visual.name = "CellVisual"
+	visual.set_anchors_preset(Control.PRESET_FULL_RECT)
+	visual.offset_left = MAP_CELL_ICON_INSET
+	visual.offset_top = MAP_CELL_ICON_INSET
+	visual.offset_right = -MAP_CELL_ICON_INSET
+	visual.offset_bottom = -MAP_CELL_ICON_INSET
+	visual.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	visual.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	visual.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(visual)
+
+	var glyph := Label.new()
+	glyph.name = "CellGlyph"
+	glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
+	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	glyph.add_theme_font_size_override("font_size", 14)
+	glyph.add_theme_color_override("font_color", Color.WHITE)
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(glyph)
+	return button
 
 
 func _refresh() -> void:
@@ -616,30 +653,30 @@ func _create_hand_card_button(card, hand_index: int, has_combo_multiplier: bool)
 	var content := MarginContainer.new()
 	content.name = "CardVisualContent"
 	content.set_anchors_preset(Control.PRESET_FULL_RECT)
-	content.offset_left = 10
-	content.offset_top = 8
-	content.offset_right = -10
-	content.offset_bottom = -8
+	content.offset_left = 8
+	content.offset_top = 6
+	content.offset_right = -8
+	content.offset_bottom = -6
 	button.add_child(content)
 
 	var stack := VBoxContainer.new()
 	stack.name = "CardVisualStack"
-	stack.add_theme_constant_override("separation", 5)
+	stack.add_theme_constant_override("separation", 3)
 	content.add_child(stack)
 
 	var header := HBoxContainer.new()
 	header.name = "CardHeader"
-	header.add_theme_constant_override("separation", 5)
+	header.add_theme_constant_override("separation", 4)
 	stack.add_child(header)
 
-	header.add_child(_create_badge("费 %s" % card.cost, Color(0.11, 0.12, 0.14), Color(0.92, 0.76, 0.30), 13, Vector2(38, 24)))
+	header.add_child(_create_badge("费 %s" % card.cost, Color(0.11, 0.12, 0.14), Color(0.92, 0.76, 0.30), 12, Vector2(34, 22)))
 
 	var name_label := Label.new()
 	name_label.name = "CardNameLabel"
 	name_label.text = card.display_name
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", 14)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(name_label)
 
@@ -650,16 +687,16 @@ func _create_hand_card_button(card, hand_index: int, has_combo_multiplier: bool)
 	var stat_row := HBoxContainer.new()
 	stat_row.name = "CardStatRow"
 	stat_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	stat_row.add_theme_constant_override("separation", 4)
+	stat_row.add_theme_constant_override("separation", 3)
 	stack.add_child(stat_row)
 	for badge_text in _card_stat_badge_texts(card):
-		stat_row.add_child(_create_badge(str(badge_text), Color(0.08, 0.09, 0.10), Color(0.40, 0.42, 0.46), 12, Vector2(38, 22)))
+		stat_row.add_child(_create_badge(str(badge_text), Color(0.08, 0.09, 0.10), Color(0.40, 0.42, 0.46), 11, Vector2(34, 20)))
 
 	var multiplier_label := Label.new()
 	multiplier_label.name = "CardMultiplierLabel"
 	multiplier_label.text = "倍率 %s%%" % _preview_card_multiplier_basis_points(card)
 	multiplier_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	multiplier_label.add_theme_font_size_override("font_size", 12)
+	multiplier_label.add_theme_font_size_override("font_size", 11)
 	if has_combo_multiplier:
 		multiplier_label.add_theme_color_override("font_color", COLOR_COMBO_HIGHLIGHT)
 	stack.add_child(multiplier_label)
@@ -774,7 +811,11 @@ func _refresh_cell(position: Vector2i) -> void:
 	var button: Button = cell_buttons[position]
 	var map: DungeonMapState = run_state.dungeon_map
 	var tile: DungeonTile = map.get_tile(position)
-	button.text = _cell_text(position, tile)
+	button.text = ""
+	button.icon = null
+	var glyph := _map_cell_glyph(button)
+	if glyph != null:
+		glyph.text = _cell_text(position, tile)
 	_apply_cell_icon(button, position, tile)
 	button.tooltip_text = _tile_description(tile)
 	button.disabled = tile.tile_type == DungeonTile.TileType.WALL
@@ -1037,18 +1078,18 @@ func _refresh_enemy_rows() -> void:
 		var row: Array = rows[row_index]
 		var row_box := VBoxContainer.new()
 		row_box.name = "EnemyRow_%02d" % row_index
-		row_box.add_theme_constant_override("separation", 6)
+		row_box.add_theme_constant_override("separation", 4)
 
 		var row_label := Label.new()
 		row_label.name = "EnemyRowLabel_%02d" % row_index
 		var row_name := "前排" if row_index == 0 else "第%s排" % [row_index + 1]
 		row_label.text = "%s  %s/%s" % [row_name, row.size(), CombatState.MAX_ENEMIES_PER_ROW]
-		row_label.add_theme_font_size_override("font_size", 15)
+		row_label.add_theme_font_size_override("font_size", 13)
 		row_box.add_child(row_label)
 
 		var enemy_cards := HBoxContainer.new()
 		enemy_cards.name = "EnemyCards_%02d" % row_index
-		enemy_cards.add_theme_constant_override("separation", 8)
+		enemy_cards.add_theme_constant_override("separation", 6)
 		for enemy in row:
 			enemy_cards.add_child(_create_enemy_card(enemy, row_index, enemy == target_enemy))
 		row_box.add_child(enemy_cards)
@@ -1071,14 +1112,14 @@ func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) 
 
 	var content := VBoxContainer.new()
 	content.name = "EnemyCardContent_%s" % enemy.id
-	content.add_theme_constant_override("separation", 6)
+	content.add_theme_constant_override("separation", 4)
 	card.add_child(content)
 
 	var name_label := Label.new()
 	name_label.name = "EnemyName"
 	name_label.text = enemy.display_name
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", 14)
 	content.add_child(name_label)
 
 	var visual_id := _enemy_visual_id(enemy)
@@ -1104,30 +1145,24 @@ func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) 
 	health_bar.max_value = float(safe_enemy_max)
 	health_bar.value = float(clampi(enemy.health, 0, safe_enemy_max))
 	health_bar.show_percentage = false
-	health_bar.custom_minimum_size = Vector2(140, 12)
+	health_bar.custom_minimum_size = Vector2(124, 10)
 	_style_progress_bar(health_bar, Color(0.70, 0.14, 0.12), Color(0.10, 0.04, 0.04))
 	content.add_child(health_bar)
-
-	var health_label := Label.new()
-	health_label.name = "EnemyHealth"
-	health_label.text = "%s/%s" % [enemy.health, enemy.max_health]
-	health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	health_label.add_theme_font_size_override("font_size", 12)
-	content.add_child(health_label)
 
 	var stats_row := HBoxContainer.new()
 	stats_row.name = "EnemyStats"
 	stats_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	stats_row.add_theme_constant_override("separation", 5)
-	stats_row.add_child(_create_badge("甲 %s" % enemy.block, Color(0.13, 0.20, 0.28), Color(0.38, 0.58, 0.78), 12, Vector2(46, 22)))
-	stats_row.add_child(_create_badge("攻 %s" % enemy.attack_damage, Color(0.30, 0.12, 0.10), Color(0.78, 0.34, 0.28), 12, Vector2(46, 22)))
+	stats_row.add_theme_constant_override("separation", 4)
+	stats_row.add_child(_create_badge("血 %s/%s" % [enemy.health, enemy.max_health], Color(0.22, 0.08, 0.07), Color(0.70, 0.14, 0.12), 11, Vector2(64, 20)))
+	stats_row.add_child(_create_badge("甲 %s" % enemy.block, Color(0.13, 0.20, 0.28), Color(0.38, 0.58, 0.78), 11, Vector2(40, 20)))
+	stats_row.add_child(_create_badge("攻 %s" % enemy.attack_damage, Color(0.30, 0.12, 0.10), Color(0.78, 0.34, 0.28), 11, Vector2(40, 20)))
 	content.add_child(stats_row)
 
 	var state_label := Label.new()
 	state_label.name = "EnemyStateLabel"
 	state_label.text = _enemy_state_text(enemy, is_target)
 	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	state_label.add_theme_font_size_override("font_size", 13)
+	state_label.add_theme_font_size_override("font_size", 12)
 	state_label.add_theme_color_override("font_color", COLOR_SELECTED if is_target else Color(0.92, 0.88, 0.82))
 	content.add_child(state_label)
 	return card
@@ -1138,7 +1173,7 @@ func _enemy_state_text(enemy: CombatantState, is_target: bool) -> String:
 	if is_target:
 		parts.append("当前目标")
 	parts.append(_enemy_intent_text(enemy))
-	return "\n".join(parts)
+	return " · ".join(parts)
 
 
 func _enemy_intent_text(enemy: CombatantState) -> String:
@@ -1599,10 +1634,10 @@ func _style_card_button(button: Button, card, has_combo_multiplier: bool = false
 	normal.corner_radius_top_right = 6
 	normal.corner_radius_bottom_left = 6
 	normal.corner_radius_bottom_right = 6
-	normal.content_margin_left = 12
-	normal.content_margin_right = 12
-	normal.content_margin_top = 12
-	normal.content_margin_bottom = 12
+	normal.content_margin_left = 8
+	normal.content_margin_right = 8
+	normal.content_margin_top = 8
+	normal.content_margin_bottom = 8
 	var hover: StyleBoxFlat = normal.duplicate()
 	hover.bg_color = color.lightened(0.12)
 	var pressed: StyleBoxFlat = normal.duplicate()
@@ -1635,10 +1670,10 @@ func _style_enemy_card(card: PanelContainer, row_index: int, is_target: bool) ->
 	normal.corner_radius_top_right = 6
 	normal.corner_radius_bottom_left = 6
 	normal.corner_radius_bottom_right = 6
-	normal.content_margin_left = 10
-	normal.content_margin_right = 10
-	normal.content_margin_top = 8
-	normal.content_margin_bottom = 8
+	normal.content_margin_left = 8
+	normal.content_margin_right = 8
+	normal.content_margin_top = 6
+	normal.content_margin_bottom = 6
 	card.add_theme_stylebox_override("panel", normal)
 
 
@@ -1789,17 +1824,38 @@ func _refresh_animated_controls(root: Node) -> void:
 
 
 func _apply_cell_icon(button: Button, position: Vector2i, tile: DungeonTile) -> void:
+	var visual := _map_cell_visual(button)
+	if visual == null:
+		return
+	var glyph := _map_cell_glyph(button)
 	if position == run_state.dungeon_map.player_position:
-		_apply_button_animation(button, ANIMATION_PLAYER, "", 30)
+		_apply_texture_animation(visual, ANIMATION_PLAYER, "", "")
+		_apply_cell_texture(visual, glyph, _animation_texture_for(visual))
 		return
 
 	var map_enemy_visual_id := _map_enemy_visual_id(tile.tile_type)
 	if map_enemy_visual_id != "":
-		_apply_button_animation(button, ANIMATION_ENEMY, map_enemy_visual_id, 30, "idle")
+		_apply_texture_animation(visual, ANIMATION_ENEMY, map_enemy_visual_id, "idle")
+		_apply_cell_texture(visual, glyph, _animation_texture_for(visual))
 		return
 
-	_clear_button_animation(button)
-	_apply_button_icon(button, _cell_texture(position, tile, animation_frame), 30)
+	_clear_animation_meta(visual)
+	_apply_cell_texture(visual, glyph, _cell_texture(position, tile, animation_frame))
+
+
+func _apply_cell_texture(visual: TextureRect, glyph: Label, texture: Texture2D) -> void:
+	visual.texture = texture
+	visual.visible = texture != null
+	if glyph != null:
+		glyph.visible = texture == null and glyph.text != ""
+
+
+func _map_cell_visual(button: Button) -> TextureRect:
+	return button.find_child("CellVisual", false, false) as TextureRect
+
+
+func _map_cell_glyph(button: Button) -> Label:
+	return button.find_child("CellGlyph", false, false) as Label
 
 
 func _cell_texture(position: Vector2i, tile: DungeonTile, frame_index: int = 0) -> Texture2D:
@@ -1892,14 +1948,18 @@ func _apply_texture_animation(texture_rect: TextureRect, animation_type: String,
 
 
 func _clear_button_animation(button: Button) -> void:
-	if button.has_meta(ANIMATION_META_TYPE):
-		button.remove_meta(ANIMATION_META_TYPE)
-	if button.has_meta(ANIMATION_META_ASSET_ID):
-		button.remove_meta(ANIMATION_META_ASSET_ID)
-	if button.has_meta(ANIMATION_META_ACTION):
-		button.remove_meta(ANIMATION_META_ACTION)
-	if button.has_meta(ANIMATION_META_MAX_WIDTH):
-		button.remove_meta(ANIMATION_META_MAX_WIDTH)
+	_clear_animation_meta(button)
+
+
+func _clear_animation_meta(node: Object) -> void:
+	if node.has_meta(ANIMATION_META_TYPE):
+		node.remove_meta(ANIMATION_META_TYPE)
+	if node.has_meta(ANIMATION_META_ASSET_ID):
+		node.remove_meta(ANIMATION_META_ASSET_ID)
+	if node.has_meta(ANIMATION_META_ACTION):
+		node.remove_meta(ANIMATION_META_ACTION)
+	if node.has_meta(ANIMATION_META_MAX_WIDTH):
+		node.remove_meta(ANIMATION_META_MAX_WIDTH)
 
 
 func _animation_texture_for(node: Object) -> Texture2D:
