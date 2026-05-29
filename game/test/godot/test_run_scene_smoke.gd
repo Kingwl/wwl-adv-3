@@ -315,6 +315,16 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	ok = _assert_eq(combat_hand_title_label.text.contains("已选：%s" % selected_card_name), true, "combat title shows selected card") and ok
 	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 0, "selected card floats up") and ok
 	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), 10, "unselected card stays lower") and ok
+	var animated_card_button := _card_button(combat_hand_row, 0)
+	var animated_card_icon := animated_card_button.icon
+	var animated_enemy_portrait: TextureRect = run_scene.find_child("EnemyPortrait", true, false)
+	var animated_enemy_texture := animated_enemy_portrait.texture if animated_enemy_portrait != null else null
+	run_scene._process(0.20)
+	ok = _assert_ne(animated_card_icon, null, "combat card has generated icon") and ok
+	ok = _assert_eq(animated_card_button.icon != animated_card_icon, true, "combat card icon advances animation frame") and ok
+	ok = _assert_ne(animated_enemy_portrait, null, "combat enemy has generated portrait") and ok
+	if animated_enemy_portrait != null:
+		ok = _assert_eq(animated_enemy_portrait.texture != animated_enemy_texture, true, "combat enemy portrait advances animation frame") and ok
 
 	var attack_index := _first_attack_card_index(run_scene.active_combat.deck.hand)
 	ok = _assert_eq(attack_index >= 0, true, "combat hand has attack card") and ok

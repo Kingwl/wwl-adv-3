@@ -29,6 +29,7 @@
 - Run 结束 UI：战斗失败会进入“冒险结束”，第 2 关出口会进入“原型通关”，并提供重新开始按钮。
 - Web/UI 中文字体资源：内置 Noto Sans CJK SC，避免 Web 导出环境缺少中文字体导致文字乱码。
 - 生成素材接入 UI 第一版：通过 `VisualAssetCatalog` 从 `game/assets/generated` 运行时加载 PNG 图集，地图格、战斗敌人卡片、战斗手牌和奖励卡牌可显示第一/二期生成素材；敌人状态携带 `visual_id` 以便规则 ID 与表现资源稳定对应。
+- 生成素材帧动画 UI 第一版：地图玩家/敌人格、战斗敌人头像、战斗手牌和奖励卡牌会按固定节奏刷新图集帧；敌人头像会根据当前意图优先播放攻击或护甲动作，缺失动作时回退 idle。
 - Godot headless 规则测试草案：`game/test/godot/test_card_combat_core.gd`。
 - Godot headless 奖励规则测试：`game/test/godot/test_reward_core.gd`。
 - Godot headless 地牢规则测试：`game/test/godot/test_dungeon_core.gd`。

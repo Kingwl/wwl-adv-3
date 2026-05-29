@@ -33,6 +33,14 @@ const REWARD_CHOICE_SIZE := Vector2(220, 240)
 const UI_FONT_PATH := "res://assets/fonts/NotoSansCJKsc-Regular.otf"
 const COMBAT_FOCUS_HAND := "hand"
 const COMBAT_FOCUS_END_TURN := "end_turn"
+const ANIMATION_FRAME_SECONDS := 0.14
+const ANIMATION_META_TYPE := "visual_animation_type"
+const ANIMATION_META_ASSET_ID := "visual_animation_asset_id"
+const ANIMATION_META_ACTION := "visual_animation_action"
+const ANIMATION_META_MAX_WIDTH := "visual_animation_max_width"
+const ANIMATION_PLAYER := "player"
+const ANIMATION_ENEMY := "enemy"
+const ANIMATION_CARD := "card"
 
 var controller: RunController = RunController.new()
 var visual_assets: VisualAssetCatalog = VisualAssetCatalog.new()
@@ -74,6 +82,8 @@ var run_end_title_label: Label
 var run_end_summary_label: Label
 var restart_button: Button
 var cell_buttons: Dictionary = {}
+var animation_time := 0.0
+var animation_frame := 0
 
 
 func _ready() -> void:
@@ -84,6 +94,18 @@ func _ready() -> void:
 	selected_position = run_state.dungeon_map.player_position
 	_build_layout()
 	_refresh()
+
+
+func _process(delta: float) -> void:
+	if delta <= 0.0:
+		return
+	animation_time += delta
+	if animation_time < ANIMATION_FRAME_SECONDS:
+		return
+	var frame_steps := int(animation_time / ANIMATION_FRAME_SECONDS)
+	animation_time -= frame_steps * ANIMATION_FRAME_SECONDS
+	animation_frame += frame_steps
+	_refresh_animated_assets()
 
 
 func _apply_ui_font() -> void:
@@ -545,7 +567,7 @@ func _refresh_combat() -> void:
 		button.add_theme_font_size_override("font_size", 16)
 		button.focus_mode = Control.FOCUS_NONE
 		button.disabled = card.cost > active_combat.mana or active_combat.is_victory() or active_combat.is_defeat()
-		_apply_button_icon(button, visual_assets.card_texture(card.id), 58)
+		_apply_button_animation(button, ANIMATION_CARD, card.id, 58)
 		button.mouse_entered.connect(_on_card_hovered.bind(i))
 		button.pressed.connect(_on_card_pressed.bind(i))
 		_style_card_button(button, card, has_combo_multiplier)
@@ -580,7 +602,7 @@ func _refresh_reward() -> void:
 		button.text = _reward_choice_text(choice)
 		button.add_theme_font_size_override("font_size", 18)
 		button.focus_mode = Control.FOCUS_NONE
-		_apply_button_icon(button, visual_assets.card_texture(str(choice.get("card_id", ""))), 74)
+		_apply_button_animation(button, ANIMATION_CARD, str(choice.get("card_id", "")), 74)
 		button.mouse_entered.connect(_on_reward_choice_hovered.bind(i))
 		button.pressed.connect(_on_reward_choice_pressed.bind(i))
 		_style_reward_choice_button(button, choice, i == selected_reward_index)
@@ -611,7 +633,7 @@ func _refresh_cell(position: Vector2i) -> void:
 	var map: DungeonMapState = run_state.dungeon_map
 	var tile: DungeonTile = map.get_tile(position)
 	button.text = _cell_text(position, tile)
-	_apply_button_icon(button, _cell_texture(position, tile), 30)
+	_apply_cell_icon(button, position, tile)
 	button.tooltip_text = _tile_description(tile)
 	button.disabled = tile.tile_type == DungeonTile.TileType.WALL
 
@@ -917,7 +939,9 @@ func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) 
 	name_label.add_theme_font_size_override("font_size", 15)
 	content.add_child(name_label)
 
-	var portrait_texture := visual_assets.enemy_texture(_enemy_visual_id(enemy))
+	var visual_id := _enemy_visual_id(enemy)
+	var animation_action := _enemy_animation_action(enemy)
+	var portrait_texture := visual_assets.enemy_texture(visual_id, animation_action, animation_frame)
 	if portrait_texture != null:
 		var portrait := TextureRect.new()
 		portrait.name = "EnemyPortrait"
@@ -926,6 +950,7 @@ func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) 
 		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_apply_texture_animation(portrait, ANIMATION_ENEMY, visual_id, animation_action)
 		content.add_child(portrait)
 
 	var health_label := Label.new()
@@ -1478,10 +1503,55 @@ func _tile_color(tile: DungeonTile) -> Color:
 	return COLOR_FLOOR
 
 
-func _cell_texture(position: Vector2i, tile: DungeonTile) -> Texture2D:
+func _refresh_animated_assets() -> void:
+	_refresh_animated_controls(self)
+
+
+func _refresh_animated_controls(root: Node) -> void:
+	if root == null:
+		return
+	for child in root.get_children():
+		if child is Button and child.has_meta(ANIMATION_META_TYPE):
+			var button := child as Button
+			var texture := _animation_texture_for(button)
+			if texture != null:
+				button.icon = texture
+		elif child is TextureRect and child.has_meta(ANIMATION_META_TYPE):
+			var texture_rect := child as TextureRect
+			var texture := _animation_texture_for(texture_rect)
+			if texture != null:
+				texture_rect.texture = texture
+		_refresh_animated_controls(child)
+
+
+func _apply_cell_icon(button: Button, position: Vector2i, tile: DungeonTile) -> void:
 	if position == run_state.dungeon_map.player_position:
-		return visual_assets.player_map_texture()
-	return visual_assets.tile_texture(tile.tile_type, run_state.dungeon_map.is_exit_unlocked())
+		_apply_button_animation(button, ANIMATION_PLAYER, "", 30)
+		return
+
+	var map_enemy_visual_id := _map_enemy_visual_id(tile.tile_type)
+	if map_enemy_visual_id != "":
+		_apply_button_animation(button, ANIMATION_ENEMY, map_enemy_visual_id, 30, "idle")
+		return
+
+	_clear_button_animation(button)
+	_apply_button_icon(button, _cell_texture(position, tile, animation_frame), 30)
+
+
+func _cell_texture(position: Vector2i, tile: DungeonTile, frame_index: int = 0) -> Texture2D:
+	if position == run_state.dungeon_map.player_position:
+		return visual_assets.player_map_texture(frame_index)
+	return visual_assets.tile_texture(tile.tile_type, run_state.dungeon_map.is_exit_unlocked(), frame_index)
+
+
+func _map_enemy_visual_id(tile_type: int) -> String:
+	if tile_type == DungeonTile.TileType.ENEMY:
+		return "grunt"
+	if tile_type == DungeonTile.TileType.ELITE:
+		return "brute"
+	if tile_type == DungeonTile.TileType.BOSS:
+		return "stage_boss"
+	return ""
 
 
 func _enemy_visual_id(enemy: CombatantState) -> String:
@@ -1500,6 +1570,64 @@ func _enemy_visual_id(enemy: CombatantState) -> String:
 	if enemy.display_name == "首领":
 		return "stage_boss"
 	return "grunt"
+
+
+func _enemy_animation_action(enemy: CombatantState) -> String:
+	if active_combat == null or enemy == null:
+		return "idle"
+	var intent := active_combat.enemy_intent_for(enemy)
+	var intent_type := str(intent.get("type", CombatState.ENEMY_INTENT_WAIT))
+	if intent_type == CombatState.ENEMY_INTENT_ATTACK:
+		return "attack"
+	if intent_type == CombatState.ENEMY_INTENT_GUARD:
+		return "guard"
+	return "idle"
+
+
+func _apply_button_animation(
+	button: Button,
+	animation_type: String,
+	asset_id: String,
+	max_width: int,
+	action: String = ""
+) -> void:
+	button.set_meta(ANIMATION_META_TYPE, animation_type)
+	button.set_meta(ANIMATION_META_ASSET_ID, asset_id)
+	button.set_meta(ANIMATION_META_ACTION, action)
+	button.set_meta(ANIMATION_META_MAX_WIDTH, max_width)
+	_apply_button_icon(button, _animation_texture_for(button), max_width)
+
+
+func _apply_texture_animation(texture_rect: TextureRect, animation_type: String, asset_id: String, action: String) -> void:
+	texture_rect.set_meta(ANIMATION_META_TYPE, animation_type)
+	texture_rect.set_meta(ANIMATION_META_ASSET_ID, asset_id)
+	texture_rect.set_meta(ANIMATION_META_ACTION, action)
+
+
+func _clear_button_animation(button: Button) -> void:
+	if button.has_meta(ANIMATION_META_TYPE):
+		button.remove_meta(ANIMATION_META_TYPE)
+	if button.has_meta(ANIMATION_META_ASSET_ID):
+		button.remove_meta(ANIMATION_META_ASSET_ID)
+	if button.has_meta(ANIMATION_META_ACTION):
+		button.remove_meta(ANIMATION_META_ACTION)
+	if button.has_meta(ANIMATION_META_MAX_WIDTH):
+		button.remove_meta(ANIMATION_META_MAX_WIDTH)
+
+
+func _animation_texture_for(node: Object) -> Texture2D:
+	var animation_type := str(node.get_meta(ANIMATION_META_TYPE, ""))
+	var asset_id := str(node.get_meta(ANIMATION_META_ASSET_ID, ""))
+	var action := str(node.get_meta(ANIMATION_META_ACTION, ""))
+	if animation_type == ANIMATION_PLAYER:
+		return visual_assets.player_map_texture(animation_frame)
+	if animation_type == ANIMATION_ENEMY:
+		if action == "":
+			action = "idle"
+		return visual_assets.enemy_texture(asset_id, action, animation_frame)
+	if animation_type == ANIMATION_CARD:
+		return visual_assets.card_texture(asset_id, animation_frame)
+	return null
 
 
 func _apply_button_icon(button: Button, texture: Texture2D, max_width: int) -> void:
