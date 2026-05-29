@@ -228,7 +228,12 @@ func _reset_run_scene(run_scene) -> void:
 	run_scene.selected_reward_index = 0
 	run_scene.combat_focus = "hand"
 	run_scene.combat_log = ""
+	run_scene.combat_animation_locked = false
 	run_scene.status_message = "探索中。"
+	var combat_fx_layer: Control = run_scene.find_child("CardUseFxLayer", true, false)
+	if combat_fx_layer != null:
+		for child in combat_fx_layer.get_children():
+			child.queue_free()
 	run_scene._refresh()
 
 
@@ -352,14 +357,16 @@ func _test_run_scene_shows_run_end_on_defeat(run_scene) -> bool:
 	run_scene._try_move(Vector2i.RIGHT)
 	await process_frame
 
+	var ok := true
 	run_scene._on_end_turn_pressed()
 	await process_frame
+	ok = _assert_eq(run_scene.combat_animation_locked, true, "defeat waits for enemy turn vfx") and ok
+	await _wait_for_combat_animation(run_scene)
 
 	var run_end_panel: VBoxContainer = run_scene.find_child("RunEndPanel", true, false)
 	var run_end_title_label: Label = run_scene.find_child("RunEndTitleLabel", true, false)
 	var restart_button: Button = run_scene.find_child("RestartButton", true, false)
 
-	var ok := true
 	ok = _assert_eq(run_scene.mode, "run_end", "combat defeat enters run end mode") and ok
 	ok = _assert_eq(run_end_panel.visible, true, "run end panel visible") and ok
 	ok = _assert_eq(run_end_title_label.text, "冒险结束", "defeat run end title") and ok
@@ -463,6 +470,8 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	var space_card_name: String = run_scene.active_combat.deck.hand[run_scene.selected_hand_index].display_name
 	_press_key(run_scene, KEY_SPACE)
 	await process_frame
+	ok = _assert_eq(run_scene.combat_animation_locked, true, "space play waits for combat vfx") and ok
+	await _wait_for_combat_animation(run_scene)
 	ok = _assert_eq(run_scene.active_combat.deck.hand.size(), hand_size_before_space - 1, "space plays selected card") and ok
 	ok = _assert_eq(run_scene.combat_log.contains(space_card_name), true, "space play log uses selected card") and ok
 
@@ -471,6 +480,8 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	var hand_size_before_enter: int = run_scene.active_combat.deck.hand.size()
 	_press_key(run_scene, KEY_ENTER)
 	await process_frame
+	ok = _assert_eq(run_scene.combat_animation_locked, true, "enter play waits for combat vfx") and ok
+	await _wait_for_combat_animation(run_scene)
 	ok = _assert_eq(run_scene.active_combat.deck.hand.size(), hand_size_before_enter - 1, "enter plays selected card") and ok
 	ok = _assert_eq(combat_hand_row.get_child_count() >= 3, true, "combat hand stays interactive after keyboard play") and ok
 	return ok
@@ -492,18 +503,22 @@ func _test_run_scene_supports_end_turn_keyboard_selection(run_scene) -> bool:
 	var fx_count_before_auto_end := card_use_fx_layer.get_child_count() if card_use_fx_layer != null else 0
 	_press_key(run_scene, KEY_SPACE)
 	await process_frame
-	ok = _assert_eq(run_scene.active_combat.turn, turn_before_auto_end + 1, "unaffordable selected card auto ends turn") and ok
-	ok = _assert_eq(run_scene.active_combat.mana, run_scene.active_combat.max_mana, "auto end starts next player turn") and ok
-	ok = _assert_eq(run_scene.combat_log.contains("法力不足，自动结束回合"), true, "auto end log explains mana") and ok
+	ok = _assert_eq(run_scene.combat_animation_locked, true, "auto end waits for enemy turn vfx") and ok
 	ok = _assert_ne(card_use_fx_layer, null, "enemy turn has vfx layer") and ok
 	if card_use_fx_layer != null:
 		ok = _assert_eq(card_use_fx_layer.get_child_count() > fx_count_before_auto_end, true, "enemy turn spawns attack and player-hit vfx") and ok
+	await _wait_for_combat_animation(run_scene)
+	ok = _assert_eq(run_scene.active_combat.turn, turn_before_auto_end + 1, "unaffordable selected card auto ends turn") and ok
+	ok = _assert_eq(run_scene.active_combat.mana, run_scene.active_combat.max_mana, "auto end starts next player turn") and ok
+	ok = _assert_eq(run_scene.combat_log.contains("法力不足，自动结束回合"), true, "auto end log explains mana") and ok
 
 	var turn_before_manual_end: int = run_scene.active_combat.turn
 	_press_key(run_scene, KEY_S)
 	ok = _assert_eq(run_scene.combat_focus, "end_turn", "S key selects end turn") and ok
 	_press_key(run_scene, KEY_ENTER)
 	await process_frame
+	ok = _assert_eq(run_scene.combat_animation_locked, true, "manual end waits for enemy turn vfx") and ok
+	await _wait_for_combat_animation(run_scene)
 	ok = _assert_eq(run_scene.active_combat.turn, turn_before_manual_end + 1, "enter confirms selected end turn") and ok
 	ok = _assert_eq(run_scene.combat_log.contains("手动结束回合"), true, "manual end turn log") and ok
 	return ok
@@ -571,12 +586,30 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	run_scene._on_card_pressed(0)
 	await process_frame
 
+	ok = _assert_eq(run_scene.combat_animation_locked, true, "card press waits for combat vfx before final refresh") and ok
+	ok = _assert_eq(card_use_fx_layer.get_child_count() > 0, true, "playing a card spawns vfx nodes") and ok
+	await _wait_for_combat_animation(run_scene)
 	ok = _assert_eq(run_scene.active_combat.mana, 2, "playing first card spends mana") and ok
 	ok = _assert_eq(run_scene.active_combat.deck.hand.size(), 4, "playing first card removes hand card") and ok
-	ok = _assert_eq(card_use_fx_layer.get_child_count() > 0, true, "playing a card spawns vfx nodes") and ok
 
-	_defeat_all_active_enemies(run_scene)
-	run_scene._finish_combat_victory()
+	var winning_attack_index := _first_attack_card_index(run_scene.active_combat.deck.hand)
+	ok = _assert_eq(winning_attack_index >= 0, true, "combat has a winning attack card") and ok
+	if winning_attack_index >= 0:
+		var target_index: int = run_scene.active_combat.primary_target_index()
+		ok = _assert_eq(target_index >= 0, true, "combat has a target for winning card") and ok
+		for i in range(run_scene.active_combat.enemies.size()):
+			run_scene.active_combat.enemies[i].health = 0
+		if target_index >= 0:
+			run_scene.active_combat.enemies[target_index].health = 1
+		run_scene.active_combat.mana = 10
+		run_scene.selected_hand_index = winning_attack_index
+		run_scene.combat_focus = "hand"
+		run_scene._refresh()
+		run_scene._on_card_pressed(winning_attack_index)
+		await process_frame
+		ok = _assert_eq(run_scene.combat_animation_locked, true, "combat victory waits for card vfx") and ok
+		ok = _assert_eq(run_scene.mode, "combat", "combat remains visible while victory vfx plays") and ok
+		await _wait_for_combat_animation(run_scene)
 	await process_frame
 
 	ok = _assert_eq(run_scene.mode, "exploration", "run scene returns to exploration") and ok
@@ -592,6 +625,12 @@ func _press_key(run_scene, keycode: int) -> void:
 	event.pressed = true
 	event.keycode = keycode
 	run_scene._unhandled_key_input(event)
+
+
+func _wait_for_combat_animation(run_scene) -> void:
+	var deadline_msec := Time.get_ticks_msec() + 3000
+	while run_scene.combat_animation_locked and Time.get_ticks_msec() < deadline_msec:
+		await process_frame
 
 
 func _card_slot(combat_hand_row: HBoxContainer, index: int) -> MarginContainer:

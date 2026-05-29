@@ -45,6 +45,7 @@ const UI_FONT_PATH := "res://assets/fonts/NotoSansCJKsc-Regular.otf"
 const COMBAT_FOCUS_HAND := "hand"
 const COMBAT_FOCUS_END_TURN := "end_turn"
 const ANIMATION_FRAME_SECONDS := 0.14
+const COMBAT_VFX_TIMEOUT_SECONDS := 1.8
 const ANIMATION_META_TYPE := "visual_animation_type"
 const ANIMATION_META_ASSET_ID := "visual_animation_asset_id"
 const ANIMATION_META_ACTION := "visual_animation_action"
@@ -72,6 +73,7 @@ var selected_hand_index: int = -1
 var selected_reward_index: int = 0
 var combat_fx_serial: int = 0
 var player_hurt_until_msec: int = 0
+var combat_animation_locked: bool = false
 
 var map_panel: VBoxContainer
 var side_panel: VBoxContainer
@@ -193,6 +195,8 @@ func _handle_exploration_key(keycode: int) -> void:
 
 
 func _handle_combat_key(keycode: int) -> void:
+	if combat_animation_locked:
+		return
 	if keycode == KEY_LEFT or keycode == KEY_A:
 		_move_card_selection(-1)
 	elif keycode == KEY_RIGHT or keycode == KEY_D:
@@ -1134,21 +1138,23 @@ func _on_action_pressed() -> void:
 
 
 func _on_card_pressed(hand_index: int) -> void:
-	if active_combat == null:
+	if combat_animation_locked or active_combat == null:
 		return
 	if hand_index < 0 or hand_index >= active_combat.deck.hand.size():
 		return
 
+	combat_animation_locked = true
 	selected_hand_index = hand_index
 	combat_focus = COMBAT_FOCUS_HAND
 	var card = active_combat.deck.hand[hand_index]
 	var card_vfx_context := _capture_card_vfx_context(hand_index, card)
 	var result := controller.play_card(hand_index)
-	_sync_from_controller()
-	_clamp_selected_hand_index()
 	if result["type"] == RunController.EVENT_COMMAND_REJECTED:
+		_sync_from_controller()
+		_clamp_selected_hand_index()
 		combat_log = "无法出牌：%s" % _card_play_failure_reason(result["reason"])
 		_refresh()
+		combat_animation_locked = false
 		return
 
 	combat_log = "%s：造成 %s，获得护甲 %s，抽牌 %s。" % [
@@ -1157,6 +1163,11 @@ func _on_card_pressed(hand_index: int) -> void:
 		result["block_gained"],
 		result["cards_drawn"],
 	]
+	_play_card_use_vfx(card, result, card_vfx_context)
+	await _wait_for_combat_vfx_to_finish()
+
+	_sync_from_controller()
+	_clamp_selected_hand_index()
 	if result["type"] == RunController.EVENT_COMBAT_WON:
 		selected_position = result["position"]
 		selected_hand_index = -1
@@ -1165,14 +1176,15 @@ func _on_card_pressed(hand_index: int) -> void:
 		_set_status_message(_combat_victory_summary(result))
 		combat_log = ""
 		_refresh()
-		_play_card_use_vfx(card, result, card_vfx_context)
+		combat_animation_locked = false
 		return
 	if active_combat != null and not _has_playable_card():
-		_end_turn_with_log("%s\n费用不足，自动结束回合。" % combat_log)
-		_play_card_use_vfx(card, result, card_vfx_context)
+		_refresh()
+		await _end_turn_with_log("%s\n费用不足，自动结束回合。" % combat_log, false)
+		combat_animation_locked = false
 		return
 	_refresh()
-	_play_card_use_vfx(card, result, card_vfx_context)
+	combat_animation_locked = false
 
 
 func _card_play_failure_reason(reason: String) -> String:
@@ -1733,6 +1745,14 @@ func _create_player_hit_fx_sprite(center: Vector2, size: Vector2, tint: Color) -
 	return sprite
 
 
+func _wait_for_combat_vfx_to_finish() -> void:
+	if combat_fx_layer == null:
+		return
+	var deadline_msec := Time.get_ticks_msec() + int(COMBAT_VFX_TIMEOUT_SECONDS * 1000.0)
+	while combat_fx_layer.get_child_count() > 0 and Time.get_ticks_msec() < deadline_msec:
+		await get_tree().process_frame
+
+
 func _card_projectile_action(card) -> String:
 	if card == null:
 		return "single_projectile"
@@ -1927,26 +1947,36 @@ func _enemy_intent_colors(enemy: CombatantState) -> Array:
 
 
 func _on_end_turn_pressed() -> void:
+	if combat_animation_locked:
+		return
 	_end_turn_with_log("手动结束回合。")
 
 
-func _end_turn_with_log(prefix: String) -> void:
+func _end_turn_with_log(prefix: String, manage_lock: bool = true) -> void:
 	if active_combat == null:
 		return
+	if manage_lock:
+		if combat_animation_locked:
+			return
+		combat_animation_locked = true
 	var enemy_vfx_context := _capture_enemy_turn_vfx_context()
 	var result := controller.end_turn()
-	_sync_from_controller()
-	_clamp_selected_hand_index()
-	combat_focus = COMBAT_FOCUS_HAND
 	var damage_taken := int(result.get("damage_taken", 0))
 	if damage_taken > 0:
 		player_hurt_until_msec = Time.get_ticks_msec() + 520
+	_play_enemy_turn_vfx(enemy_vfx_context, damage_taken)
+	await _wait_for_combat_vfx_to_finish()
+
+	_sync_from_controller()
+	_clamp_selected_hand_index()
+	combat_focus = COMBAT_FOCUS_HAND
 	combat_log = "%s\n敌人回合：受到 %s 点伤害。" % [prefix, damage_taken]
 	if result["type"] == RunController.EVENT_COMBAT_LOST:
 		combat_log = "玩家倒下。"
 		_set_status_message(str(result.get("run_end_summary", "玩家倒下。")))
 	_refresh()
-	_play_enemy_turn_vfx(enemy_vfx_context, damage_taken)
+	if manage_lock:
+		combat_animation_locked = false
 
 
 func _finish_combat_victory() -> void:
@@ -2045,6 +2075,8 @@ func _on_reward_choice_pressed(choice_index: int) -> void:
 
 
 func _restart_run() -> void:
+	combat_animation_locked = false
+	_clear_combat_fx_layer()
 	controller.setup(1001)
 	controller.start_stage_1()
 	_sync_from_controller()
@@ -2058,6 +2090,8 @@ func _restart_run() -> void:
 
 
 func _play_selected_card() -> void:
+	if combat_animation_locked:
+		return
 	_clamp_selected_hand_index()
 	if selected_hand_index < 0:
 		return
@@ -2071,7 +2105,7 @@ func _play_selected_card() -> void:
 
 
 func _on_card_hovered(hand_index: int) -> void:
-	if active_combat == null:
+	if combat_animation_locked or active_combat == null:
 		return
 	if hand_index < 0 or hand_index >= active_combat.deck.hand.size():
 		return
@@ -2131,6 +2165,14 @@ func _clear_combat_hand() -> void:
 func _clear_enemy_rows() -> void:
 	for child in combat_enemy_rows.get_children():
 		combat_enemy_rows.remove_child(child)
+		child.queue_free()
+
+
+func _clear_combat_fx_layer() -> void:
+	if combat_fx_layer == null:
+		return
+	for child in combat_fx_layer.get_children():
+		combat_fx_layer.remove_child(child)
 		child.queue_free()
 
 
