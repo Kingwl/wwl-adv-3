@@ -24,7 +24,7 @@ func _init() -> void:
 	failed = not _test_primary_target_prioritizes_highest_attack_threat() or failed
 	failed = not _test_enemy_rows_are_capped_at_five_enemies() or failed
 	failed = not _test_stage_1_reward_pool_is_stable_and_chinese() or failed
-	failed = not _test_reward_cards_are_simple_categories() or failed
+	failed = not _test_reward_cards_cover_prototype_roles() or failed
 	quit(1 if failed else 0)
 
 
@@ -276,7 +276,7 @@ func _test_stage_1_reward_pool_is_stable_and_chinese() -> bool:
 	var ids := {}
 
 	var ok := true
-	ok = _assert_eq(cards.size(), 7, "stage 1 reward pool size") and ok
+	ok = _assert_eq(cards.size(), 17, "stage 1 reward pool size") and ok
 	for card in cards:
 		ok = _assert_eq(ids.has(card.id), false, "reward card id is unique") and ok
 		ok = _assert_eq(_string_has_english(card.display_name), false, "reward card display name uses Chinese") and ok
@@ -284,60 +284,94 @@ func _test_stage_1_reward_pool_is_stable_and_chinese() -> bool:
 	return ok
 
 
-func _test_reward_cards_are_simple_categories() -> bool:
+func _test_reward_cards_cover_prototype_roles() -> bool:
 	var cards := StarterCardCatalog.create_stage_1_reward_pool()
 
 	var attack_count := 0
 	var defense_count := 0
 	var draw_count := 0
+	var hybrid_count := 0
+	var all_attack_count := 0
 	var ok := true
 	for card in cards:
 		var has_damage: bool = card.base_damage > 0
 		var has_block: bool = card.block > 0
 		var has_draw: bool = card.draw_count > 0
 		var effect_count := int(has_damage) + int(has_block) + int(has_draw)
-		ok = _assert_eq(effect_count, 1, "reward card has exactly one simple effect") and ok
+		ok = _assert_eq(effect_count >= 1, true, "reward card has at least one effect") and ok
 		if has_damage:
 			attack_count += 1
-			ok = _assert_eq(card.target_mode, CardDefinition.TargetMode.SINGLE_ENEMY, "attack card is single target") and ok
-		if has_block:
+			ok = _assert_eq(
+				card.target_mode == CardDefinition.TargetMode.SINGLE_ENEMY
+				or card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES,
+				true,
+				"attack card targets enemies"
+			) and ok
+		elif has_block:
 			defense_count += 1
 			ok = _assert_eq(card.target_mode, CardDefinition.TargetMode.SELF, "defense card targets self") and ok
-		if has_draw:
+		else:
 			draw_count += 1
 			ok = _assert_eq(card.target_mode, CardDefinition.TargetMode.SELF, "draw card targets self") and ok
+		if effect_count > 1:
+			hybrid_count += 1
+		if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
+			all_attack_count += 1
 
-	ok = _assert_eq(attack_count, 4, "reward pool attack count") and ok
-	ok = _assert_eq(defense_count, 2, "reward pool defense count") and ok
-	ok = _assert_eq(draw_count, 1, "reward pool draw count") and ok
-	ok = _test_simple_reward_cards_resolve() and ok
+	ok = _assert_eq(attack_count, 9, "reward pool attack count") and ok
+	ok = _assert_eq(defense_count, 5, "reward pool defense count") and ok
+	ok = _assert_eq(draw_count, 3, "reward pool draw count") and ok
+	ok = _assert_eq(hybrid_count, 5, "reward pool hybrid count") and ok
+	ok = _assert_eq(all_attack_count, 2, "reward pool all-attack count") and ok
+	ok = _test_reward_cards_resolve_core_effects() and ok
 	return ok
 
 
-func _test_simple_reward_cards_resolve() -> bool:
+func _test_reward_cards_resolve_core_effects() -> bool:
 	var combat := CombatState.new()
 	combat.player = CombatantState.new("hero", "英雄", 30, 0)
 	combat.enemies = [CombatantState.new("enemy_a", "敌人甲", 120, 0)]
 	combat.mana = 6
 	combat.max_mana = 6
 	combat.deck.hand = [
-		StarterCardCatalog.create_insight(),
-		StarterCardCatalog.create_block(),
-		StarterCardCatalog.create_charged_slash(),
-		StarterCardCatalog.create_heavy_hammer(),
+		StarterCardCatalog.create_fortify(),
+		StarterCardCatalog.create_tactical_adjustment(),
+		StarterCardCatalog.create_shield_bash(),
+		StarterCardCatalog.create_finishing_blow(),
 	]
-	combat.deck.draw_pile = [StarterCardCatalog.create_slash(), StarterCardCatalog.create_iron_wall()]
+	combat.deck.draw_pile = [StarterCardCatalog.create_prepare(), StarterCardCatalog.create_deep_focus()]
 
-	var insight_result = combat.play_card(0)
-	var block_result = combat.play_card(0)
-	var charged_result = combat.play_card(0, 0)
-	var hammer_result = combat.play_card(0, 0)
+	var fortify_result = combat.play_card(0)
+	var tactical_result = combat.play_card(0)
+	var shield_bash_result = combat.play_card(0, 0)
+	var finishing_result = combat.play_card(0, 0)
+
+	var all_combat := CombatState.new()
+	all_combat.player = CombatantState.new("hero", "英雄", 30, 0)
+	all_combat.enemies = [
+		CombatantState.new("enemy_a", "敌人甲", 30, 0),
+		CombatantState.new("enemy_b", "敌人乙", 30, 0),
+	]
+	all_combat.mana = 5
+	all_combat.max_mana = 5
+	all_combat.deck.hand = [
+		StarterCardCatalog.create_sweep(),
+		StarterCardCatalog.create_whirlwind(),
+	]
+
+	var sweep_result = all_combat.play_card(0)
+	var whirlwind_result = all_combat.play_card(0)
 
 	var ok := true
-	ok = _assert_eq(insight_result.cards_drawn, 2, "insight draws") and ok
-	ok = _assert_eq(block_result.block_gained, 8, "block grants block") and ok
-	ok = _assert_eq(charged_result.damage_dealt, 36, "charged slash deals combo damage") and ok
-	ok = _assert_eq(hammer_result.damage_dealt, 72, "hammer deals combo damage") and ok
+	ok = _assert_eq(fortify_result.block_gained, 4, "fortify grants block") and ok
+	ok = _assert_eq(tactical_result.block_gained, 5, "tactical adjustment grants block") and ok
+	ok = _assert_eq(tactical_result.cards_drawn, 1, "tactical adjustment draws") and ok
+	ok = _assert_eq(shield_bash_result.damage_dealt, 24, "shield bash deals combo damage") and ok
+	ok = _assert_eq(shield_bash_result.block_gained, 8, "shield bash grants block") and ok
+	ok = _assert_eq(finishing_result.damage_dealt, 56, "finishing blow deals combo damage") and ok
+	ok = _assert_eq(finishing_result.cards_drawn, 1, "finishing blow draws") and ok
+	ok = _assert_eq(sweep_result.damage_dealt, 10, "sweep hits all enemies") and ok
+	ok = _assert_eq(whirlwind_result.damage_dealt, 32, "whirlwind hits all enemies with combo") and ok
 	return ok
 
 

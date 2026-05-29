@@ -5,6 +5,7 @@ const DungeonMapState = preload("res://scripts/core/dungeon/dungeon_map_state.gd
 const DungeonTile = preload("res://scripts/core/dungeon/dungeon_tile.gd")
 const RunController = preload("res://scripts/core/run/run_controller.gd")
 const RunState = preload("res://scripts/core/run/run_state.gd")
+const CardDefinition = preload("res://scripts/core/cards/card_definition.gd")
 const CombatState = preload("res://scripts/core/combat/combat_state.gd")
 const CombatantState = preload("res://scripts/core/combat/combatant_state.gd")
 
@@ -1167,7 +1168,10 @@ func _card_button_text(card) -> String:
 		"费用：%s" % card.cost,
 	]
 	if card.base_damage > 0:
-		parts.append("攻击：%s" % card.base_damage)
+		if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
+			parts.append("全体攻击：%s" % card.base_damage)
+		else:
+			parts.append("攻击：%s" % card.base_damage)
 		parts.append("预览伤害：%s" % _preview_card_damage(card))
 	if card.block > 0:
 		parts.append("防御：%s" % card.block)

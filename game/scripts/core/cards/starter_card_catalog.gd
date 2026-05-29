@@ -14,6 +14,16 @@ const CARD_ID_HEAVY_HAMMER := "heavy_hammer"
 const CARD_ID_BLOCK := "block"
 const CARD_ID_IRON_WALL := "iron_wall"
 const CARD_ID_INSIGHT := "insight"
+const CARD_ID_FORTIFY := "fortify"
+const CARD_ID_STEADY_BREATH := "steady_breath"
+const CARD_ID_TACTICAL_ADJUSTMENT := "tactical_adjustment"
+const CARD_ID_RIPOSTE := "riposte"
+const CARD_ID_SHIELD_BASH := "shield_bash"
+const CARD_ID_SWEEP := "sweep"
+const CARD_ID_WHIRLWIND := "whirlwind"
+const CARD_ID_FINISHING_BLOW := "finishing_blow"
+const CARD_ID_PREPARE := "prepare"
+const CARD_ID_DEEP_FOCUS := "deep_focus"
 
 
 static func create_strike() -> CardDefinition:
@@ -148,6 +158,126 @@ static func create_insight() -> CardDefinition:
 	)
 
 
+static func create_fortify() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_FORTIFY,
+		"固守",
+		0,
+		0,
+		4,
+		0,
+		CardDefinition.TargetMode.SELF
+	)
+
+
+static func create_steady_breath() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_STEADY_BREATH,
+		"稳息",
+		0,
+		0,
+		2,
+		1,
+		CardDefinition.TargetMode.SELF
+	)
+
+
+static func create_tactical_adjustment() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_TACTICAL_ADJUSTMENT,
+		"战术调整",
+		1,
+		0,
+		5,
+		1,
+		CardDefinition.TargetMode.SELF
+	)
+
+
+static func create_riposte() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_RIPOSTE,
+		"还击",
+		1,
+		5,
+		5,
+		0,
+		CardDefinition.TargetMode.SINGLE_ENEMY
+	)
+
+
+static func create_shield_bash() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_SHIELD_BASH,
+		"盾击",
+		2,
+		8,
+		8,
+		0,
+		CardDefinition.TargetMode.SINGLE_ENEMY
+	)
+
+
+static func create_sweep() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_SWEEP,
+		"横扫",
+		2,
+		5,
+		0,
+		0,
+		CardDefinition.TargetMode.ALL_ENEMIES
+	)
+
+
+static func create_whirlwind() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_WHIRLWIND,
+		"旋刃",
+		3,
+		8,
+		0,
+		0,
+		CardDefinition.TargetMode.ALL_ENEMIES
+	)
+
+
+static func create_finishing_blow() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_FINISHING_BLOW,
+		"收束一击",
+		3,
+		14,
+		0,
+		1,
+		CardDefinition.TargetMode.SINGLE_ENEMY
+	)
+
+
+static func create_prepare() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_PREPARE,
+		"预演",
+		1,
+		0,
+		0,
+		3,
+		CardDefinition.TargetMode.SELF
+	)
+
+
+static func create_deep_focus() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_DEEP_FOCUS,
+		"深思",
+		2,
+		0,
+		0,
+		4,
+		CardDefinition.TargetMode.SELF
+	)
+
+
 static func create_starter_deck() -> Array:
 	return create_cards_from_ids(starter_deck_card_ids())
 
@@ -178,6 +308,16 @@ static func stage_1_reward_card_ids() -> Array:
 		CARD_ID_BLOCK,
 		CARD_ID_IRON_WALL,
 		CARD_ID_INSIGHT,
+		CARD_ID_FORTIFY,
+		CARD_ID_STEADY_BREATH,
+		CARD_ID_TACTICAL_ADJUSTMENT,
+		CARD_ID_RIPOSTE,
+		CARD_ID_SHIELD_BASH,
+		CARD_ID_SWEEP,
+		CARD_ID_WHIRLWIND,
+		CARD_ID_FINISHING_BLOW,
+		CARD_ID_PREPARE,
+		CARD_ID_DEEP_FOCUS,
 	]
 
 
@@ -204,6 +344,26 @@ static func create_card_by_id(card_id: String) -> CardDefinition:
 		return create_iron_wall()
 	if card_id == CARD_ID_INSIGHT:
 		return create_insight()
+	if card_id == CARD_ID_FORTIFY:
+		return create_fortify()
+	if card_id == CARD_ID_STEADY_BREATH:
+		return create_steady_breath()
+	if card_id == CARD_ID_TACTICAL_ADJUSTMENT:
+		return create_tactical_adjustment()
+	if card_id == CARD_ID_RIPOSTE:
+		return create_riposte()
+	if card_id == CARD_ID_SHIELD_BASH:
+		return create_shield_bash()
+	if card_id == CARD_ID_SWEEP:
+		return create_sweep()
+	if card_id == CARD_ID_WHIRLWIND:
+		return create_whirlwind()
+	if card_id == CARD_ID_FINISHING_BLOW:
+		return create_finishing_blow()
+	if card_id == CARD_ID_PREPARE:
+		return create_prepare()
+	if card_id == CARD_ID_DEEP_FOCUS:
+		return create_deep_focus()
 	return null
 
 

@@ -47,6 +47,7 @@ static func create_card_choice(card: CardDefinition) -> Dictionary:
 		"base_damage": card.base_damage,
 		"block": card.block,
 		"draw_count": card.draw_count,
+		"target_mode": card.target_mode,
 	}
 
 
@@ -119,12 +120,18 @@ static func _category_for_card(card: CardDefinition) -> String:
 
 
 static func _description_for_card(card: CardDefinition) -> String:
+	var parts: Array = []
 	if card.base_damage > 0:
-		return "费用 %s，造成 %s 伤害" % [card.cost, card.base_damage]
+		var damage_text := "造成 %s 伤害" % card.base_damage
+		if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
+			damage_text = "对全体造成 %s 伤害" % card.base_damage
+		parts.append(damage_text)
 	if card.block > 0:
-		return "费用 %s，获得 %s 护甲" % [card.cost, card.block]
+		parts.append("获得 %s 护甲" % card.block)
 	if card.draw_count > 0:
-		return "费用 %s，抽 %s 张牌" % [card.cost, card.draw_count]
+		parts.append("抽 %s 张牌" % card.draw_count)
+	if not parts.is_empty():
+		return "费用 %s，%s" % [card.cost, "，".join(parts)]
 	return "费用 %s" % card.cost
 
 

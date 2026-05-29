@@ -30,7 +30,7 @@ func _test_card_catalog_resolves_run_deck_ids() -> bool:
 
 	var ok := true
 	ok = _assert_eq(starter_ids.size(), 8, "starter deck id count") and ok
-	ok = _assert_eq(reward_ids.size(), 7, "stage 1 reward id count") and ok
+	ok = _assert_eq(reward_ids.size(), 17, "stage 1 reward id count") and ok
 	ok = _assert_eq(deck_cards.size(), 3, "deck cards resolve from ids") and ok
 	ok = _assert_eq(deck_cards[1].display_name, "劈砍", "slash resolves to Chinese card") and ok
 	ok = _assert_eq(StarterCardCatalog.create_card_by_id("missing") == null, true, "missing card returns null") and ok
@@ -55,6 +55,7 @@ func _test_stage_1_card_rewards_are_seeded_and_diverse() -> bool:
 		categories[str(choice["category"])] = true
 		ok = _assert_eq(str(choice["display_name"]).is_empty(), false, "reward choice has display name") and ok
 		ok = _assert_eq(str(choice["description"]).is_empty(), false, "reward choice has description") and ok
+		ok = _assert_eq(choice.has("target_mode"), true, "reward choice exposes target mode") and ok
 	ok = _assert_eq(categories.size(), 3, "reward choices include attack defense and draw") and ok
 	return ok
 
