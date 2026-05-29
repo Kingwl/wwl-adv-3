@@ -5,6 +5,7 @@ const CardDefinition = preload("res://scripts/core/cards/card_definition.gd")
 const CardPlayResult = preload("res://scripts/core/combat/card_play_result.gd")
 const CombatState = preload("res://scripts/core/combat/combat_state.gd")
 const CombatantState = preload("res://scripts/core/combat/combatant_state.gd")
+const EnemyCatalog = preload("res://scripts/core/combat/enemy_catalog.gd")
 const DungeonMapState = preload("res://scripts/core/dungeon/dungeon_map_state.gd")
 const DungeonTile = preload("res://scripts/core/dungeon/dungeon_tile.gd")
 const RewardGenerator = preload("res://scripts/core/rewards/reward_generator.gd")
@@ -253,41 +254,121 @@ func xp_reward_for_tile_type(tile_type: int) -> int:
 
 func create_enemy_for_tile(tile: DungeonTile) -> CombatantState:
 	if tile.tile_type == DungeonTile.TileType.ELITE:
-		return CombatantState.new("%s_front" % tile.occupant_id, "精英", 24, 5)
+		return _create_enemy(tile, "front", EnemyCatalog.ID_BRUTE)
 	if tile.tile_type == DungeonTile.TileType.BOSS:
-		return CombatantState.new("%s_guard" % tile.occupant_id, "首领护卫", 18, 4, -1, 5)
-	return CombatantState.new("%s_front" % tile.occupant_id, "敌人", 12, 4)
+		return _create_enemy(tile, "guard", EnemyCatalog.ID_BOSS_GUARD)
+	return _create_enemy(tile, "front", EnemyCatalog.ID_GRUNT)
 
 
 func create_enemy_rows_for_tile(tile: DungeonTile) -> Array:
 	if tile.tile_type == DungeonTile.TileType.ELITE:
-		return [
-			[
-				CombatantState.new("%s_front_a" % tile.occupant_id, "精英", 24, 5),
-				CombatantState.new("%s_front_b" % tile.occupant_id, "护卫", 14, 3, -1, 4),
-			],
-			[
-				CombatantState.new("%s_rear" % tile.occupant_id, "后援", 16, 4),
-			],
-		]
+		return _elite_enemy_rows(tile)
 	if tile.tile_type == DungeonTile.TileType.BOSS:
-		return [
-			[
-				CombatantState.new("%s_guard_a" % tile.occupant_id, "首领护卫", 18, 4, -1, 5),
-				CombatantState.new("%s_guard_b" % tile.occupant_id, "首领护卫", 18, 4, -1, 5),
-			],
-			[
-				CombatantState.new("%s_boss" % tile.occupant_id, "首领", 42, 8),
-			],
-		]
-	return [
-		[
-			CombatantState.new("%s_front" % tile.occupant_id, "敌人", 12, 4),
-		],
-		[
-			CombatantState.new("%s_rear" % tile.occupant_id, "后援", 10, 3),
-		],
-	]
+		return _boss_enemy_rows(tile)
+	return _normal_enemy_rows(tile)
+
+
+func _normal_enemy_rows(tile: DungeonTile) -> Array:
+	var serial := _encounter_serial(tile)
+	if run_state.stage_index >= 2:
+		if serial % 4 == 1:
+			return [[
+				_create_enemy(tile, "guard", EnemyCatalog.ID_GUARD),
+				_create_enemy(tile, "bat", EnemyCatalog.ID_BAT),
+			], [
+				_create_enemy(tile, "grunt", EnemyCatalog.ID_GRUNT),
+			]]
+		if serial % 4 == 2:
+			return [[
+				_create_enemy(tile, "brute", EnemyCatalog.ID_BRUTE),
+			], [
+				_create_enemy(tile, "bat", EnemyCatalog.ID_BAT),
+			]]
+		if serial % 4 == 3:
+			return [[
+				_create_enemy(tile, "bat", EnemyCatalog.ID_BAT),
+				_create_enemy(tile, "grunt", EnemyCatalog.ID_GRUNT),
+			], [
+				_create_enemy(tile, "guard", EnemyCatalog.ID_GUARD),
+			]]
+		return [[
+			_create_enemy(tile, "guard", EnemyCatalog.ID_GUARD),
+		], [
+			_create_enemy(tile, "brute", EnemyCatalog.ID_BRUTE),
+		]]
+
+	if serial % 4 == 1:
+		return [[
+			_create_enemy(tile, "grunt", EnemyCatalog.ID_GRUNT),
+		], [
+			_create_enemy(tile, "rear_grunt", EnemyCatalog.ID_GRUNT),
+		]]
+	if serial % 4 == 2:
+		return [[
+			_create_enemy(tile, "bat", EnemyCatalog.ID_BAT),
+		], [
+			_create_enemy(tile, "grunt", EnemyCatalog.ID_GRUNT),
+		]]
+	if serial % 4 == 3:
+		return [[
+			_create_enemy(tile, "guard", EnemyCatalog.ID_GUARD),
+		], [
+			_create_enemy(tile, "grunt", EnemyCatalog.ID_GRUNT),
+		]]
+	return [[
+		_create_enemy(tile, "grunt", EnemyCatalog.ID_GRUNT),
+		_create_enemy(tile, "guard", EnemyCatalog.ID_GUARD),
+	], [
+		_create_enemy(tile, "bat", EnemyCatalog.ID_BAT),
+	]]
+
+
+func _elite_enemy_rows(tile: DungeonTile) -> Array:
+	if run_state.stage_index >= 2:
+		return [[
+			_create_enemy(tile, "brute", EnemyCatalog.ID_BRUTE),
+			_create_enemy(tile, "bat", EnemyCatalog.ID_BAT),
+		], [
+			_create_enemy(tile, "guard", EnemyCatalog.ID_GUARD),
+		]]
+	return [[
+		_create_enemy(tile, "brute", EnemyCatalog.ID_BRUTE),
+		_create_enemy(tile, "guard", EnemyCatalog.ID_GUARD),
+	], [
+		_create_enemy(tile, "grunt", EnemyCatalog.ID_GRUNT),
+	]]
+
+
+func _boss_enemy_rows(tile: DungeonTile) -> Array:
+	if run_state.stage_index >= 2:
+		return [[
+			_create_enemy(tile, "guard_a", EnemyCatalog.ID_BOSS_GUARD),
+			_create_enemy(tile, "guard_b", EnemyCatalog.ID_GUARD),
+		], [
+			_create_enemy(tile, "brute", EnemyCatalog.ID_BRUTE),
+		], [
+			_create_enemy(tile, "boss", EnemyCatalog.ID_STAGE_BOSS),
+		]]
+	return [[
+		_create_enemy(tile, "guard_a", EnemyCatalog.ID_BOSS_GUARD),
+		_create_enemy(tile, "guard_b", EnemyCatalog.ID_BOSS_GUARD),
+	], [
+		_create_enemy(tile, "boss", EnemyCatalog.ID_STAGE_BOSS),
+	]]
+
+
+func _create_enemy(tile: DungeonTile, suffix: String, catalog_id: String) -> CombatantState:
+	return EnemyCatalog.create_enemy("%s_%s" % [tile.occupant_id, suffix], catalog_id)
+
+
+func _encounter_serial(tile: DungeonTile) -> int:
+	var parts := tile.occupant_id.split("_")
+	if parts.is_empty():
+		return 1
+	var suffix := str(parts[parts.size() - 1])
+	if suffix.is_valid_int():
+		return int(suffix)
+	return 1
 
 
 func _create_combat_for_tile(tile: DungeonTile) -> CombatState:

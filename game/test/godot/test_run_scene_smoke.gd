@@ -433,7 +433,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var selected_card_summary: String = run_scene._selected_card_summary()
 	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）  已选：%s  生命 40/40 | 护甲 0 | 法力 3/3 | 连击 0" % selected_card_summary, "combat hand title") and ok
 	ok = _assert_eq(combat_hand_row.get_child_count(), 5, "combat hand buttons") and ok
-	ok = _assert_eq(combat_title_label.text, "遭遇：敌人", "combat title") and ok
+	ok = _assert_eq(combat_title_label.text, "遭遇：走卒", "combat title") and ok
 	ok = _assert_eq(combat_enemy_label.text, "敌方队列", "combat enemy panel title") and ok
 	ok = _assert_eq(enemy_rows.get_child_count(), 2, "combat enemy panel splits rows") and ok
 	var front_cards: HBoxContainer = enemy_rows.get_child(0).find_child("EnemyCards_00", true, false)

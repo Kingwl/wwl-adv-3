@@ -147,9 +147,16 @@ func can_enemy_guard(enemy: CombatantState) -> bool:
 
 func primary_target_index() -> int:
 	var attackers := active_attackers()
+	var best_attacker_index := -1
+	var best_attacker_threat := -1
 	for i in range(enemies.size()):
 		if attackers.has(enemies[i]):
-			return i
+			var threat := _enemy_attack_threat(enemies[i])
+			if threat > best_attacker_threat:
+				best_attacker_index = i
+				best_attacker_threat = threat
+	if best_attacker_index >= 0:
+		return best_attacker_index
 
 	var targetable := targetable_enemy_indices()
 	if targetable.is_empty():
@@ -299,6 +306,13 @@ func _enemy_front_age(enemy: CombatantState) -> int:
 
 func _enemy_should_guard(enemy: CombatantState) -> bool:
 	return enemy.guard_block > 0 and _enemy_front_age(enemy) % 2 == 0
+
+
+func _enemy_attack_threat(enemy: CombatantState) -> int:
+	var intent := enemy_intent_for(enemy)
+	if str(intent.get("type", ENEMY_INTENT_WAIT)) != ENEMY_INTENT_ATTACK:
+		return 0
+	return int(intent.get("amount", 0))
 
 
 func _enemy_key(enemy: CombatantState) -> int:

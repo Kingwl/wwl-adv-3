@@ -6,6 +6,9 @@ const StarterCardCatalog = preload("res://scripts/core/cards/starter_card_catalo
 const CombatState = preload("res://scripts/core/combat/combat_state.gd")
 const CombatantState = preload("res://scripts/core/combat/combatant_state.gd")
 const ComboState = preload("res://scripts/core/combat/combo_state.gd")
+const EnemyCatalog = preload("res://scripts/core/combat/enemy_catalog.gd")
+const DungeonTile = preload("res://scripts/core/dungeon/dungeon_tile.gd")
+const RunController = preload("res://scripts/core/run/run_controller.gd")
 
 
 func _init() -> void:
@@ -13,9 +16,12 @@ func _init() -> void:
 	failed = not _test_combo_requires_next_cost_step() or failed
 	failed = not _test_deck_shuffle_is_seeded() or failed
 	failed = not _test_combat_applies_combo_damage_and_block() or failed
+	failed = not _test_enemy_catalog_defines_first_roles() or failed
+	failed = not _test_run_controller_uses_enemy_role_rows() or failed
 	failed = not _test_enemy_guard_block_is_personal_and_refreshes() or failed
 	failed = not _test_enemy_rows_only_front_attacks_and_rear_waits_after_advancing() or failed
 	failed = not _test_primary_target_prioritizes_ready_attacker() or failed
+	failed = not _test_primary_target_prioritizes_highest_attack_threat() or failed
 	failed = not _test_enemy_rows_are_capped_at_five_enemies() or failed
 	failed = not _test_stage_1_reward_pool_is_stable_and_chinese() or failed
 	failed = not _test_reward_cards_are_simple_categories() or failed
@@ -79,6 +85,50 @@ func _test_combat_applies_combo_damage_and_block() -> bool:
 	ok = _assert_eq(strike_result.damage_requested, 12, "second combo card scales strike") and ok
 	ok = _assert_eq(bolt_result.damage_requested, 27, "third combo card scales bolt") and ok
 	ok = _assert_eq(combat.enemies[0].health, 11, "enemy loses scaled damage") and ok
+	return ok
+
+
+func _test_enemy_catalog_defines_first_roles() -> bool:
+	var grunt := EnemyCatalog.create_enemy("grunt_a", EnemyCatalog.ID_GRUNT)
+	var bat := EnemyCatalog.create_enemy("bat_a", EnemyCatalog.ID_BAT)
+	var guard := EnemyCatalog.create_enemy("guard_a", EnemyCatalog.ID_GUARD)
+	var brute := EnemyCatalog.create_enemy("brute_a", EnemyCatalog.ID_BRUTE)
+
+	var ok := true
+	ok = _assert_eq(grunt.display_name, "走卒", "grunt display name") and ok
+	ok = _assert_eq(grunt.max_health, 12, "grunt health") and ok
+	ok = _assert_eq(grunt.attack_damage, 4, "grunt attack") and ok
+	ok = _assert_eq(bat.display_name, "刺蝠", "bat display name") and ok
+	ok = _assert_eq(bat.max_health, 8, "bat health") and ok
+	ok = _assert_eq(bat.attack_damage, 6, "bat attack") and ok
+	ok = _assert_eq(guard.display_name, "盾卫", "guard display name") and ok
+	ok = _assert_eq(guard.guard_block, 5, "guard block intent") and ok
+	ok = _assert_eq(brute.display_name, "重甲兵", "brute display name") and ok
+	ok = _assert_eq(brute.max_health, 24, "brute health") and ok
+	ok = _assert_eq(brute.guard_block, 6, "brute block intent") and ok
+	return ok
+
+
+func _test_run_controller_uses_enemy_role_rows() -> bool:
+	var controller := RunController.new()
+	controller.setup(11)
+	controller.start_stage_1()
+
+	var first_rows := controller.create_enemy_rows_for_tile(DungeonTile.new(DungeonTile.TileType.ENEMY, "enemy_01"))
+	var guard_rows := controller.create_enemy_rows_for_tile(DungeonTile.new(DungeonTile.TileType.ENEMY, "enemy_03"))
+	var elite_rows := controller.create_enemy_rows_for_tile(DungeonTile.new(DungeonTile.TileType.ELITE, "elite_01"))
+	var boss_rows := controller.create_enemy_rows_for_tile(DungeonTile.new(DungeonTile.TileType.BOSS, "boss_01"))
+	controller.run_state.start_stage_2()
+	var stage_two_rows := controller.create_enemy_rows_for_tile(DungeonTile.new(DungeonTile.TileType.ENEMY, "enemy_01"))
+
+	var ok := true
+	ok = _assert_eq(_enemy_names(first_rows[0]), ["走卒"], "stage 1 first front row") and ok
+	ok = _assert_eq(_enemy_names(first_rows[1]), ["走卒"], "stage 1 first rear row") and ok
+	ok = _assert_eq(_enemy_names(guard_rows[0]), ["盾卫"], "stage 1 guard teaching front row") and ok
+	ok = _assert_eq(_enemy_names(elite_rows[0]), ["重甲兵", "盾卫"], "stage 1 elite front row") and ok
+	ok = _assert_eq(_enemy_names(boss_rows[0]), ["首领护卫", "首领护卫"], "stage 1 boss guard row") and ok
+	ok = _assert_eq(_enemy_names(stage_two_rows[0]), ["盾卫", "刺蝠"], "stage 2 first front row") and ok
+	ok = _assert_eq(_enemy_names(stage_two_rows[1]), ["走卒"], "stage 2 first rear row") and ok
 	return ok
 
 
@@ -183,6 +233,27 @@ func _test_primary_target_prioritizes_ready_attacker() -> bool:
 	return ok
 
 
+func _test_primary_target_prioritizes_highest_attack_threat() -> bool:
+	var combat := CombatState.new()
+	combat.setup(
+		CombatantState.new("hero", "英雄", 30, 0),
+		[],
+		[[
+			EnemyCatalog.create_enemy("guard", EnemyCatalog.ID_GUARD),
+			EnemyCatalog.create_enemy("bat", EnemyCatalog.ID_BAT),
+		]],
+		17,
+		3,
+		0
+	)
+
+	var ok := true
+	ok = _assert_eq(combat.can_enemy_attack(combat.enemies[0]), true, "guard is attacking on first ready turn") and ok
+	ok = _assert_eq(combat.can_enemy_attack(combat.enemies[1]), true, "bat is attacking on first ready turn") and ok
+	ok = _assert_eq(combat.primary_target_index(), 1, "primary target is highest attack threat") and ok
+	return ok
+
+
 func _test_enemy_rows_are_capped_at_five_enemies() -> bool:
 	var row: Array = []
 	for i in range(6):
@@ -275,6 +346,13 @@ func _card_ids(cards: Array) -> Array:
 	for card in cards:
 		ids.append(card.id)
 	return ids
+
+
+func _enemy_names(enemies: Array) -> Array:
+	var names: Array = []
+	for enemy in enemies:
+		names.append(enemy.display_name)
+	return names
 
 
 func _assert_eq(actual, expected, label: String) -> bool:
