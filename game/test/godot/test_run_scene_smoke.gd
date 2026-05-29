@@ -461,6 +461,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var combat_title_label: Label = run_scene.find_child("CombatTitleLabel", true, false)
 	var combat_enemy_label: Label = run_scene.find_child("EnemyState", true, false)
 	var enemy_rows: BoxContainer = run_scene.find_child("EnemyRows", true, false)
+	var card_use_fx_layer: Control = run_scene.find_child("CardUseFxLayer", true, false)
 	var player_state_panel: PanelContainer = run_scene.find_child("PlayerStatePanel", true, false)
 	var player_hud_panel: PanelContainer = run_scene.find_child("PlayerHudPanel", true, false)
 	var player_health_bar: ProgressBar = run_scene.find_child("PlayerHealthBar", true, false)
@@ -480,6 +481,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(combat_hand_row.get_child_count(), 5, "combat hand buttons") and ok
 	ok = _assert_eq(combat_title_label.text, "遭遇：走卒", "combat title") and ok
 	ok = _assert_eq(combat_enemy_label.text, "战斗阵列", "combat enemy panel title") and ok
+	ok = _assert_ne(card_use_fx_layer, null, "combat has card use vfx layer") and ok
 	ok = _assert_eq(enemy_rows.get_child_count(), 2, "combat enemy panel splits rows") and ok
 	ok = _assert_eq(enemy_rows.get_child(0).name, "EnemyRow_01", "rear row renders above front row") and ok
 	ok = _assert_eq(enemy_rows.get_child(1).name, "EnemyRow_00", "front row renders at the bottom") and ok
@@ -507,6 +509,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 
 	ok = _assert_eq(run_scene.active_combat.mana, 2, "playing first card spends mana") and ok
 	ok = _assert_eq(run_scene.active_combat.deck.hand.size(), 4, "playing first card removes hand card") and ok
+	ok = _assert_eq(card_use_fx_layer.get_child_count() > 0, true, "playing a card spawns vfx nodes") and ok
 
 	_defeat_all_active_enemies(run_scene)
 	run_scene._finish_combat_victory()

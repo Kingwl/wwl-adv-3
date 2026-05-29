@@ -53,6 +53,7 @@ const ANIMATION_PLAYER := "player"
 const ANIMATION_PLAYER_COMBAT := "player_combat"
 const ANIMATION_ENEMY := "enemy"
 const ANIMATION_CARD := "card"
+const ANIMATION_CARD_FX := "card_fx"
 
 var controller: RunController = RunController.new()
 var visual_assets: VisualAssetCatalog = VisualAssetCatalog.new()
@@ -67,6 +68,7 @@ var status_message: String = "探索中。"
 var combat_focus: String = COMBAT_FOCUS_HAND
 var selected_hand_index: int = -1
 var selected_reward_index: int = 0
+var combat_fx_serial: int = 0
 
 var map_panel: VBoxContainer
 var side_panel: VBoxContainer
@@ -92,6 +94,7 @@ var combat_combo_label: Label
 var combat_selected_label: Label
 var combat_hand_title_label: Label
 var combat_hand_row: HBoxContainer
+var combat_fx_layer: Control
 var combat_log_label: Label
 var end_turn_button: Button
 var reward_title_label: Label
@@ -292,7 +295,17 @@ func _build_layout() -> void:
 	_build_combat_panel(main_row)
 	_build_reward_panel(main_row)
 	_build_run_end_panel(main_row)
+	_build_combat_fx_layer()
 	_create_cells()
+
+
+func _build_combat_fx_layer() -> void:
+	combat_fx_layer = Control.new()
+	combat_fx_layer.name = "CardUseFxLayer"
+	combat_fx_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	combat_fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	combat_fx_layer.z_index = 300
+	add_child(combat_fx_layer)
 
 
 func _build_combat_panel(parent: Control) -> void:
@@ -1125,6 +1138,8 @@ func _on_card_pressed(hand_index: int) -> void:
 
 	selected_hand_index = hand_index
 	combat_focus = COMBAT_FOCUS_HAND
+	var card = active_combat.deck.hand[hand_index]
+	var card_vfx_context := _capture_card_vfx_context(hand_index, card)
 	var result := controller.play_card(hand_index)
 	_sync_from_controller()
 	_clamp_selected_hand_index()
@@ -1147,11 +1162,14 @@ func _on_card_pressed(hand_index: int) -> void:
 		_set_status_message(_combat_victory_summary(result))
 		combat_log = ""
 		_refresh()
+		_play_card_use_vfx(card, result, card_vfx_context)
 		return
 	if active_combat != null and not _has_playable_card():
 		_end_turn_with_log("%s\n费用不足，自动结束回合。" % combat_log)
+		_play_card_use_vfx(card, result, card_vfx_context)
 		return
 	_refresh()
+	_play_card_use_vfx(card, result, card_vfx_context)
 
 
 func _card_play_failure_reason(reason: String) -> String:
@@ -1262,6 +1280,358 @@ func _add_empty_enemy_row() -> void:
 	empty_label.text = "无"
 	empty_label.add_theme_font_size_override("font_size", 16)
 	combat_enemy_rows.add_child(empty_label)
+
+
+func _capture_card_vfx_context(hand_index: int, card) -> Dictionary:
+	return {
+		"source_center": _card_vfx_source_center(hand_index, card),
+		"player_center": _safe_control_center(combat_player_portrait),
+		"hand_center": _safe_control_center(combat_hand_row),
+		"enemy_stage_rect": _safe_control_rect(combat_enemy_panel),
+		"enemy_centers": _capture_enemy_card_centers(),
+	}
+
+
+func _card_vfx_source_center(hand_index: int, card) -> Vector2:
+	if combat_hand_row != null and card != null:
+		var card_button := combat_hand_row.find_child("Card_%02d_%s" % [hand_index, card.id], true, false) as Control
+		var card_center := _safe_control_center(card_button)
+		if card_center != Vector2.ZERO:
+			return card_center
+
+	var player_center := _safe_control_center(combat_player_portrait)
+	if player_center != Vector2.ZERO:
+		return player_center
+	return _fallback_vfx_center()
+
+
+func _capture_enemy_card_centers() -> Dictionary:
+	var centers := {}
+	if combat_enemy_rows != null:
+		_collect_enemy_card_centers(combat_enemy_rows, centers)
+	return centers
+
+
+func _collect_enemy_card_centers(root: Node, centers: Dictionary) -> void:
+	if root == null:
+		return
+	for child in root.get_children():
+		var child_name := str(child.name)
+		if child is PanelContainer and child_name.begins_with("EnemyCard_"):
+			var enemy_id := child_name.substr("EnemyCard_".length())
+			centers[enemy_id] = _safe_control_center(child as Control)
+		_collect_enemy_card_centers(child, centers)
+
+
+func _play_card_use_vfx(card, result: Dictionary, context: Dictionary) -> void:
+	if card == null or combat_fx_layer == null:
+		return
+
+	var source_center: Vector2 = context.get("source_center", _fallback_vfx_center())
+	var player_center: Vector2 = context.get("player_center", _safe_control_center(combat_player_portrait))
+	var hand_center: Vector2 = context.get("hand_center", _safe_control_center(combat_hand_row))
+	if source_center == Vector2.ZERO:
+		source_center = _fallback_vfx_center()
+	if player_center == Vector2.ZERO:
+		player_center = source_center
+	if hand_center == Vector2.ZERO:
+		hand_center = source_center
+
+	var tint := _card_vfx_color(card)
+	_spawn_card_fx_burst("single_impact", source_center, Vector2(94, 86), tint, 0.0, 0.22, 0.82)
+
+	if card.base_damage > 0:
+		var target_points := _card_vfx_target_points(result, context)
+		_play_attack_card_vfx(card, source_center, target_points, tint, context)
+	if card.block > 0:
+		_spawn_card_icon_pulse(card, player_center, Vector2(76, 76), Color(1.0, 1.0, 1.0, 0.92), 0.02)
+		_spawn_card_fx_burst("single_impact", player_center, Vector2(152, 126), Color(0.38, 0.86, 0.72, 0.82), 0.06, 0.42, 0.82)
+	if card.draw_count > 0:
+		_spawn_card_icon_pulse(card, hand_center, Vector2(76, 76), Color(1.0, 1.0, 1.0, 0.90), 0.04)
+		_spawn_card_fx_burst("bounce_projectile", hand_center, Vector2(132, 102), Color(0.78, 0.88, 1.00, 0.80), 0.08, 0.38, 0.80)
+
+
+func _play_attack_card_vfx(card, source_center: Vector2, target_points: Array, tint: Color, context: Dictionary) -> void:
+	if target_points.is_empty():
+		target_points.append(_enemy_stage_center(context))
+
+	if card.target_mode == CardDefinition.TargetMode.FRONT_ROW:
+		var sweep_center := _points_center(target_points)
+		var sweep_size := _points_span_size(target_points, Vector2(250, 104), Vector2(170, 84))
+		_spawn_card_icon_pulse(card, sweep_center, Vector2(78, 78), Color(1.0, 1.0, 1.0, 0.92), 0.02)
+		_spawn_card_fx_burst("front_row_sweep", sweep_center, sweep_size, tint, 0.04, 0.34, 0.88)
+		_spawn_target_impacts(target_points, tint, 0.20)
+		return
+
+	if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
+		var stage_rect: Rect2 = context.get("enemy_stage_rect", _safe_control_rect(combat_enemy_panel))
+		var burst_center := stage_rect.get_center() if stage_rect.size != Vector2.ZERO else _points_center(target_points)
+		var burst_size := Vector2(maxf(stage_rect.size.x * 0.86, 320.0), maxf(stage_rect.size.y * 0.70, 170.0))
+		_spawn_card_icon_pulse(card, burst_center, Vector2(90, 90), Color(1.0, 1.0, 1.0, 0.92), 0.02)
+		_spawn_card_fx_burst("all_screen_burst", burst_center, burst_size, tint, 0.04, 0.48, 0.88)
+		_spawn_target_impacts(target_points, tint, 0.26)
+		return
+
+	if card.target_mode == CardDefinition.TargetMode.RANDOM_ENEMIES:
+		for i in range(target_points.size()):
+			_spawn_card_icon_echo(card, source_center, target_points[i], 0.02 + float(i) * 0.08, 0.20, Color(1.0, 1.0, 1.0, 0.90))
+			_spawn_card_fx_burst("random_strike", target_points[i], Vector2(132, 112), tint, 0.08 + float(i) * 0.08, 0.32, 0.88)
+		return
+
+	if card.target_mode == CardDefinition.TargetMode.BOUNCE:
+		var previous_point := source_center
+		for i in range(target_points.size()):
+			var target_point: Vector2 = target_points[i]
+			var delay := float(i) * 0.13
+			_spawn_card_icon_echo(card, previous_point, target_point, delay, 0.18, Color(1.0, 1.0, 1.0, 0.88))
+			_spawn_card_fx_projectile("bounce_projectile", previous_point, target_point, tint, delay, 0.18)
+			_spawn_card_fx_burst("single_impact", target_point, Vector2(126, 104), tint, delay + 0.17, 0.22, 0.82)
+			previous_point = target_point
+		return
+
+	_spawn_card_icon_echo(card, source_center, target_points[0], 0.02, 0.24, Color(1.0, 1.0, 1.0, 0.90))
+	_spawn_card_fx_projectile(_card_projectile_action(card), source_center, target_points[0], tint, 0.04, 0.24)
+	_spawn_target_impacts([target_points[0]], tint, 0.28)
+
+
+func _card_vfx_target_points(result: Dictionary, context: Dictionary) -> Array:
+	var target_points: Array = []
+	var enemy_centers: Dictionary = context.get("enemy_centers", {})
+	var target_ids: Array = result.get("target_ids", [])
+	for raw_target_id in target_ids:
+		var target_id := str(raw_target_id)
+		if enemy_centers.has(target_id):
+			target_points.append(enemy_centers[target_id])
+
+	if target_points.is_empty():
+		var target_id := str(result.get("target_id", ""))
+		if enemy_centers.has(target_id):
+			target_points.append(enemy_centers[target_id])
+	return target_points
+
+
+func _spawn_target_impacts(target_points: Array, tint: Color, base_delay: float) -> void:
+	for i in range(target_points.size()):
+		_spawn_card_fx_burst("single_impact", target_points[i], Vector2(126, 104), tint, base_delay + float(i) * 0.03, 0.24, 0.84)
+
+
+func _spawn_card_fx_projectile(
+	action: String,
+	start_center: Vector2,
+	end_center: Vector2,
+	tint: Color,
+	delay: float,
+	duration: float
+) -> void:
+	var sprite := _create_card_fx_sprite(action, start_center, Vector2(104, 78), tint)
+	if sprite == null:
+		return
+	sprite.rotation = (end_center - start_center).angle()
+	sprite.visible = delay <= 0.0
+
+	var tween := create_tween()
+	if delay > 0.0:
+		tween.tween_interval(delay)
+		tween.tween_callback(Callable(sprite, "show"))
+	tween.tween_property(sprite, "position", _fx_layer_position_for_center(end_center, sprite.size), duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "scale", Vector2(1.14, 1.14), duration)
+	tween.tween_property(sprite, "modulate:a", 0.0, 0.10)
+	tween.tween_callback(Callable(sprite, "queue_free"))
+
+
+func _spawn_card_icon_echo(card, start_center: Vector2, end_center: Vector2, delay: float, duration: float, tint: Color) -> void:
+	var sprite := _create_card_icon_vfx_sprite(card, start_center, Vector2(66, 66), tint)
+	if sprite == null:
+		return
+	sprite.rotation = (end_center - start_center).angle() * 0.18
+	sprite.visible = delay <= 0.0
+	sprite.scale = Vector2(0.72, 0.72)
+
+	var tween := create_tween()
+	if delay > 0.0:
+		tween.tween_interval(delay)
+		tween.tween_callback(Callable(sprite, "show"))
+	tween.tween_property(sprite, "position", _fx_layer_position_for_center(end_center, sprite.size), duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "scale", Vector2(1.10, 1.10), duration)
+	tween.tween_property(sprite, "modulate:a", 0.0, 0.14)
+	tween.tween_callback(Callable(sprite, "queue_free"))
+
+
+func _spawn_card_icon_pulse(card, center: Vector2, size: Vector2, tint: Color, delay: float) -> void:
+	var sprite := _create_card_icon_vfx_sprite(card, center, size, tint)
+	if sprite == null:
+		return
+	sprite.visible = delay <= 0.0
+	sprite.scale = Vector2(0.70, 0.70)
+
+	var tween := create_tween()
+	if delay > 0.0:
+		tween.tween_interval(delay)
+		tween.tween_callback(Callable(sprite, "show"))
+	tween.tween_property(sprite, "scale", Vector2(1.25, 1.25), 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, 0.32)
+	tween.tween_callback(Callable(sprite, "queue_free"))
+
+
+func _create_card_icon_vfx_sprite(card, center: Vector2, size: Vector2, tint: Color) -> TextureRect:
+	if card == null or combat_fx_layer == null:
+		return null
+	var texture := visual_assets.card_texture(card.id, animation_frame)
+	if texture == null:
+		return null
+
+	combat_fx_serial += 1
+	var sprite := TextureRect.new()
+	sprite.name = "CardUseIcon_%03d_%s" % [combat_fx_serial, card.id]
+	sprite.texture = texture
+	sprite.custom_minimum_size = size
+	sprite.size = size
+	sprite.pivot_offset = size * 0.5
+	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sprite.z_index = 460 + combat_fx_serial % 50
+	sprite.modulate = tint
+	sprite.position = _fx_layer_position_for_center(center, size)
+	_apply_texture_animation(sprite, ANIMATION_CARD, card.id, "")
+	combat_fx_layer.add_child(sprite)
+	return sprite
+
+
+func _spawn_card_fx_burst(
+	action: String,
+	center: Vector2,
+	size: Vector2,
+	tint: Color,
+	delay: float,
+	duration: float,
+	alpha: float
+) -> void:
+	var burst_tint := tint
+	burst_tint.a = alpha
+	var sprite := _create_card_fx_sprite(action, center, size, burst_tint)
+	if sprite == null:
+		return
+	sprite.visible = delay <= 0.0
+	sprite.scale = Vector2(0.78, 0.78)
+
+	var tween := create_tween()
+	if delay > 0.0:
+		tween.tween_interval(delay)
+		tween.tween_callback(Callable(sprite, "show"))
+	tween.tween_property(sprite, "scale", Vector2(1.18, 1.18), duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, duration)
+	tween.tween_callback(Callable(sprite, "queue_free"))
+
+
+func _create_card_fx_sprite(action: String, center: Vector2, size: Vector2, tint: Color) -> TextureRect:
+	if combat_fx_layer == null:
+		return null
+	var texture := visual_assets.card_fx_texture(action, animation_frame)
+	if texture == null:
+		return null
+
+	combat_fx_serial += 1
+	var sprite := TextureRect.new()
+	sprite.name = "CardUseFx_%03d_%s" % [combat_fx_serial, action]
+	sprite.texture = texture
+	sprite.custom_minimum_size = size
+	sprite.size = size
+	sprite.pivot_offset = size * 0.5
+	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sprite.z_index = 400 + combat_fx_serial % 50
+	sprite.modulate = tint
+	sprite.position = _fx_layer_position_for_center(center, size)
+	_apply_texture_animation(sprite, ANIMATION_CARD_FX, "", action)
+	combat_fx_layer.add_child(sprite)
+	return sprite
+
+
+func _card_projectile_action(card) -> String:
+	if card == null:
+		return "single_projectile"
+	if card.id == "axe" or card.id == "cross" or card.id == "runetracer" or card.id == "bone":
+		return "bounce_projectile"
+	return "single_projectile"
+
+
+func _card_vfx_color(card) -> Color:
+	if card == null:
+		return Color(1.0, 1.0, 1.0, 0.88)
+	if card.id == "fire_wand" or card.id == "cherry_bomb":
+		return Color(1.0, 0.38, 0.16, 0.90)
+	if card.id == "lightning_ring" or card.id == "magic_wand" or card.id == "runetracer":
+		return Color(0.45, 0.78, 1.0, 0.90)
+	if card.id == "pentagram" or card.id == "ebony_wings":
+		return Color(0.72, 0.42, 1.0, 0.90)
+	if card.id == "garlic":
+		return Color(0.44, 0.92, 0.50, 0.88)
+	if card.id == "santa_water" or card.id == "cross" or card.id == "peachone":
+		return Color(1.0, 0.92, 0.56, 0.90)
+	if card.id == "song_of_mana":
+		return Color(0.60, 0.72, 1.0, 0.90)
+	return Color(1.0, 0.86, 0.58, 0.88)
+
+
+func _points_center(points: Array) -> Vector2:
+	if points.is_empty():
+		return _fallback_vfx_center()
+	var sum := Vector2.ZERO
+	for raw_point in points:
+		var point: Vector2 = raw_point
+		sum += point
+	return sum / float(points.size())
+
+
+func _points_span_size(points: Array, minimum_size: Vector2, padding: Vector2) -> Vector2:
+	if points.is_empty():
+		return minimum_size
+	var first_point: Vector2 = points[0]
+	var min_x := first_point.x
+	var max_x := first_point.x
+	var min_y := first_point.y
+	var max_y := first_point.y
+	for raw_point in points:
+		var point: Vector2 = raw_point
+		min_x = minf(min_x, point.x)
+		max_x = maxf(max_x, point.x)
+		min_y = minf(min_y, point.y)
+		max_y = maxf(max_y, point.y)
+	return Vector2(maxf(minimum_size.x, max_x - min_x + padding.x), maxf(minimum_size.y, max_y - min_y + padding.y))
+
+
+func _enemy_stage_center(context: Dictionary) -> Vector2:
+	var stage_rect: Rect2 = context.get("enemy_stage_rect", _safe_control_rect(combat_enemy_panel))
+	if stage_rect.size != Vector2.ZERO:
+		return stage_rect.get_center()
+	return _fallback_vfx_center()
+
+
+func _safe_control_center(control: Control) -> Vector2:
+	var rect := _safe_control_rect(control)
+	if rect.size == Vector2.ZERO:
+		return Vector2.ZERO
+	return rect.get_center()
+
+
+func _safe_control_rect(control: Control) -> Rect2:
+	if control == null or not control.is_inside_tree():
+		return Rect2(Vector2.ZERO, Vector2.ZERO)
+	return control.get_global_rect()
+
+
+func _fallback_vfx_center() -> Vector2:
+	return get_viewport_rect().size * 0.5
+
+
+func _fx_layer_position_for_center(center: Vector2, size: Vector2) -> Vector2:
+	if combat_fx_layer == null:
+		return center - size * 0.5
+	return combat_fx_layer.get_global_transform().affine_inverse() * center - size * 0.5
 
 
 func _create_enemy_card(enemy: CombatantState, row_index: int, is_target: bool) -> PanelContainer:
@@ -2171,6 +2541,10 @@ func _animation_texture_for(node: Object) -> Texture2D:
 		return visual_assets.enemy_texture(asset_id, action, animation_frame)
 	if animation_type == ANIMATION_CARD:
 		return visual_assets.card_texture(asset_id, animation_frame)
+	if animation_type == ANIMATION_CARD_FX:
+		if action == "":
+			action = "single_impact"
+		return visual_assets.card_fx_texture(action, animation_frame)
 	return null
 
 

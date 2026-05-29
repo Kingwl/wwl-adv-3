@@ -31,6 +31,15 @@ const ENEMY_ATTACK_FRAMES := [1, 2, 3, 4, 5, 6]
 const ENEMY_GUARD_FRAMES := [1, 2, 3, 4]
 const CARD_ICON_FRAMES_PER_CARD := 4
 
+const CARD_FX_ACTION_FRAMES := {
+	"single_projectile": [1, 2, 3, 4],
+	"single_impact": [5, 6, 7, 8],
+	"front_row_sweep": [9, 10, 11, 12],
+	"random_strike": [13, 14, 15, 16],
+	"bounce_projectile": [17, 18, 19, 20],
+	"all_screen_burst": [21, 22, 23, 24],
+}
+
 const ENEMY_COMBAT_SHEETS := {
 	"grunt": "res://assets/generated/phase1/processed/enemy_grunt_combat/sheet-transparent.png",
 	"bat": "res://assets/generated/phase1/processed/enemy_bat_combat/sheet-transparent.png",
@@ -184,6 +193,11 @@ func card_texture(card_id: String, frame_index: int = 0) -> Texture2D:
 	if card_id == "empty_tome" or card_id == "duplicator":
 		return _sheet_frame_from_sequence(SHARED_CARD_FX_SHEET, 6, 4, [17, 18, 19, 20], frame_index)
 	return null
+
+
+func card_fx_texture(action: String, frame_index: int = 0) -> Texture2D:
+	var frames: Array = CARD_FX_ACTION_FRAMES.get(action, CARD_FX_ACTION_FRAMES["single_impact"])
+	return _sheet_frame_from_sequence(SHARED_CARD_FX_SHEET, 6, 4, frames, frame_index)
 
 
 func _card_icon_texture(card_id: String, frame_index: int) -> Texture2D:

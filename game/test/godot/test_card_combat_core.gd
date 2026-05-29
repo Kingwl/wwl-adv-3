@@ -377,10 +377,15 @@ func _test_reward_cards_resolve_core_effects() -> bool:
 
 	var ok := true
 	ok = _assert_eq(whip_result.damage_dealt, 12, "whip hits the front row") and ok
+	ok = _assert_eq(whip_result.target_ids, ["enemy_a", "enemy_b"], "whip records front-row vfx targets") and ok
 	ok = _assert_eq(axe_result.damage_dealt, 48, "axe bounces through three enemies with combo") and ok
+	ok = _assert_eq(axe_result.target_ids, ["enemy_a", "enemy_b", "enemy_c"], "axe records bounce vfx targets") and ok
 	ok = _assert_eq(pentagram_result.damage_dealt, 90, "pentagram hits all enemies with combo") and ok
+	ok = _assert_eq(pentagram_result.target_ids, ["enemy_a", "enemy_b", "enemy_c"], "pentagram records all-enemy vfx targets") and ok
 	ok = _assert_eq(water_result.damage_dealt, 12, "santa water lands three seeded zones") and ok
+	ok = _assert_eq(water_result.target_ids.size(), 3, "santa water records random vfx target count") and ok
 	ok = _assert_eq(bible_result.damage_dealt, 10, "king bible hits the front row") and ok
+	ok = _assert_eq(bible_result.target_ids, ["enemy_a", "enemy_b"], "king bible records front-row vfx targets") and ok
 	ok = _assert_eq(bible_result.block_gained, 7, "king bible grants orbit block") and ok
 	ok = _assert_eq(spellbinder_result.block_gained, 4, "spellbinder grants block") and ok
 	ok = _assert_eq(spellbinder_result.cards_drawn, 1, "spellbinder draws") and ok

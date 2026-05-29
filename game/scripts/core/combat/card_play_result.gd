@@ -5,6 +5,7 @@ var ok: bool = true
 var reason: String = ""
 var card_id: String = ""
 var target_id: String = ""
+var target_ids: Array = []
 var combo_chain: int = 0
 var multiplier_basis_points: int = 100
 var mana_spent: int = 0
