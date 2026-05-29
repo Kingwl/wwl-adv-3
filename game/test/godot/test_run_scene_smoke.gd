@@ -1,6 +1,7 @@
 extends SceneTree
 
 const DungeonTile = preload("res://scripts/core/dungeon/dungeon_tile.gd")
+const CARD_SELECTED_LIFT := 12
 
 
 func _init() -> void:
@@ -316,6 +317,7 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 
 	var combat_hand_row: HBoxContainer = run_scene.find_child("CombatHandRow", true, false)
 	var combat_hand_title_label: Label = run_scene.find_child("CombatHandTitleLabel", true, false)
+	var combat_selected_label: Label = run_scene.find_child("CombatSelectedLabel", true, false)
 	run_scene.active_combat.enemies[0].max_health = 100
 	run_scene.active_combat.enemies[0].health = 100
 	run_scene.active_combat.mana = 10
@@ -326,9 +328,11 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	var ok := true
 	ok = _assert_eq(run_scene.selected_hand_index, 0, "combat starts with first card selected") and ok
 	ok = _assert_eq(run_scene.combat_focus, "hand", "combat starts focused on hand") and ok
-	ok = _assert_eq(combat_hand_title_label.text.contains("已选：%s" % selected_card_name), true, "combat title shows selected card") and ok
+	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）", "combat hand title is compact") and ok
+	ok = _assert_eq(combat_selected_label.text.contains("已选：%s" % selected_card_name), true, "combat hud shows selected card") and ok
 	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 0, "selected card floats up") and ok
-	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), 8, "unselected card stays lower") and ok
+	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), CARD_SELECTED_LIFT, "unselected card stays lower") and ok
+	ok = _assert_eq(_card_slot(combat_hand_row, 1).rotation_degrees < 0.0, true, "unselected hand cards fan out") and ok
 	var animated_card_button := _card_button(combat_hand_row, 0)
 	var animated_card_art: TextureRect = animated_card_button.find_child("CardArt", true, false)
 	var animated_card_texture := animated_card_art.texture if animated_card_art != null else null
@@ -377,7 +381,7 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	_press_key(run_scene, KEY_RIGHT)
 	ok = _assert_eq(run_scene.selected_hand_index, 1, "right key selects next card") and ok
 	ok = _assert_eq(_card_slot(combat_hand_row, 1).get_theme_constant("margin_top"), 0, "right-selected card floats up") and ok
-	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), 8, "previous card lowers after selection moves") and ok
+	ok = _assert_eq(_card_slot(combat_hand_row, 0).get_theme_constant("margin_top"), CARD_SELECTED_LIFT, "previous card lowers after selection moves") and ok
 	_press_key(run_scene, KEY_D)
 	ok = _assert_eq(run_scene.selected_hand_index, 2, "D key selects next card") and ok
 	_press_key(run_scene, KEY_LEFT)
@@ -387,7 +391,7 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 
 	_press_key(run_scene, KEY_DOWN)
 	ok = _assert_eq(run_scene.combat_focus, "end_turn", "down key selects end turn") and ok
-	ok = _assert_eq(combat_hand_title_label.text.contains("已选：结束回合"), true, "combat title shows end turn selection") and ok
+	ok = _assert_eq(combat_selected_label.text.contains("已选：结束回合"), true, "combat hud shows end turn selection") and ok
 	_press_key(run_scene, KEY_UP)
 	ok = _assert_eq(run_scene.combat_focus, "hand", "up key returns to hand") and ok
 	ok = _assert_eq(run_scene.selected_hand_index, 0, "returning to hand keeps selected card") and ok
@@ -451,10 +455,16 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	var combat_panel: VBoxContainer = run_scene.find_child("CombatPanel", true, false)
 	var combat_hand_row: HBoxContainer = run_scene.find_child("CombatHandRow", true, false)
 	var combat_hand_title_label: Label = run_scene.find_child("CombatHandTitleLabel", true, false)
+	var combat_selected_label: Label = run_scene.find_child("CombatSelectedLabel", true, false)
+	var combat_mana_label: Label = run_scene.find_child("CombatManaLabel", true, false)
+	var combat_combo_label: Label = run_scene.find_child("CombatComboLabel", true, false)
 	var combat_title_label: Label = run_scene.find_child("CombatTitleLabel", true, false)
 	var combat_enemy_label: Label = run_scene.find_child("EnemyState", true, false)
 	var enemy_rows: BoxContainer = run_scene.find_child("EnemyRows", true, false)
 	var player_state_panel: PanelContainer = run_scene.find_child("PlayerStatePanel", true, false)
+	var player_hud_panel: PanelContainer = run_scene.find_child("PlayerHudPanel", true, false)
+	var player_health_bar: ProgressBar = run_scene.find_child("PlayerHealthBar", true, false)
+	var action_hud: PanelContainer = run_scene.find_child("CombatActionHud", true, false)
 	var stats_label: Label = run_scene.find_child("StatsLabel", true, false)
 
 	var ok := true
@@ -463,10 +473,13 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(status_label.text, "遭遇已开始。", "combat start does not leak internal id") and ok
 	ok = _assert_eq(combat_panel.visible, true, "combat panel visible") and ok
 	var selected_card_summary: String = run_scene._selected_card_summary()
-	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）  已选：%s  生命 40/40 | 护甲 0 | 法力 3/3 | 连击 0" % selected_card_summary, "combat hand title") and ok
+	ok = _assert_eq(combat_hand_title_label.text, "手牌（5）", "combat hand title") and ok
+	ok = _assert_eq(combat_selected_label.text, "已选：%s" % selected_card_summary, "combat selected hud") and ok
+	ok = _assert_eq(combat_mana_label.text, "法力 3/3", "combat mana hud") and ok
+	ok = _assert_eq(combat_combo_label.text, "连击 0", "combat combo hud") and ok
 	ok = _assert_eq(combat_hand_row.get_child_count(), 5, "combat hand buttons") and ok
 	ok = _assert_eq(combat_title_label.text, "遭遇：走卒", "combat title") and ok
-	ok = _assert_eq(combat_enemy_label.text, "敌方队列", "combat enemy panel title") and ok
+	ok = _assert_eq(combat_enemy_label.text, "战斗阵列", "combat enemy panel title") and ok
 	ok = _assert_eq(enemy_rows.get_child_count(), 2, "combat enemy panel splits rows") and ok
 	var front_cards: HBoxContainer = enemy_rows.get_child(0).find_child("EnemyCards_00", true, false)
 	var rear_cards: HBoxContainer = enemy_rows.get_child(1).find_child("EnemyCards_01", true, false)
@@ -478,6 +491,11 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 	ok = _assert_eq(target_state.text.contains("攻 4"), true, "front enemy shows attack intent") and ok
 	ok = _assert_eq(rear_state.text, "待命", "rear row is waiting") and ok
 	ok = _assert_eq(player_state_panel, null, "combat has no player state panel") and ok
+	ok = _assert_ne(player_hud_panel, null, "combat has player hud rail") and ok
+	ok = _assert_ne(action_hud, null, "combat has action hud rail") and ok
+	ok = _assert_ne(player_health_bar, null, "player hud uses health bar") and ok
+	if player_health_bar != null:
+		ok = _assert_eq(player_health_bar.value, 40.0, "player health bar is synced") and ok
 	ok = _assert_eq(_visible_text_has_english(combat_hand_row), false, "combat hand text uses Chinese") and ok
 	ok = _assert_eq(_visible_text_has_english(run_scene), false, "combat visible text uses Chinese") and ok
 
