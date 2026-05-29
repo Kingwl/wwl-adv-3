@@ -36,6 +36,7 @@
 - 非第一人称战斗 UI 调整：战斗界面改为玩家 HUD、中央敌方阵列、行动 HUD 和底部扇形手牌；怪物不再强调红色卡片容器，玩家生命/法力/连击/已选卡拆入两侧 HUD，标题区保持克制。
 - 出牌特效第一版：`CardPlayResult` 暴露命中目标 id，战斗 UI 使用透明特效层播放武器图标残影、投射物、扫击、随机落点、弹跳、全体爆发、护盾和抽牌反馈。
 - 第四期攻击卡特效：为魔杖、飞刀、斧头、十字架、火焰魔杖、符文追踪器、白鸽、黑翼、法力之歌、骨头和樱桃炸弹生成并接入专属 4 帧特效；运行时优先使用卡牌对应特效，未覆盖时回退共享 FX。
+- 第五期受击特效：为 6 类怪物生成专属攻击 VFX，并新增玩家受击 VFX；敌人回合会从怪物位置播放攻击轨迹到玩家 HUD，再在玩家位置播放受击/格挡反馈。
 - Godot headless 规则测试草案：`game/test/godot/test_card_combat_core.gd`。
 - Godot headless 奖励规则测试：`game/test/godot/test_reward_core.gd`。
 - Godot headless 地牢规则测试：`game/test/godot/test_dungeon_core.gd`。

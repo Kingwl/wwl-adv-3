@@ -8,6 +8,7 @@ const PICKUPS_EXIT_SHEET := "res://assets/generated/phase1/processed/pickups_exi
 const SHARED_CARD_FX_SHEET := "res://assets/generated/phase1/processed/card_fx_atlas/sheet-transparent.png"
 const DEDICATED_CARD_FX_SHEET := "res://assets/generated/phase2/processed/dedicated_card_fx_atlas/sheet-transparent.png"
 const PHASE4_CARD_FX_ROOT := "res://assets/generated/phase4/processed"
+const PHASE5_COMBAT_FX_ROOT := "res://assets/generated/phase5/processed"
 const MAP_TILESET_CORE_SHEET := "res://assets/generated/phase3/processed/map_tileset_core/sheet-transparent.png"
 const CARD_ICON_ATLAS_A_SHEET := "res://assets/generated/phase3/processed/card_icon_atlas_a/sheet-transparent.png"
 const CARD_ICON_ATLAS_B_SHEET := "res://assets/generated/phase3/processed/card_icon_atlas_b/sheet-transparent.png"
@@ -60,6 +61,17 @@ const CARD_ATTACK_FX_ROWS := {
 	"bone": [PHASE4_CARD_FX_ROOT + "/bone_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
 	"cherry_bomb": [PHASE4_CARD_FX_ROOT + "/cherry_bomb_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
 }
+
+const ENEMY_ATTACK_FX_ROWS := {
+	"grunt": [PHASE5_COMBAT_FX_ROOT + "/enemy_grunt_attack_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"bat": [PHASE5_COMBAT_FX_ROOT + "/enemy_bat_attack_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"guard": [PHASE5_COMBAT_FX_ROOT + "/enemy_guard_attack_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"brute": [PHASE5_COMBAT_FX_ROOT + "/enemy_brute_attack_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"boss_guard": [PHASE5_COMBAT_FX_ROOT + "/enemy_boss_guard_attack_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+	"stage_boss": [PHASE5_COMBAT_FX_ROOT + "/enemy_stage_boss_attack_fx/sheet-transparent.png", 2, 2, [1, 2, 3, 4]],
+}
+
+const PLAYER_HURT_FX_SHEET := PHASE5_COMBAT_FX_ROOT + "/player_hurt_fx/sheet-transparent.png"
 
 const ENEMY_COMBAT_SHEETS := {
 	"grunt": "res://assets/generated/phase1/processed/enemy_grunt_combat/sheet-transparent.png",
@@ -230,6 +242,21 @@ func card_attack_fx_texture(card_id: String, frame_index: int = 0) -> Texture2D:
 	var cols := int(fx_info[2])
 	var frames: Array = fx_info[3]
 	return _sheet_frame_from_sequence(sheet_path, rows, cols, frames, frame_index)
+
+
+func enemy_attack_fx_texture(visual_id: String, frame_index: int = 0) -> Texture2D:
+	if not ENEMY_ATTACK_FX_ROWS.has(visual_id):
+		return null
+	var fx_info: Array = ENEMY_ATTACK_FX_ROWS[visual_id]
+	var sheet_path := str(fx_info[0])
+	var rows := int(fx_info[1])
+	var cols := int(fx_info[2])
+	var frames: Array = fx_info[3]
+	return _sheet_frame_from_sequence(sheet_path, rows, cols, frames, frame_index)
+
+
+func player_hurt_fx_texture(frame_index: int = 0) -> Texture2D:
+	return _sheet_frame_from_sequence(PLAYER_HURT_FX_SHEET, 2, 2, [1, 2, 3, 4], frame_index)
 
 
 func _card_icon_texture(card_id: String, frame_index: int) -> Texture2D:

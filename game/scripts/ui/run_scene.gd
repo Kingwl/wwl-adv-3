@@ -54,6 +54,8 @@ const ANIMATION_PLAYER_COMBAT := "player_combat"
 const ANIMATION_ENEMY := "enemy"
 const ANIMATION_CARD := "card"
 const ANIMATION_CARD_FX := "card_fx"
+const ANIMATION_ENEMY_ATTACK_FX := "enemy_attack_fx"
+const ANIMATION_PLAYER_HIT_FX := "player_hit_fx"
 
 var controller: RunController = RunController.new()
 var visual_assets: VisualAssetCatalog = VisualAssetCatalog.new()
@@ -69,6 +71,7 @@ var combat_focus: String = COMBAT_FOCUS_HAND
 var selected_hand_index: int = -1
 var selected_reward_index: int = 0
 var combat_fx_serial: int = 0
+var player_hurt_until_msec: int = 0
 
 var map_panel: VBoxContainer
 var side_panel: VBoxContainer
@@ -1312,6 +1315,35 @@ func _capture_enemy_card_centers() -> Dictionary:
 	return centers
 
 
+func _capture_enemy_turn_vfx_context() -> Dictionary:
+	var context := {
+		"attackers": [],
+		"player_center": _safe_control_center(combat_player_portrait),
+		"enemy_stage_center": _safe_control_center(combat_enemy_panel),
+	}
+	if active_combat == null:
+		return context
+
+	var enemy_centers := _capture_enemy_card_centers()
+	var attackers: Array = context["attackers"]
+	for enemy in active_combat.active_attackers():
+		if enemy == null:
+			continue
+		var visual_id := _enemy_visual_id(enemy)
+		var source_center: Vector2 = enemy_centers.get(enemy.id, Vector2.ZERO)
+		if source_center == Vector2.ZERO:
+			source_center = context["enemy_stage_center"]
+		var intent := active_combat.enemy_intent_for(enemy)
+		attackers.append({
+			"enemy_id": enemy.id,
+			"visual_id": visual_id,
+			"display_name": enemy.display_name,
+			"amount": int(intent.get("amount", enemy.attack_damage)),
+			"source_center": source_center,
+		})
+	return context
+
+
 func _collect_enemy_card_centers(root: Node, centers: Dictionary) -> void:
 	if root == null:
 		return
@@ -1555,6 +1587,152 @@ func _create_card_fx_sprite(action: String, center: Vector2, size: Vector2, tint
 	return sprite
 
 
+func _play_enemy_turn_vfx(context: Dictionary, damage_taken: int) -> void:
+	if combat_fx_layer == null:
+		return
+	var attackers: Array = context.get("attackers", [])
+	if attackers.is_empty():
+		return
+	var player_center: Vector2 = context.get("player_center", _safe_control_center(combat_player_portrait))
+	if player_center == Vector2.ZERO:
+		player_center = _safe_control_center(combat_player_portrait)
+	if player_center == Vector2.ZERO:
+		player_center = _fallback_vfx_center()
+
+	for i in range(attackers.size()):
+		var attacker_info: Dictionary = attackers[i]
+		var visual_id := str(attacker_info.get("visual_id", "grunt"))
+		var source_center: Vector2 = attacker_info.get("source_center", _fallback_vfx_center())
+		if source_center == Vector2.ZERO:
+			source_center = _fallback_vfx_center()
+		var delay := 0.04 + float(i) * 0.14
+		var tint := _enemy_vfx_color(visual_id)
+		_spawn_enemy_attack_fx_burst(visual_id, source_center, Vector2(124, 102), tint, delay, 0.22, 0.82)
+		_spawn_enemy_attack_fx_projectile(visual_id, source_center, player_center, tint, delay + 0.08, 0.22)
+		_spawn_player_hit_fx(player_center, damage_taken > 0, delay + 0.28 + float(i) * 0.02)
+
+
+func _spawn_enemy_attack_fx_projectile(
+	visual_id: String,
+	start_center: Vector2,
+	end_center: Vector2,
+	tint: Color,
+	delay: float,
+	duration: float
+) -> void:
+	var sprite := _create_enemy_attack_fx_sprite(visual_id, start_center, Vector2(112, 88), tint)
+	if sprite == null:
+		return
+	sprite.rotation = (end_center - start_center).angle()
+	sprite.visible = delay <= 0.0
+
+	var tween := create_tween()
+	if delay > 0.0:
+		tween.tween_interval(delay)
+		tween.tween_callback(Callable(sprite, "show"))
+	tween.tween_property(sprite, "position", _fx_layer_position_for_center(end_center, sprite.size), duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(sprite, "scale", Vector2(1.16, 1.16), duration)
+	tween.tween_property(sprite, "modulate:a", 0.0, 0.10)
+	tween.tween_callback(Callable(sprite, "queue_free"))
+
+
+func _spawn_enemy_attack_fx_burst(
+	visual_id: String,
+	center: Vector2,
+	size: Vector2,
+	tint: Color,
+	delay: float,
+	duration: float,
+	alpha: float
+) -> void:
+	var burst_tint := tint
+	burst_tint.a = alpha
+	var sprite := _create_enemy_attack_fx_sprite(visual_id, center, size, burst_tint)
+	if sprite == null:
+		return
+	sprite.visible = delay <= 0.0
+	sprite.scale = Vector2(0.78, 0.78)
+
+	var tween := create_tween()
+	if delay > 0.0:
+		tween.tween_interval(delay)
+		tween.tween_callback(Callable(sprite, "show"))
+	tween.tween_property(sprite, "scale", Vector2(1.14, 1.14), duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, duration)
+	tween.tween_callback(Callable(sprite, "queue_free"))
+
+
+func _spawn_player_hit_fx(center: Vector2, took_damage: bool, delay: float) -> void:
+	var tint := Color(1.0, 0.24, 0.18, 0.88) if took_damage else Color(0.62, 0.86, 1.0, 0.78)
+	var sprite := _create_player_hit_fx_sprite(center, Vector2(154, 124), tint)
+	if sprite == null:
+		return
+	sprite.visible = delay <= 0.0
+	sprite.scale = Vector2(0.76, 0.76)
+
+	var tween := create_tween()
+	if delay > 0.0:
+		tween.tween_interval(delay)
+		tween.tween_callback(Callable(sprite, "show"))
+	tween.tween_property(sprite, "scale", Vector2(1.18, 1.18), 0.30).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, 0.30)
+	tween.tween_callback(Callable(sprite, "queue_free"))
+
+
+func _create_enemy_attack_fx_sprite(visual_id: String, center: Vector2, size: Vector2, tint: Color) -> TextureRect:
+	if combat_fx_layer == null:
+		return null
+	var texture := visual_assets.enemy_attack_fx_texture(visual_id, animation_frame)
+	if texture == null:
+		texture = visual_assets.enemy_attack_fx_texture("grunt", animation_frame)
+	if texture == null:
+		return null
+
+	combat_fx_serial += 1
+	var sprite := TextureRect.new()
+	sprite.name = "EnemyAttackFx_%03d_%s" % [combat_fx_serial, visual_id]
+	sprite.texture = texture
+	sprite.custom_minimum_size = size
+	sprite.size = size
+	sprite.pivot_offset = size * 0.5
+	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sprite.z_index = 430 + combat_fx_serial % 50
+	sprite.modulate = tint
+	sprite.position = _fx_layer_position_for_center(center, size)
+	_apply_texture_animation(sprite, ANIMATION_ENEMY_ATTACK_FX, visual_id, "")
+	combat_fx_layer.add_child(sprite)
+	return sprite
+
+
+func _create_player_hit_fx_sprite(center: Vector2, size: Vector2, tint: Color) -> TextureRect:
+	if combat_fx_layer == null:
+		return null
+	var texture := visual_assets.player_hurt_fx_texture(animation_frame)
+	if texture == null:
+		return null
+
+	combat_fx_serial += 1
+	var sprite := TextureRect.new()
+	sprite.name = "PlayerHitFx_%03d" % combat_fx_serial
+	sprite.texture = texture
+	sprite.custom_minimum_size = size
+	sprite.size = size
+	sprite.pivot_offset = size * 0.5
+	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sprite.z_index = 470 + combat_fx_serial % 50
+	sprite.modulate = tint
+	sprite.position = _fx_layer_position_for_center(center, size)
+	_apply_texture_animation(sprite, ANIMATION_PLAYER_HIT_FX, "", "")
+	combat_fx_layer.add_child(sprite)
+	return sprite
+
+
 func _card_projectile_action(card) -> String:
 	if card == null:
 		return "single_projectile"
@@ -1579,6 +1757,20 @@ func _card_vfx_color(card) -> Color:
 	if card.id == "song_of_mana":
 		return Color(0.60, 0.72, 1.0, 0.90)
 	return Color(1.0, 0.86, 0.58, 0.88)
+
+
+func _enemy_vfx_color(visual_id: String) -> Color:
+	if visual_id == "bat":
+		return Color(0.72, 0.32, 1.0, 0.88)
+	if visual_id == "guard":
+		return Color(0.72, 0.84, 1.0, 0.86)
+	if visual_id == "brute":
+		return Color(1.0, 0.50, 0.20, 0.88)
+	if visual_id == "boss_guard":
+		return Color(0.92, 0.18, 0.22, 0.88)
+	if visual_id == "stage_boss":
+		return Color(0.78, 0.24, 1.0, 0.90)
+	return Color(1.0, 0.36, 0.18, 0.88)
 
 
 func _points_center(points: Array) -> Vector2:
@@ -1741,15 +1933,20 @@ func _on_end_turn_pressed() -> void:
 func _end_turn_with_log(prefix: String) -> void:
 	if active_combat == null:
 		return
+	var enemy_vfx_context := _capture_enemy_turn_vfx_context()
 	var result := controller.end_turn()
 	_sync_from_controller()
 	_clamp_selected_hand_index()
 	combat_focus = COMBAT_FOCUS_HAND
-	combat_log = "%s\n敌人回合：受到 %s 点伤害。" % [prefix, result["damage_taken"]]
+	var damage_taken := int(result.get("damage_taken", 0))
+	if damage_taken > 0:
+		player_hurt_until_msec = Time.get_ticks_msec() + 520
+	combat_log = "%s\n敌人回合：受到 %s 点伤害。" % [prefix, damage_taken]
 	if result["type"] == RunController.EVENT_COMBAT_LOST:
 		combat_log = "玩家倒下。"
 		_set_status_message(str(result.get("run_end_summary", "玩家倒下。")))
 	_refresh()
+	_play_enemy_turn_vfx(enemy_vfx_context, damage_taken)
 
 
 func _finish_combat_victory() -> void:
@@ -2370,6 +2567,11 @@ func _tile_color(tile: DungeonTile) -> Color:
 
 
 func _refresh_animated_assets() -> void:
+	if combat_player_portrait != null and combat_player_portrait.has_meta(ANIMATION_META_TYPE):
+		var current_action := str(combat_player_portrait.get_meta(ANIMATION_META_ACTION, ""))
+		var desired_action := _player_combat_action()
+		if current_action != desired_action:
+			_apply_texture_animation(combat_player_portrait, ANIMATION_PLAYER_COMBAT, "", desired_action)
 	_refresh_animated_controls(self)
 
 
@@ -2479,6 +2681,8 @@ func _player_combat_action() -> String:
 		return "idle"
 	if active_combat.player.health <= 0:
 		return "death"
+	if player_hurt_until_msec > Time.get_ticks_msec():
+		return "hurt"
 
 	var selected_card = _selected_card()
 	if selected_card != null:
@@ -2553,6 +2757,10 @@ func _animation_texture_for(node: Object) -> Texture2D:
 			if card_fx != null:
 				return card_fx
 		return visual_assets.card_fx_texture(action, animation_frame)
+	if animation_type == ANIMATION_ENEMY_ATTACK_FX:
+		return visual_assets.enemy_attack_fx_texture(asset_id, animation_frame)
+	if animation_type == ANIMATION_PLAYER_HIT_FX:
+		return visual_assets.player_hurt_fx_texture(animation_frame)
 	return null
 
 

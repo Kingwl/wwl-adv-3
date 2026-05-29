@@ -18,6 +18,7 @@ func _run_tests() -> void:
 
 	failed = not _test_run_scene_loads_stage_1(run_scene) or failed
 	failed = not _test_run_scene_loads_attack_card_fx_assets(run_scene) or failed
+	failed = not _test_run_scene_loads_enemy_and_player_hit_fx_assets(run_scene) or failed
 	failed = not _test_run_scene_non_adjacent_click_only_selects(run_scene) or failed
 	_reset_run_scene(run_scene)
 	await process_frame
@@ -103,6 +104,32 @@ func _test_run_scene_loads_attack_card_fx_assets(run_scene) -> bool:
 			if texture != null:
 				ok = _assert_eq(texture.get_width() > 0, true, "attack card fx width %s frame %s" % [card_id, frame_index]) and ok
 				ok = _assert_eq(texture.get_height() > 0, true, "attack card fx height %s frame %s" % [card_id, frame_index]) and ok
+	return ok
+
+
+func _test_run_scene_loads_enemy_and_player_hit_fx_assets(run_scene) -> bool:
+	var enemy_fx_ids := [
+		"grunt",
+		"bat",
+		"guard",
+		"brute",
+		"boss_guard",
+		"stage_boss",
+	]
+	var ok := true
+	for visual_id in enemy_fx_ids:
+		for frame_index in range(4):
+			var enemy_texture: Texture2D = run_scene.visual_assets.enemy_attack_fx_texture(visual_id, frame_index)
+			ok = _assert_ne(enemy_texture, null, "enemy attack fx texture %s frame %s" % [visual_id, frame_index]) and ok
+			if enemy_texture != null:
+				ok = _assert_eq(enemy_texture.get_width() > 0, true, "enemy attack fx width %s frame %s" % [visual_id, frame_index]) and ok
+				ok = _assert_eq(enemy_texture.get_height() > 0, true, "enemy attack fx height %s frame %s" % [visual_id, frame_index]) and ok
+	for frame_index in range(4):
+		var player_texture: Texture2D = run_scene.visual_assets.player_hurt_fx_texture(frame_index)
+		ok = _assert_ne(player_texture, null, "player hurt fx texture frame %s" % frame_index) and ok
+		if player_texture != null:
+			ok = _assert_eq(player_texture.get_width() > 0, true, "player hurt fx width frame %s" % frame_index) and ok
+			ok = _assert_eq(player_texture.get_height() > 0, true, "player hurt fx height frame %s" % frame_index) and ok
 	return ok
 
 
@@ -455,17 +482,22 @@ func _test_run_scene_supports_end_turn_keyboard_selection(run_scene) -> bool:
 	run_scene._try_move(Vector2i.RIGHT)
 	await process_frame
 
+	var card_use_fx_layer: Control = run_scene.find_child("CardUseFxLayer", true, false)
 	var ok := true
 	run_scene.active_combat.mana = 0
 	run_scene.selected_hand_index = 0
 	run_scene.combat_focus = "hand"
 	run_scene._refresh()
 	var turn_before_auto_end: int = run_scene.active_combat.turn
+	var fx_count_before_auto_end := card_use_fx_layer.get_child_count() if card_use_fx_layer != null else 0
 	_press_key(run_scene, KEY_SPACE)
 	await process_frame
 	ok = _assert_eq(run_scene.active_combat.turn, turn_before_auto_end + 1, "unaffordable selected card auto ends turn") and ok
 	ok = _assert_eq(run_scene.active_combat.mana, run_scene.active_combat.max_mana, "auto end starts next player turn") and ok
 	ok = _assert_eq(run_scene.combat_log.contains("法力不足，自动结束回合"), true, "auto end log explains mana") and ok
+	ok = _assert_ne(card_use_fx_layer, null, "enemy turn has vfx layer") and ok
+	if card_use_fx_layer != null:
+		ok = _assert_eq(card_use_fx_layer.get_child_count() > fx_count_before_auto_end, true, "enemy turn spawns attack and player-hit vfx") and ok
 
 	var turn_before_manual_end: int = run_scene.active_combat.turn
 	_press_key(run_scene, KEY_S)

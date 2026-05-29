@@ -1,0 +1,48 @@
+{
+  "version": "phase5",
+  "style": "project-native pixel-inspired enemy attack and player hit VFX",
+  "preferred_assets": {
+    "fx.enemy.attack.grunt": {
+      "sheet": "processed/enemy_grunt_attack_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.enemy.attack.bat": {
+      "sheet": "processed/enemy_bat_attack_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.enemy.attack.guard": {
+      "sheet": "processed/enemy_guard_attack_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.enemy.attack.brute": {
+      "sheet": "processed/enemy_brute_attack_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.enemy.attack.boss_guard": {
+      "sheet": "processed/enemy_boss_guard_attack_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.enemy.attack.stage_boss": {
+      "sheet": "processed/enemy_stage_boss_attack_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    },
+    "fx.player.hurt": {
+      "sheet": "processed/player_hurt_fx/sheet-transparent.png",
+      "rows": 2,
+      "cols": 2,
+      "frames": [1, 2, 3, 4]
+    }
+  }
+}
