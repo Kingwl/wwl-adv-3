@@ -39,6 +39,7 @@
 - 第五期受击特效：为 6 类怪物生成专属攻击 VFX，并新增玩家受击 VFX；敌人回合会从怪物位置播放攻击轨迹到玩家 HUD，再在玩家位置播放受击/格挡反馈。
 - 战斗动画节奏修正：出牌、自动结束回合、手动结束回合和战斗胜利会锁定战斗输入，等待当前 VFX 层清空后再刷新到下一回合、失败或胜利状态。
 - 战斗反馈和场景感第一版：`CardPlayResult` 会记录每次命中的目标、实际伤害和击破状态；战斗 UI 会在 VFX 层播放伤害、格挡、击破、护甲和抽牌飘字，并在敌方阵列底部复用地图地砖形成战斗舞台地面。
+- 手牌退场动画第一版：成功出牌后被使用的手牌会先缩小、上抛、旋转并淡出，战斗流程会等待退场动画和卡牌 VFX 一起结束后再刷新手牌。
 - Godot headless 规则测试草案：`game/test/godot/test_card_combat_core.gd`。
 - Godot headless 奖励规则测试：`game/test/godot/test_reward_core.gd`。
 - Godot headless 地牢规则测试：`game/test/godot/test_dungeon_core.gd`。

@@ -33,6 +33,7 @@ const COLOR_COMBO_HIGHLIGHT := Color(0.95, 0.72, 0.20)
 const CARD_SIZE := Vector2(148, 132)
 const CARD_SELECTED_LIFT := 12
 const CARD_SLOT_SIZE := Vector2(CARD_SIZE.x + 10, CARD_SIZE.y + CARD_SELECTED_LIFT + 12)
+const CARD_EXIT_ANIMATION_SECONDS := 0.34
 const HAND_FAN_SEPARATION := -12
 const HAND_FAN_ROTATION_STEP := 4.0
 const HAND_FAN_ROTATION_LIMIT := 9.0
@@ -1173,6 +1174,7 @@ func _on_card_pressed(hand_index: int) -> void:
 		result["block_gained"],
 		result["cards_drawn"],
 	]
+	_play_hand_card_exit_animation(hand_index, card)
 	_play_card_use_vfx(card, result, card_vfx_context)
 	await _wait_for_combat_vfx_to_finish()
 
@@ -1351,6 +1353,54 @@ func _card_vfx_source_center(hand_index: int, card) -> Vector2:
 	if player_center != Vector2.ZERO:
 		return player_center
 	return _fallback_vfx_center()
+
+
+func _play_hand_card_exit_animation(hand_index: int, card) -> void:
+	if combat_fx_layer == null:
+		return
+
+	var slot := _hand_card_slot(hand_index, card)
+	if slot != null:
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.pivot_offset = slot.size * 0.5
+		slot.z_index = 120
+		var button := _hand_card_button(hand_index, card)
+		if button != null:
+			button.disabled = true
+			button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var direction := -1.0 if hand_index % 2 == 0 else 1.0
+		var start_position := slot.position
+		var tween := create_tween()
+		tween.tween_property(slot, "scale", Vector2(0.90, 0.90), 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(slot, "position", start_position + Vector2(direction * 10.0, -18.0), 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(slot, "rotation_degrees", slot.rotation_degrees + direction * 8.0, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(slot, "modulate:a", 0.34, 0.16)
+		tween.tween_property(slot, "scale", Vector2(0.72, 0.72), 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		tween.parallel().tween_property(slot, "position", start_position + Vector2(direction * 18.0, -28.0), 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		tween.parallel().tween_property(slot, "modulate:a", 0.0, 0.18)
+
+	combat_fx_serial += 1
+	var sentinel := Control.new()
+	sentinel.name = "CardExitFx_%03d" % combat_fx_serial
+	sentinel.visible = false
+	sentinel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	combat_fx_layer.add_child(sentinel)
+	var sentinel_tween := create_tween()
+	sentinel_tween.tween_interval(CARD_EXIT_ANIMATION_SECONDS)
+	sentinel_tween.tween_callback(Callable(sentinel, "queue_free"))
+
+
+func _hand_card_slot(hand_index: int, card) -> MarginContainer:
+	if combat_hand_row == null or card == null:
+		return null
+	return combat_hand_row.find_child("CardSlot_%02d_%s" % [hand_index, card.id], true, false) as MarginContainer
+
+
+func _hand_card_button(hand_index: int, card) -> Button:
+	var slot := _hand_card_slot(hand_index, card)
+	if slot == null:
+		return null
+	return slot.find_child("Card_%02d_%s" % [hand_index, card.id], true, false) as Button
 
 
 func _capture_enemy_card_centers() -> Dictionary:

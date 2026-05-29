@@ -594,6 +594,7 @@ func _test_run_scene_enters_and_wins_combat(run_scene) -> bool:
 
 	ok = _assert_eq(run_scene.combat_animation_locked, true, "card press waits for combat vfx before final refresh") and ok
 	ok = _assert_eq(card_use_fx_layer.get_child_count() > 0, true, "playing a card spawns vfx nodes") and ok
+	ok = _assert_ne(card_use_fx_layer.find_child("CardExitFx_*", true, false), null, "playing a card waits for hand card exit animation") and ok
 	ok = _assert_ne(card_use_fx_layer.find_child("CombatFloatingText_*", true, false), null, "playing a card spawns floating feedback text") and ok
 	await _wait_for_combat_animation(run_scene)
 	ok = _assert_eq(run_scene.active_combat.mana, 2, "playing first card spends mana") and ok
