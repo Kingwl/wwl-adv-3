@@ -320,16 +320,16 @@ func _test_run_scene_supports_combat_keyboard_selection(run_scene) -> bool:
 	ok = _assert_eq(attack_index >= 0, true, "combat hand has attack card") and ok
 	if attack_index >= 0:
 		var attack_button := _card_button(combat_hand_row, attack_index)
-		ok = _assert_eq(attack_button.text.contains("预览伤害："), true, "attack card shows preview damage") and ok
+		ok = _assert_eq(attack_button.text.contains("预览总伤害："), true, "attack card shows preview damage") and ok
 		ok = _assert_eq(attack_button.text.contains("倍率：100%"), true, "card shows base multiplier") and ok
 		run_scene.active_combat.combo.chain = 1
 		run_scene.active_combat.combo.last_cost = 0
 		run_scene._refresh()
 		attack_button = _card_button(combat_hand_row, attack_index)
 		var attack_card = run_scene.active_combat.deck.hand[attack_index]
-		var expected_preview_damage: int = attack_card.base_damage * 2
+		var expected_preview_damage: int = run_scene._preview_card_damage(attack_card)
 		var combo_style: StyleBoxFlat = attack_button.get_theme_stylebox("normal") as StyleBoxFlat
-		ok = _assert_eq(attack_button.text.contains("预览伤害：%s" % expected_preview_damage), true, "combo card shows scaled preview damage") and ok
+		ok = _assert_eq(attack_button.text.contains("预览总伤害：%s" % expected_preview_damage), true, "combo card shows scaled preview damage") and ok
 		ok = _assert_eq(attack_button.text.contains("倍率：200%"), true, "combo card shows combo multiplier") and ok
 		ok = _assert_eq(combo_style.border_color, Color(0.95, 0.72, 0.20), "combo multiplier highlights card") and ok
 		var skipped_cost_index := _first_card_cost_index(run_scene.active_combat.deck.hand, 2)

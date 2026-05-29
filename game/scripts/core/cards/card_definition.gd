@@ -6,6 +6,9 @@ enum TargetMode {
 	SINGLE_ENEMY,
 	ALL_ENEMIES,
 	SELF,
+	FRONT_ROW,
+	RANDOM_ENEMIES,
+	BOUNCE,
 }
 
 var id: String
@@ -15,6 +18,7 @@ var base_damage: int
 var block: int
 var draw_count: int
 var target_mode: int
+var hit_count: int
 
 
 func _init(
@@ -24,7 +28,8 @@ func _init(
 	p_base_damage: int = 0,
 	p_block: int = 0,
 	p_draw_count: int = 0,
-	p_target_mode: int = TargetMode.NONE
+	p_target_mode: int = TargetMode.NONE,
+	p_hit_count: int = 1
 ) -> void:
 	id = p_id
 	display_name = p_display_name
@@ -33,6 +38,7 @@ func _init(
 	block = max(p_block, 0)
 	draw_count = max(p_draw_count, 0)
 	target_mode = p_target_mode
+	hit_count = max(p_hit_count, 1)
 
 
 func duplicate_definition():
@@ -43,7 +49,8 @@ func duplicate_definition():
 		base_damage,
 		block,
 		draw_count,
-		target_mode
+		target_mode,
+		hit_count
 	)
 
 
@@ -52,4 +59,4 @@ func is_attack() -> bool:
 
 
 func needs_enemy_target() -> bool:
-	return target_mode == TargetMode.SINGLE_ENEMY
+	return target_mode == TargetMode.SINGLE_ENEMY or target_mode == TargetMode.BOUNCE

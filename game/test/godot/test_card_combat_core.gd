@@ -30,21 +30,21 @@ func _init() -> void:
 
 func _test_combo_requires_next_cost_step() -> bool:
 	var combo := ComboState.new()
-	var focus = StarterCardCatalog.create_focus()
-	var strike = StarterCardCatalog.create_strike()
-	var bolt = StarterCardCatalog.create_bolt()
-	var guard = StarterCardCatalog.create_guard()
-	var hammer = StarterCardCatalog.create_heavy_hammer()
+	var empty_tome = StarterCardCatalog.create_empty_tome()
+	var whip = StarterCardCatalog.create_whip()
+	var wand = StarterCardCatalog.create_magic_wand()
+	var laurel = StarterCardCatalog.create_laurel()
+	var pentagram = StarterCardCatalog.create_pentagram()
 
 	var ok := true
-	ok = _assert_eq(combo.apply_card(focus), 100, "first card has base multiplier") and ok
-	ok = _assert_eq(combo.apply_card(strike), 200, "next cost step extends combo") and ok
-	ok = _assert_eq(combo.apply_card(bolt), 300, "second next cost step extends combo") and ok
-	ok = _assert_eq(combo.preview_multiplier_basis_points(hammer), 400, "exact next higher cost previews combo") and ok
-	ok = _assert_eq(combo.preview_multiplier_basis_points(guard), 100, "same cost resets combo") and ok
-	ok = _assert_eq(combo.preview_multiplier_basis_points(focus), 100, "lower cost resets combo") and ok
-	ok = _assert_eq(combo.apply_card(hammer), 400, "exact next higher cost applies combo") and ok
-	ok = _assert_eq(combo.apply_card(guard), 100, "non-next cost resets combo") and ok
+	ok = _assert_eq(combo.apply_card(empty_tome), 100, "first card has base multiplier") and ok
+	ok = _assert_eq(combo.apply_card(whip), 200, "next cost step extends combo") and ok
+	ok = _assert_eq(combo.apply_card(wand), 300, "second next cost step extends combo") and ok
+	ok = _assert_eq(combo.preview_multiplier_basis_points(pentagram), 400, "exact next higher cost previews combo") and ok
+	ok = _assert_eq(combo.preview_multiplier_basis_points(laurel), 100, "lower cost resets combo") and ok
+	ok = _assert_eq(combo.preview_multiplier_basis_points(empty_tome), 100, "lower cost resets combo") and ok
+	ok = _assert_eq(combo.apply_card(pentagram), 400, "exact next higher cost applies combo") and ok
+	ok = _assert_eq(combo.apply_card(laurel), 100, "non-next cost resets combo") and ok
 	ok = _assert_eq(combo.chain, 1, "reset combo chain") and ok
 	return ok
 
@@ -68,22 +68,22 @@ func _test_combat_applies_combo_damage_and_block() -> bool:
 	combat.mana = 5
 	combat.max_mana = 5
 	combat.deck.hand = [
-		StarterCardCatalog.create_focus(),
-		StarterCardCatalog.create_strike(),
-		StarterCardCatalog.create_bolt(),
-		StarterCardCatalog.create_guard(),
+		StarterCardCatalog.create_empty_tome(),
+		StarterCardCatalog.create_whip(),
+		StarterCardCatalog.create_magic_wand(),
+		StarterCardCatalog.create_laurel(),
 	]
 
 	var focus_result = combat.play_card(0)
-	var strike_result = combat.play_card(0, 0)
-	var bolt_result = combat.play_card(0, 0)
+	var whip_result = combat.play_card(0)
+	var wand_result = combat.play_card(0, 0)
 	var guard_result = combat.play_card(0)
 
 	var ok := true
 	ok = _assert_eq(focus_result.ok, true, "focus can start combo") and ok
-	ok = _assert_eq(guard_result.block_gained, 5, "guard grants block") and ok
-	ok = _assert_eq(strike_result.damage_requested, 12, "second combo card scales strike") and ok
-	ok = _assert_eq(bolt_result.damage_requested, 27, "third combo card scales bolt") and ok
+	ok = _assert_eq(guard_result.block_gained, 6, "laurel grants block") and ok
+	ok = _assert_eq(whip_result.damage_requested, 12, "second combo card scales whip") and ok
+	ok = _assert_eq(wand_result.damage_requested, 27, "third combo card scales magic wand") and ok
 	ok = _assert_eq(combat.enemies[0].health, 11, "enemy loses scaled damage") and ok
 	return ok
 
@@ -189,7 +189,7 @@ func _test_enemy_rows_only_front_attacks_and_rear_waits_after_advancing() -> boo
 		3,
 		0
 	)
-	combat.deck.hand = [StarterCardCatalog.create_strike()]
+	combat.deck.hand = [StarterCardCatalog.create_whip()]
 
 	var play_result := combat.play_card(0, combat.primary_target_index())
 	var front_after_kill: Array = combat.front_row_enemies()
@@ -301,9 +301,15 @@ func _test_reward_cards_cover_prototype_roles() -> bool:
 		ok = _assert_eq(effect_count >= 1, true, "reward card has at least one effect") and ok
 		if has_damage:
 			attack_count += 1
-			ok = _assert_eq(
+			var targets_enemy: bool = (
 				card.target_mode == CardDefinition.TargetMode.SINGLE_ENEMY
-				or card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES,
+				or card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES
+				or card.target_mode == CardDefinition.TargetMode.FRONT_ROW
+				or card.target_mode == CardDefinition.TargetMode.RANDOM_ENEMIES
+				or card.target_mode == CardDefinition.TargetMode.BOUNCE
+			)
+			ok = _assert_eq(
+				targets_enemy,
 				true,
 				"attack card targets enemies"
 			) and ok
@@ -318,11 +324,11 @@ func _test_reward_cards_cover_prototype_roles() -> bool:
 		if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
 			all_attack_count += 1
 
-	ok = _assert_eq(attack_count, 9, "reward pool attack count") and ok
-	ok = _assert_eq(defense_count, 5, "reward pool defense count") and ok
-	ok = _assert_eq(draw_count, 3, "reward pool draw count") and ok
-	ok = _assert_eq(hybrid_count, 5, "reward pool hybrid count") and ok
-	ok = _assert_eq(all_attack_count, 2, "reward pool all-attack count") and ok
+	ok = _assert_eq(attack_count, 15, "reward pool attack count") and ok
+	ok = _assert_eq(defense_count, 1, "reward pool defense count") and ok
+	ok = _assert_eq(draw_count, 1, "reward pool draw count") and ok
+	ok = _assert_eq(hybrid_count, 4, "reward pool hybrid count") and ok
+	ok = _assert_eq(all_attack_count, 3, "reward pool all-attack count") and ok
 	ok = _test_reward_cards_resolve_core_effects() and ok
 	return ok
 
@@ -330,48 +336,54 @@ func _test_reward_cards_cover_prototype_roles() -> bool:
 func _test_reward_cards_resolve_core_effects() -> bool:
 	var combat := CombatState.new()
 	combat.player = CombatantState.new("hero", "英雄", 30, 0)
-	combat.enemies = [CombatantState.new("enemy_a", "敌人甲", 120, 0)]
+	combat.enemies = [
+		CombatantState.new("enemy_a", "敌人甲", 100, 0),
+		CombatantState.new("enemy_b", "敌人乙", 100, 0),
+		CombatantState.new("enemy_c", "敌人丙", 100, 0),
+	]
+	combat.enemy_rows = [[combat.enemies[0], combat.enemies[1]], [combat.enemies[2]]]
 	combat.mana = 6
 	combat.max_mana = 6
 	combat.deck.hand = [
-		StarterCardCatalog.create_fortify(),
-		StarterCardCatalog.create_tactical_adjustment(),
-		StarterCardCatalog.create_shield_bash(),
-		StarterCardCatalog.create_finishing_blow(),
-	]
-	combat.deck.draw_pile = [StarterCardCatalog.create_prepare(), StarterCardCatalog.create_deep_focus()]
-
-	var fortify_result = combat.play_card(0)
-	var tactical_result = combat.play_card(0)
-	var shield_bash_result = combat.play_card(0, 0)
-	var finishing_result = combat.play_card(0, 0)
-
-	var all_combat := CombatState.new()
-	all_combat.player = CombatantState.new("hero", "英雄", 30, 0)
-	all_combat.enemies = [
-		CombatantState.new("enemy_a", "敌人甲", 30, 0),
-		CombatantState.new("enemy_b", "敌人乙", 30, 0),
-	]
-	all_combat.mana = 5
-	all_combat.max_mana = 5
-	all_combat.deck.hand = [
-		StarterCardCatalog.create_sweep(),
-		StarterCardCatalog.create_whirlwind(),
+		StarterCardCatalog.create_whip(),
+		StarterCardCatalog.create_axe(),
+		StarterCardCatalog.create_pentagram(),
 	]
 
-	var sweep_result = all_combat.play_card(0)
-	var whirlwind_result = all_combat.play_card(0)
+	var whip_result = combat.play_card(0)
+	var axe_result = combat.play_card(0, 0)
+	var pentagram_result = combat.play_card(0)
+
+	var pattern_combat := CombatState.new()
+	pattern_combat.player = CombatantState.new("hero", "英雄", 30, 0)
+	pattern_combat.enemies = [
+		CombatantState.new("enemy_a", "敌人甲", 50, 0),
+		CombatantState.new("enemy_b", "敌人乙", 50, 0),
+		CombatantState.new("enemy_c", "敌人丙", 50, 0),
+	]
+	pattern_combat.enemy_rows = [[pattern_combat.enemies[0], pattern_combat.enemies[1]], [pattern_combat.enemies[2]]]
+	pattern_combat.mana = 5
+	pattern_combat.max_mana = 5
+	pattern_combat.deck.hand = [
+		StarterCardCatalog.create_santa_water(),
+		StarterCardCatalog.create_king_bible(),
+		StarterCardCatalog.create_spellbinder(),
+	]
+	pattern_combat.deck.draw_pile = [StarterCardCatalog.create_duplicator()]
+
+	var water_result = pattern_combat.play_card(0)
+	var bible_result = pattern_combat.play_card(0)
+	var spellbinder_result = pattern_combat.play_card(0)
 
 	var ok := true
-	ok = _assert_eq(fortify_result.block_gained, 4, "fortify grants block") and ok
-	ok = _assert_eq(tactical_result.block_gained, 5, "tactical adjustment grants block") and ok
-	ok = _assert_eq(tactical_result.cards_drawn, 1, "tactical adjustment draws") and ok
-	ok = _assert_eq(shield_bash_result.damage_dealt, 24, "shield bash deals combo damage") and ok
-	ok = _assert_eq(shield_bash_result.block_gained, 8, "shield bash grants block") and ok
-	ok = _assert_eq(finishing_result.damage_dealt, 56, "finishing blow deals combo damage") and ok
-	ok = _assert_eq(finishing_result.cards_drawn, 1, "finishing blow draws") and ok
-	ok = _assert_eq(sweep_result.damage_dealt, 10, "sweep hits all enemies") and ok
-	ok = _assert_eq(whirlwind_result.damage_dealt, 32, "whirlwind hits all enemies with combo") and ok
+	ok = _assert_eq(whip_result.damage_dealt, 12, "whip hits the front row") and ok
+	ok = _assert_eq(axe_result.damage_dealt, 48, "axe bounces through three enemies with combo") and ok
+	ok = _assert_eq(pentagram_result.damage_dealt, 90, "pentagram hits all enemies with combo") and ok
+	ok = _assert_eq(water_result.damage_dealt, 12, "santa water lands three seeded zones") and ok
+	ok = _assert_eq(bible_result.damage_dealt, 10, "king bible hits the front row") and ok
+	ok = _assert_eq(bible_result.block_gained, 7, "king bible grants orbit block") and ok
+	ok = _assert_eq(spellbinder_result.block_gained, 4, "spellbinder grants block") and ok
+	ok = _assert_eq(spellbinder_result.cards_drawn, 1, "spellbinder draws") and ok
 	return ok
 
 

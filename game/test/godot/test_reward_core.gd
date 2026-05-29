@@ -26,13 +26,13 @@ func _init() -> void:
 func _test_card_catalog_resolves_run_deck_ids() -> bool:
 	var starter_ids := StarterCardCatalog.starter_deck_card_ids()
 	var reward_ids := StarterCardCatalog.stage_1_reward_card_ids()
-	var deck_cards := StarterCardCatalog.create_cards_from_ids(["strike", "slash", "insight"])
+	var deck_cards := StarterCardCatalog.create_cards_from_ids(["whip", "axe", "duplicator"])
 
 	var ok := true
 	ok = _assert_eq(starter_ids.size(), 8, "starter deck id count") and ok
 	ok = _assert_eq(reward_ids.size(), 17, "stage 1 reward id count") and ok
 	ok = _assert_eq(deck_cards.size(), 3, "deck cards resolve from ids") and ok
-	ok = _assert_eq(deck_cards[1].display_name, "劈砍", "slash resolves to Chinese card") and ok
+	ok = _assert_eq(deck_cards[1].display_name, "斧头", "axe resolves to Chinese card") and ok
 	ok = _assert_eq(StarterCardCatalog.create_card_by_id("missing") == null, true, "missing card returns null") and ok
 	return ok
 
@@ -83,7 +83,7 @@ func _test_reward_choice_adds_card_to_run_deck() -> bool:
 func _test_run_combat_uses_current_run_deck() -> bool:
 	var controller := RunController.new()
 	controller.setup(StageFixtureCatalog.STAGE_1_DEFAULT_SEED, 40, 3)
-	controller.run_state.deck_card_ids = ["heavy_hammer"]
+	controller.run_state.deck_card_ids = ["pentagram"]
 	controller.start_stage_1()
 
 	controller.move_player(Vector2i.RIGHT)
@@ -93,7 +93,7 @@ func _test_run_combat_uses_current_run_deck() -> bool:
 
 	var ok := true
 	ok = _assert_eq(encounter_result["type"], RunController.EVENT_COMBAT_STARTED, "combat starts") and ok
-	ok = _assert_eq(combat_card_ids, ["heavy_hammer"], "combat deck uses run deck card ids") and ok
+	ok = _assert_eq(combat_card_ids, ["pentagram"], "combat deck uses run deck card ids") and ok
 	return ok
 
 

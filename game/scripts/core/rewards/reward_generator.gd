@@ -48,6 +48,7 @@ static func create_card_choice(card: CardDefinition) -> Dictionary:
 		"block": card.block,
 		"draw_count": card.draw_count,
 		"target_mode": card.target_mode,
+		"hit_count": card.hit_count,
 	}
 
 
@@ -122,9 +123,7 @@ static func _category_for_card(card: CardDefinition) -> String:
 static func _description_for_card(card: CardDefinition) -> String:
 	var parts: Array = []
 	if card.base_damage > 0:
-		var damage_text := "造成 %s 伤害" % card.base_damage
-		if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
-			damage_text = "对全体造成 %s 伤害" % card.base_damage
+		var damage_text := _damage_text_for_card(card)
 		parts.append(damage_text)
 	if card.block > 0:
 		parts.append("获得 %s 护甲" % card.block)
@@ -133,6 +132,22 @@ static func _description_for_card(card: CardDefinition) -> String:
 	if not parts.is_empty():
 		return "费用 %s，%s" % [card.cost, "，".join(parts)]
 	return "费用 %s" % card.cost
+
+
+static func _damage_text_for_card(card: CardDefinition) -> String:
+	if card.target_mode == CardDefinition.TargetMode.FRONT_ROW:
+		return "对前排造成 %s 伤害" % card.base_damage
+	if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
+		return "对全体造成 %s 伤害" % card.base_damage
+	if card.target_mode == CardDefinition.TargetMode.RANDOM_ENEMIES:
+		if card.hit_count > 1:
+			return "随机命中 %s 次，每次 %s 伤害" % [card.hit_count, card.base_damage]
+		return "随机命中 1 个敌人，造成 %s 伤害" % card.base_damage
+	if card.target_mode == CardDefinition.TargetMode.BOUNCE:
+		return "弹跳 %s 次，每次 %s 伤害" % [card.hit_count, card.base_damage]
+	if card.hit_count > 1:
+		return "连续命中 %s 次，每次 %s 伤害" % [card.hit_count, card.base_damage]
+	return "造成 %s 伤害" % card.base_damage
 
 
 static func _shuffled(values: Array, seed_value: int) -> Array:

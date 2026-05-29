@@ -3,45 +3,45 @@ extends RefCounted
 
 const CardDefinition = preload("res://scripts/core/cards/card_definition.gd")
 
-const CARD_ID_STRIKE := "strike"
-const CARD_ID_BOLT := "bolt"
-const CARD_ID_GUARD := "guard"
-const CARD_ID_FOCUS := "focus"
-const CARD_ID_SWIFT_STRIKE := "swift_strike"
-const CARD_ID_SLASH := "slash"
-const CARD_ID_CHARGED_SLASH := "charged_slash"
-const CARD_ID_HEAVY_HAMMER := "heavy_hammer"
-const CARD_ID_BLOCK := "block"
-const CARD_ID_IRON_WALL := "iron_wall"
-const CARD_ID_INSIGHT := "insight"
-const CARD_ID_FORTIFY := "fortify"
-const CARD_ID_STEADY_BREATH := "steady_breath"
-const CARD_ID_TACTICAL_ADJUSTMENT := "tactical_adjustment"
-const CARD_ID_RIPOSTE := "riposte"
-const CARD_ID_SHIELD_BASH := "shield_bash"
-const CARD_ID_SWEEP := "sweep"
-const CARD_ID_WHIRLWIND := "whirlwind"
-const CARD_ID_FINISHING_BLOW := "finishing_blow"
-const CARD_ID_PREPARE := "prepare"
-const CARD_ID_DEEP_FOCUS := "deep_focus"
+const CARD_ID_WHIP := "whip"
+const CARD_ID_MAGIC_WAND := "magic_wand"
+const CARD_ID_LAUREL := "laurel"
+const CARD_ID_EMPTY_TOME := "empty_tome"
+const CARD_ID_KNIFE := "knife"
+const CARD_ID_AXE := "axe"
+const CARD_ID_CROSS := "cross"
+const CARD_ID_KING_BIBLE := "king_bible"
+const CARD_ID_FIRE_WAND := "fire_wand"
+const CARD_ID_GARLIC := "garlic"
+const CARD_ID_SANTA_WATER := "santa_water"
+const CARD_ID_RUNETRACER := "runetracer"
+const CARD_ID_LIGHTNING_RING := "lightning_ring"
+const CARD_ID_PENTAGRAM := "pentagram"
+const CARD_ID_PEACHONE := "peachone"
+const CARD_ID_EBONY_WINGS := "ebony_wings"
+const CARD_ID_SONG_OF_MANA := "song_of_mana"
+const CARD_ID_BONE := "bone"
+const CARD_ID_CHERRY_BOMB := "cherry_bomb"
+const CARD_ID_SPELLBINDER := "spellbinder"
+const CARD_ID_DUPLICATOR := "duplicator"
 
 
-static func create_strike() -> CardDefinition:
+static func create_whip() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_STRIKE,
-		"打击",
+		CARD_ID_WHIP,
+		"鞭子",
 		1,
 		6,
 		0,
 		0,
-		CardDefinition.TargetMode.SINGLE_ENEMY
+		CardDefinition.TargetMode.FRONT_ROW
 	)
 
 
-static func create_bolt() -> CardDefinition:
+static func create_magic_wand() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_BOLT,
-		"闪电",
+		CARD_ID_MAGIC_WAND,
+		"魔杖",
 		2,
 		9,
 		0,
@@ -50,178 +50,211 @@ static func create_bolt() -> CardDefinition:
 	)
 
 
-static func create_guard() -> CardDefinition:
+static func create_laurel() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_GUARD,
-		"防守",
+		CARD_ID_LAUREL,
+		"月桂",
 		1,
 		0,
+		6,
+		0,
+		CardDefinition.TargetMode.SELF
+	)
+
+
+static func create_empty_tome() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_EMPTY_TOME,
+		"空白之书",
+		0,
+		0,
+		0,
+		1,
+		CardDefinition.TargetMode.SELF
+	)
+
+
+static func create_knife() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_KNIFE,
+		"飞刀",
+		0,
+		3,
+		0,
+		0,
+		CardDefinition.TargetMode.SINGLE_ENEMY,
+		2
+	)
+
+
+static func create_axe() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_AXE,
+		"斧头",
+		2,
+		8,
+		0,
+		0,
+		CardDefinition.TargetMode.BOUNCE,
+		3
+	)
+
+
+static func create_cross() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_CROSS,
+		"十字架",
+		1,
 		5,
 		0,
-		CardDefinition.TargetMode.SELF
+		0,
+		CardDefinition.TargetMode.BOUNCE,
+		2
 	)
 
 
-static func create_focus() -> CardDefinition:
+static func create_king_bible() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_FOCUS,
-		"专注",
-		0,
-		0,
-		0,
-		1,
-		CardDefinition.TargetMode.SELF
-	)
-
-
-static func create_swift_strike() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_SWIFT_STRIKE,
-		"迅击",
-		0,
-		3,
-		0,
-		0,
-		CardDefinition.TargetMode.SINGLE_ENEMY
-	)
-
-
-static func create_slash() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_SLASH,
-		"劈砍",
-		1,
-		8,
-		0,
-		0,
-		CardDefinition.TargetMode.SINGLE_ENEMY
-	)
-
-
-static func create_charged_slash() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_CHARGED_SLASH,
-		"蓄力斩",
+		CARD_ID_KING_BIBLE,
+		"国王圣经",
 		2,
-		12,
+		5,
+		7,
 		0,
-		0,
-		CardDefinition.TargetMode.SINGLE_ENEMY
+		CardDefinition.TargetMode.FRONT_ROW
 	)
 
 
-static func create_heavy_hammer() -> CardDefinition:
+static func create_fire_wand() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_HEAVY_HAMMER,
-		"重锤",
-		3,
-		18,
-		0,
-		0,
-		CardDefinition.TargetMode.SINGLE_ENEMY
-	)
-
-
-static func create_block() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_BLOCK,
-		"格挡",
-		1,
-		0,
-		8,
-		0,
-		CardDefinition.TargetMode.SELF
-	)
-
-
-static func create_iron_wall() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_IRON_WALL,
-		"铁壁",
+		CARD_ID_FIRE_WAND,
+		"火焰魔杖",
 		2,
-		0,
 		14,
 		0,
-		CardDefinition.TargetMode.SELF
+		0,
+		CardDefinition.TargetMode.RANDOM_ENEMIES
 	)
 
 
-static func create_insight() -> CardDefinition:
+static func create_garlic() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_INSIGHT,
-		"洞察",
+		CARD_ID_GARLIC,
+		"大蒜",
+		1,
+		3,
+		5,
 		0,
-		0,
-		0,
+		CardDefinition.TargetMode.FRONT_ROW
+	)
+
+
+static func create_santa_water() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_SANTA_WATER,
+		"圣水",
 		2,
-		CardDefinition.TargetMode.SELF
-	)
-
-
-static func create_fortify() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_FORTIFY,
-		"固守",
-		0,
-		0,
 		4,
 		0,
-		CardDefinition.TargetMode.SELF
+		0,
+		CardDefinition.TargetMode.RANDOM_ENEMIES,
+		3
 	)
 
 
-static func create_steady_breath() -> CardDefinition:
+static func create_runetracer() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_STEADY_BREATH,
-		"稳息",
-		0,
-		0,
+		CARD_ID_RUNETRACER,
+		"符文追踪器",
 		2,
-		1,
-		CardDefinition.TargetMode.SELF
-	)
-
-
-static func create_tactical_adjustment() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_TACTICAL_ADJUSTMENT,
-		"战术调整",
-		1,
+		4,
 		0,
-		5,
-		1,
-		CardDefinition.TargetMode.SELF
-	)
-
-
-static func create_riposte() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_RIPOSTE,
-		"还击",
-		1,
-		5,
-		5,
 		0,
-		CardDefinition.TargetMode.SINGLE_ENEMY
+		CardDefinition.TargetMode.BOUNCE,
+		4
 	)
 
 
-static func create_shield_bash() -> CardDefinition:
+static func create_lightning_ring() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_SHIELD_BASH,
-		"盾击",
+		CARD_ID_LIGHTNING_RING,
+		"闪电戒指",
 		2,
 		8,
-		8,
 		0,
-		CardDefinition.TargetMode.SINGLE_ENEMY
+		0,
+		CardDefinition.TargetMode.RANDOM_ENEMIES,
+		2
 	)
 
 
-static func create_sweep() -> CardDefinition:
+static func create_pentagram() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_SWEEP,
-		"横扫",
+		CARD_ID_PENTAGRAM,
+		"五芒星",
+		3,
+		10,
+		0,
+		0,
+		CardDefinition.TargetMode.ALL_ENEMIES
+	)
+
+
+static func create_peachone() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_PEACHONE,
+		"白鸽",
+		1,
+		3,
+		0,
+		0,
+		CardDefinition.TargetMode.RANDOM_ENEMIES,
+		4
+	)
+
+
+static func create_ebony_wings() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_EBONY_WINGS,
+		"黑翼",
+		1,
+		3,
+		0,
+		0,
+		CardDefinition.TargetMode.RANDOM_ENEMIES,
+		4
+	)
+
+
+static func create_song_of_mana() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_SONG_OF_MANA,
+		"法力之歌",
+		2,
+		5,
+		0,
+		1,
+		CardDefinition.TargetMode.ALL_ENEMIES
+	)
+
+
+static func create_bone() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_BONE,
+		"骨头",
+		1,
+		4,
+		0,
+		0,
+		CardDefinition.TargetMode.BOUNCE,
+		3
+	)
+
+
+static func create_cherry_bomb() -> CardDefinition:
+	return CardDefinition.new(
+		CARD_ID_CHERRY_BOMB,
+		"樱桃炸弹",
 		2,
 		5,
 		0,
@@ -230,50 +263,26 @@ static func create_sweep() -> CardDefinition:
 	)
 
 
-static func create_whirlwind() -> CardDefinition:
+static func create_spellbinder() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_WHIRLWIND,
-		"旋刃",
-		3,
-		8,
-		0,
-		0,
-		CardDefinition.TargetMode.ALL_ENEMIES
-	)
-
-
-static func create_finishing_blow() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_FINISHING_BLOW,
-		"收束一击",
-		3,
-		14,
-		0,
-		1,
-		CardDefinition.TargetMode.SINGLE_ENEMY
-	)
-
-
-static func create_prepare() -> CardDefinition:
-	return CardDefinition.new(
-		CARD_ID_PREPARE,
-		"预演",
+		CARD_ID_SPELLBINDER,
+		"拼写器",
 		1,
 		0,
-		0,
-		3,
+		4,
+		1,
 		CardDefinition.TargetMode.SELF
 	)
 
 
-static func create_deep_focus() -> CardDefinition:
+static func create_duplicator() -> CardDefinition:
 	return CardDefinition.new(
-		CARD_ID_DEEP_FOCUS,
-		"深思",
+		CARD_ID_DUPLICATOR,
+		"复制器",
+		1,
+		0,
+		0,
 		2,
-		0,
-		0,
-		4,
 		CardDefinition.TargetMode.SELF
 	)
 
@@ -284,14 +293,14 @@ static func create_starter_deck() -> Array:
 
 static func starter_deck_card_ids() -> Array:
 	return [
-		CARD_ID_STRIKE,
-		CARD_ID_STRIKE,
-		CARD_ID_STRIKE,
-		CARD_ID_BOLT,
-		CARD_ID_BOLT,
-		CARD_ID_GUARD,
-		CARD_ID_GUARD,
-		CARD_ID_FOCUS,
+		CARD_ID_WHIP,
+		CARD_ID_WHIP,
+		CARD_ID_WHIP,
+		CARD_ID_MAGIC_WAND,
+		CARD_ID_MAGIC_WAND,
+		CARD_ID_LAUREL,
+		CARD_ID_LAUREL,
+		CARD_ID_EMPTY_TOME,
 	]
 
 
@@ -301,69 +310,69 @@ static func create_stage_1_reward_pool() -> Array:
 
 static func stage_1_reward_card_ids() -> Array:
 	return [
-		CARD_ID_SWIFT_STRIKE,
-		CARD_ID_SLASH,
-		CARD_ID_CHARGED_SLASH,
-		CARD_ID_HEAVY_HAMMER,
-		CARD_ID_BLOCK,
-		CARD_ID_IRON_WALL,
-		CARD_ID_INSIGHT,
-		CARD_ID_FORTIFY,
-		CARD_ID_STEADY_BREATH,
-		CARD_ID_TACTICAL_ADJUSTMENT,
-		CARD_ID_RIPOSTE,
-		CARD_ID_SHIELD_BASH,
-		CARD_ID_SWEEP,
-		CARD_ID_WHIRLWIND,
-		CARD_ID_FINISHING_BLOW,
-		CARD_ID_PREPARE,
-		CARD_ID_DEEP_FOCUS,
+		CARD_ID_KNIFE,
+		CARD_ID_AXE,
+		CARD_ID_CROSS,
+		CARD_ID_KING_BIBLE,
+		CARD_ID_FIRE_WAND,
+		CARD_ID_GARLIC,
+		CARD_ID_SANTA_WATER,
+		CARD_ID_RUNETRACER,
+		CARD_ID_LIGHTNING_RING,
+		CARD_ID_PENTAGRAM,
+		CARD_ID_PEACHONE,
+		CARD_ID_EBONY_WINGS,
+		CARD_ID_SONG_OF_MANA,
+		CARD_ID_BONE,
+		CARD_ID_CHERRY_BOMB,
+		CARD_ID_SPELLBINDER,
+		CARD_ID_DUPLICATOR,
 	]
 
 
 static func create_card_by_id(card_id: String) -> CardDefinition:
-	if card_id == CARD_ID_STRIKE:
-		return create_strike()
-	if card_id == CARD_ID_BOLT:
-		return create_bolt()
-	if card_id == CARD_ID_GUARD:
-		return create_guard()
-	if card_id == CARD_ID_FOCUS:
-		return create_focus()
-	if card_id == CARD_ID_SWIFT_STRIKE:
-		return create_swift_strike()
-	if card_id == CARD_ID_SLASH:
-		return create_slash()
-	if card_id == CARD_ID_CHARGED_SLASH:
-		return create_charged_slash()
-	if card_id == CARD_ID_HEAVY_HAMMER:
-		return create_heavy_hammer()
-	if card_id == CARD_ID_BLOCK:
-		return create_block()
-	if card_id == CARD_ID_IRON_WALL:
-		return create_iron_wall()
-	if card_id == CARD_ID_INSIGHT:
-		return create_insight()
-	if card_id == CARD_ID_FORTIFY:
-		return create_fortify()
-	if card_id == CARD_ID_STEADY_BREATH:
-		return create_steady_breath()
-	if card_id == CARD_ID_TACTICAL_ADJUSTMENT:
-		return create_tactical_adjustment()
-	if card_id == CARD_ID_RIPOSTE:
-		return create_riposte()
-	if card_id == CARD_ID_SHIELD_BASH:
-		return create_shield_bash()
-	if card_id == CARD_ID_SWEEP:
-		return create_sweep()
-	if card_id == CARD_ID_WHIRLWIND:
-		return create_whirlwind()
-	if card_id == CARD_ID_FINISHING_BLOW:
-		return create_finishing_blow()
-	if card_id == CARD_ID_PREPARE:
-		return create_prepare()
-	if card_id == CARD_ID_DEEP_FOCUS:
-		return create_deep_focus()
+	if card_id == CARD_ID_WHIP:
+		return create_whip()
+	if card_id == CARD_ID_MAGIC_WAND:
+		return create_magic_wand()
+	if card_id == CARD_ID_LAUREL:
+		return create_laurel()
+	if card_id == CARD_ID_EMPTY_TOME:
+		return create_empty_tome()
+	if card_id == CARD_ID_KNIFE:
+		return create_knife()
+	if card_id == CARD_ID_AXE:
+		return create_axe()
+	if card_id == CARD_ID_CROSS:
+		return create_cross()
+	if card_id == CARD_ID_KING_BIBLE:
+		return create_king_bible()
+	if card_id == CARD_ID_FIRE_WAND:
+		return create_fire_wand()
+	if card_id == CARD_ID_GARLIC:
+		return create_garlic()
+	if card_id == CARD_ID_SANTA_WATER:
+		return create_santa_water()
+	if card_id == CARD_ID_RUNETRACER:
+		return create_runetracer()
+	if card_id == CARD_ID_LIGHTNING_RING:
+		return create_lightning_ring()
+	if card_id == CARD_ID_PENTAGRAM:
+		return create_pentagram()
+	if card_id == CARD_ID_PEACHONE:
+		return create_peachone()
+	if card_id == CARD_ID_EBONY_WINGS:
+		return create_ebony_wings()
+	if card_id == CARD_ID_SONG_OF_MANA:
+		return create_song_of_mana()
+	if card_id == CARD_ID_BONE:
+		return create_bone()
+	if card_id == CARD_ID_CHERRY_BOMB:
+		return create_cherry_bomb()
+	if card_id == CARD_ID_SPELLBINDER:
+		return create_spellbinder()
+	if card_id == CARD_ID_DUPLICATOR:
+		return create_duplicator()
 	return null
 
 

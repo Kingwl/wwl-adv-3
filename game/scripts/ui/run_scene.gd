@@ -1168,11 +1168,19 @@ func _card_button_text(card) -> String:
 		"费用：%s" % card.cost,
 	]
 	if card.base_damage > 0:
-		if card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
+		if card.target_mode == CardDefinition.TargetMode.FRONT_ROW:
+			parts.append("前排攻击：%s" % card.base_damage)
+		elif card.target_mode == CardDefinition.TargetMode.ALL_ENEMIES:
 			parts.append("全体攻击：%s" % card.base_damage)
+		elif card.target_mode == CardDefinition.TargetMode.RANDOM_ENEMIES:
+			parts.append("随机命中：%s x%s" % [card.base_damage, card.hit_count])
+		elif card.target_mode == CardDefinition.TargetMode.BOUNCE:
+			parts.append("弹跳：%s x%s" % [card.base_damage, card.hit_count])
+		elif card.hit_count > 1:
+			parts.append("连续攻击：%s x%s" % [card.base_damage, card.hit_count])
 		else:
 			parts.append("攻击：%s" % card.base_damage)
-		parts.append("预览伤害：%s" % _preview_card_damage(card))
+		parts.append("预览总伤害：%s" % _preview_card_damage(card))
 	if card.block > 0:
 		parts.append("防御：%s" % card.block)
 	if card.draw_count > 0:
@@ -1214,6 +1222,8 @@ func _preview_card_multiplier_basis_points(card) -> int:
 func _preview_card_damage(card) -> int:
 	if card == null or card.base_damage <= 0:
 		return 0
+	if active_combat != null and active_combat.has_method("preview_damage_for_card"):
+		return active_combat.preview_damage_for_card(card)
 	return int((card.base_damage * _preview_card_multiplier_basis_points(card)) / 100)
 
 

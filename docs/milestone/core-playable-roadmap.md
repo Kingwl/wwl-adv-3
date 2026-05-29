@@ -137,7 +137,7 @@
 - 生命：40。
 - 最大 mana：3。
 - 起始手牌数：5。
-- Starter deck：Strike x3、Bolt x2、Guard x2、Focus x1。
+- Starter deck：鞭子 x3、魔杖 x2、月桂 x2、空白之书 x1。
 - 第一次升级阈值：10 XP，之后每级增加 8-12 XP。
 
 ### 卡牌
@@ -519,30 +519,24 @@ M2 可以先使用固定地图 fixture，不必等 M1 程序生成完成。但�
 
 已存在：
 
-- Strike：1 费攻击。
-- Bolt：2 费攻击。
-- Guard：1 费 block。
-- Focus：0 费抽牌。
+- 鞭子：1 费前排攻击。
+- 魔杖：2 费自动单体攻击。
+- 月桂：1 费 block。
+- 空白之书：0 费抽牌。
 
 下一批添加：
 
-- Spark：0 费小攻击，用来铺 combo。
-- Cleave：2 费溅射攻击。
-- Brace：0 费小 block。
-- Channel：1 费获得本回合或下回合 mana。
+- 武器进化：血鞭、千刃、天堂之剑、邪恶晚祷等。
 - Wild Step：费用灵活的 combo 延续卡，本身价值较低。
 - Harvest：成长卡，击杀时给额外 XP。
-- Shield Bash：根据当前 block 缩放的攻击。
-- Quick Study：抽牌并弃牌，用于整理手牌。
+- Channel：1 费获得本回合或下回合 mana。
 
 ### 首批奖励卡
 
-- Fireball：高费终结攻击。
-- Echo Strike：以较低伤害重复一次。
-- Barrier：大量 block，并保留下回合部分 block。
-- Mana Bloom：combo chain 3+ 时获得 mana 并抽牌。
-- Gem Cutter：强化下一次 modifier 奖励。
-- Lucky Coin：提高宝箱奖励质量。
+- 飞刀、斧头、十字架：补足连续命中和弹跳攻击。
+- 国王圣经、大蒜、圣水：补足近身范围和区域控制。
+- 闪电戒指、五芒星、樱桃炸弹：补足随机落点和清屏攻击。
+- 拼写器、复制器：提供少量防御和抽牌支撑。
 
 ### 首批物品
 
